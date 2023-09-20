@@ -215,7 +215,7 @@ extension MessageAction {
         let editAction = MessageAction(
             id: MessageActionId.edit,
             title: L10n.Message.Actions.edit,
-            iconName: "icn_edit",
+            iconName: "square.and.pencil",
             action: {
                 onFinish(
                     MessageActionInfo(
@@ -261,7 +261,7 @@ extension MessageAction {
         let pinAction = MessageAction(
             id: MessageActionId.pin,
             title: L10n.Message.Actions.pin,
-            iconName: "icn_pin",
+            iconName: "pin",
             action: pinMessage,
             confirmationPopup: nil,
             isDestructive: false
@@ -317,7 +317,7 @@ extension MessageAction {
         let replyAction = MessageAction(
             id: MessageActionId.reply,
             title: L10n.Message.Actions.inlineReply,
-            iconName: "icn_inline_reply",
+            iconName: "arrowshape.turn.up.left",
             action: {
                 onFinish(
                     MessageActionInfo(
@@ -341,7 +341,7 @@ extension MessageAction {
         let replyThread = MessageAction(
             id: MessageActionId.threadReply,
             title: L10n.Message.Actions.threadReply,
-            iconName: "icn_thread_reply",
+            iconName: "text.bubble",
             action: {
                 NotificationCenter.default.post(
                     name: NSNotification.Name(MessageRepliesConstants.selectedMessageThread),

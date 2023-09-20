@@ -2,8 +2,9 @@
 // Copyright © 2024 Stream.io Inc. All rights reserved.
 //
 
-import StreamChat
+
 import SwiftUI
+import StreamChat
 
 /// View for the mentioned users.
 public struct MentionUsersView: View {

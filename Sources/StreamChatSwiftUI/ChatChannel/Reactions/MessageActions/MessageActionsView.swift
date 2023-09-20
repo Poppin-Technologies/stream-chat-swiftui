@@ -5,6 +5,7 @@
 import SwiftUI
 
 /// View for the message actions.
+@available(iOS 15.0, *)
 public struct MessageActionsView: View {
     @Injected(\.colors) private var colors
 
@@ -56,7 +57,7 @@ public struct MessageActionsView: View {
                 .accessibilityIdentifier("messageAction-\(action.id)")
             }
         }
-        .background(Color(colors.background8))
+        .background(Material.ultraThickMaterial)
         .roundWithBorder(cornerRadius: 12)
         .alert(isPresented: $viewModel.alertShown) {
             let title = viewModel.alertAction?.confirmationPopup?.title ?? ""

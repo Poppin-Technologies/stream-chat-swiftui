@@ -742,21 +742,25 @@ extension ViewFactory {
         )
     }
     
-    public func makeMessageActionsView(
-        for message: ChatMessage,
-        channel: ChatChannel,
-        onFinish: @escaping (MessageActionInfo) -> Void,
-        onError: @escaping (Error) -> Void
-    ) -> some View {
+  public func makeMessageActionsView(
+    for message: ChatMessage,
+    channel: ChatChannel,
+    onFinish: @escaping (MessageActionInfo) -> Void,
+    onError: @escaping (Error) -> Void
+  ) -> some View {
+    return Group {
+      if #available(iOS 15.0, *) {
         let messageActions = supportedMessageActions(
-            for: message,
-            channel: channel,
-            onFinish: onFinish,
-            onError: onError
+          for: message,
+          channel: channel,
+          onFinish: onFinish,
+          onError: onError
         )
         
-        return MessageActionsView(messageActions: messageActions)
+        MessageActionsView(messageActions: messageActions)
+      }
     }
+  }
     
     public func makeReactionsUsersView(
         message: ChatMessage,
