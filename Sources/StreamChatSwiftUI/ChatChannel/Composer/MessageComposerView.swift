@@ -4,6 +4,7 @@
 
 import StreamChat
 import SwiftUI
+import ShinySwiftUI
 
 /// Main view for the message composer.
 public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable {
@@ -148,7 +149,7 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
         .onReceive(keyboardWillChangePublisher) { visible in
             if visible && !keyboardShown {
                 if viewModel.composerCommand == nil && !editedMessageWillShow {
-                    withAnimation(.easeInOut(duration: 0.02)) {
+                    withAnimation(.slickEaseInOut(duration: 0.02)) {
                         viewModel.pickerTypeState = .expanded(.none)
                     }
                 }
@@ -296,6 +297,7 @@ public struct ComposerInputView<Factory: ViewFactory>: View {
             }
 
             HStack {
+                let color = #colorLiteral(red: 0.88, green: 0.66, blue: 1.00, alpha: 1.00)
                 if let command = command,
                    let displayInfo = command.displayInfo,
                    displayInfo.isInstant == true {
@@ -306,7 +308,7 @@ public struct ComposerInputView<Factory: ViewFactory>: View {
                     .padding(.horizontal, 8)
                     .font(fonts.footnoteBold)
                     .frame(height: 24)
-                    .background(Color.blue)
+                    .background(Color(color))
                     .foregroundColor(.white)
                     .cornerRadius(16)
                 }

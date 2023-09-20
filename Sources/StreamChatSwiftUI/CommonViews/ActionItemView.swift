@@ -2,6 +2,7 @@
 // Copyright © 2023 Stream.io Inc. All rights reserved.
 //
 
+import ShinySwiftUI
 import SwiftUI
 
 /// View for the  action item in an action list (for channels and messages).
@@ -19,13 +20,15 @@ public struct ActionItemView: View {
         HStack(spacing: 16) {
             Image(uiImage: image)
                 .customizable()
-                .frame(maxHeight: 18)
+                .frame(width: 18, height: 18)
                 .foregroundColor(
                     isDestructive ? Color(colors.alert) : Color(colors.textLowEmphasis)
                 )
 
             Text(title)
-                .font(boldTitle ? fonts.bodyBold : fonts.body)
+                .if(boldTitle) {
+                  $0.bold()
+                }
                 .foregroundColor(
                     isDestructive ? Color(colors.alert) : Color(colors.text)
                 )
@@ -36,13 +39,13 @@ public struct ActionItemView: View {
     }
 
     private var image: UIImage {
-        // Check if it's in the app bundle.
-        if let image = UIImage(named: iconName) {
-            return image
-        }
-
         // Support for system images.
         if let image = UIImage(systemName: iconName) {
+            return image
+        }
+      
+        // Check if it's in the app bundle.
+        if let image = UIImage(named: iconName) {
             return image
         }
 

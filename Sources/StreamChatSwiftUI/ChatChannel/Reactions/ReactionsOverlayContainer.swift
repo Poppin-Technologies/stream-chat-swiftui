@@ -164,7 +164,7 @@ public struct ReactionAnimatableView: View {
                     .resizable()
                     .scaledToFit()
                     .foregroundColor(color(for: reaction))
-                    .frame(width: useLargeIcons ? 25 : 20, height: useLargeIcons ? 27 : 20)
+                    .frame(width: useLargeIcons ? 32 : 20, height: useLargeIcons ? 35 : 20)
             }
             .background(reactionSelectedBackgroundColor(for: reaction).cornerRadius(8))
             .scaleEffect(index(for: reaction) != nil ? animationStates[index(for: reaction)!] : 1)
