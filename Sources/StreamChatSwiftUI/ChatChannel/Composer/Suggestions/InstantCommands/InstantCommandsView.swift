@@ -86,7 +86,7 @@ struct InstantCommandsHeader: View {
 
     var body: some View {
         HStack {
-            Image(uiImage: images.smallBolt)
+              Image(systemName: "bolt.fill")
                 .renderingMode(.template)
                 .resizable()
                 .frame(width: 24, height: 24)
