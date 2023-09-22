@@ -86,9 +86,10 @@ struct InstantCommandsHeader: View {
 
     var body: some View {
         HStack {
-              Image(systemName: "bolt.fill")
+              Image(systemName: "bolt")
                 .renderingMode(.template)
                 .resizable()
+                .scaledToFit()
                 .frame(width: 24, height: 24)
                 .foregroundColor(colors.tintColor)
                 .accessibilityIdentifier("InstantCommandsImage")
