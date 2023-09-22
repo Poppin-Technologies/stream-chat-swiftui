@@ -42,7 +42,7 @@ public class Images {
     public var more = loadImageSafely(with: "icn_more")
     public var share: UIImage = UIImage(systemName: "square.and.arrow.up")!
 
-    public var commands: UIImage = loadImageSafely(with: "bolt")
+    public var commands: UIImage = UIImage(systemName: "bolt") ?? .circleImage
     public var smallBolt: UIImage = loadImageSafely(with: "bolt_small")
     public var openAttachments: UIImage = loadImageSafely(with: "clip")
     public var shrinkInputArrow: UIImage = loadImageSafely(with: "arrow_shrink_input")
