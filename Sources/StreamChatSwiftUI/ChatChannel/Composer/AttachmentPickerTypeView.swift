@@ -111,7 +111,7 @@ struct PickerTypeButton: View {
 
     private var icon: UIImage {
         if pickerType == .media {
-            return images.openAttachments
+            return UIImage(systemName: "paperclip")
         } else {
             return images.commands
         }

@@ -302,7 +302,7 @@ public struct ComposerInputView<Factory: ViewFactory>: View {
                    let displayInfo = command.displayInfo,
                    displayInfo.isInstant == true {
                     HStack(spacing: 0) {
-                        Image(uiImage: images.smallBolt)
+                        Image(systemName: "bolt.fill")
                         Text(displayInfo.displayName.uppercased())
                     }
                     .padding(.horizontal, 8)
