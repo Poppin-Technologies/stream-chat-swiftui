@@ -43,3 +43,7 @@ extension InjectedValues {
         }
     }
 }
+
+struct Constants {
+  static let photoPickerDropDown = "photo_picker_drop_down"
+}
