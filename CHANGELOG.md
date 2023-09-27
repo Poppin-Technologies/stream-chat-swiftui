@@ -5,6 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### 🔄 Changed
 
+# [4.37.1](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.37.1)
+_September 27, 2023_
+
+### ✅ Added
+- Config for changing supported media types in the composer
+
+### 🐞 Fixed
+- Play audio in videos when in silent mode
+
 # [4.37.0](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.37.0)
 _September 18, 2023_
 
