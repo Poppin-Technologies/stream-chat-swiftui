@@ -158,9 +158,14 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
             editedMessageWillShow = false
         }
         .onReceive(
-          NotificationCenter.default.publisher(for: Notification.Name(rawValue: Constants.photoPickerDropDown))
-        ) {
-          viewModel.pickerTypeState = .collapsed
+          NotificationCenter.default.publisher(
+            for: NSNotification.Name(rawValue: Constants.photoPickerDropDown),
+            object: nil
+          )
+        ) { _ in
+          withAnimation(.spring(response: 0.3, dampingFraction: 1.2)) {
+            viewModel.pickerTypeState = .expanded(.none)
+          }
         }
         .onReceive(keyboardHeight) { height in
             if height > 0 && height != popupSize {
