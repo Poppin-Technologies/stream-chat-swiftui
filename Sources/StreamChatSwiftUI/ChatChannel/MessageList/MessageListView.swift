@@ -268,6 +268,9 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
         })
         .modifier(factory.makeMessageListContainerModifier())
         .modifier(HideKeyboardOnTapGesture(shouldAdd: keyboardShown))
+        .simultaneousGesture(TapGesture().onEnded({ _ in
+          NotificationCenter.default.post(Notification(name: .init(rawValue: Constants.photoPickerDropDown)))
+        }))
         .onDisappear {
             messageRenderingUtil.update(previousTopMessage: nil)
         }

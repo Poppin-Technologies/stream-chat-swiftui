@@ -25,7 +25,7 @@ struct ReactionsContainer: View {
                 .onTapGesture {
                     onTapGesture()
                 }
-                .onLongPressGesture {
+                .onLongPressGesture(minimumDuration: 0.2) {
                     onLongPressGesture()
                 }
             }

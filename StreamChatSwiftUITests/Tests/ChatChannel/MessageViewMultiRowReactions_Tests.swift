@@ -111,7 +111,7 @@ struct CustomReactionsContainer: View {
                         .onTapGesture {
                             onTapGesture()
                         }
-                        .onLongPressGesture(minimumDuration: 0.6) {
+                        .onLongPressGesture(minimumDuration: 0.2) {
                             onLongPressGesture()
                         }
                     }

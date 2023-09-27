@@ -122,11 +122,11 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                             handleGestureForMessage(showsMessageActions: true)
                         }
                     }
-                    .onLongPressGesture(minimumDuration: 0.6, perform: {
-                        if !message.isDeleted {
-                            handleGestureForMessage(showsMessageActions: true)
-                        }
-                    })
+                    .simultaneousGesture(LongPressGesture(minimumDuration: 0.4).onEnded({ _ in
+                      if !message.isDeleted {
+                          handleGestureForMessage(showsMessageActions: true)
+                      }
+                    }))
                     .offset(x: min(self.offsetX, maximumHorizontalSwipeDisplacement))
                     .simultaneousGesture(
                         DragGesture(
