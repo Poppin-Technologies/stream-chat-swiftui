@@ -33,44 +33,63 @@ public struct MessageAuthorAndDateView: View {
 
 /// View that displays the message author.
 public struct MessageAuthorView: View {
-    
-    @Injected(\.utils) private var utils
-    @Injected(\.fonts) private var fonts
-    @Injected(\.colors) private var colors
-    
-    var message: ChatMessage
-    
-    public init(message: ChatMessage) {
-        self.message = message
-    }
-    
-    public var body: some View {
-        Text(utils.messageCachingUtils.authorName(for: message))
-            .lineLimit(1)
-            .font(fonts.footnoteBold)
-            .foregroundColor(Color(colors.textLowEmphasis))
-    }
+  
+  @Injected(\.utils) private var utils
+  @Injected(\.fonts) private var fonts
+  @Injected(\.colors) private var colors
+  
+  var message: ChatMessage
+  
+  public init(message: ChatMessage) {
+    self.message = message
+  }
+  
+  public var body: some View {
+    Text(utils.messageCachingUtils.authorName(for: message))
+      .lineLimit(1)
+      .font(fonts.footnoteBold)
+      .foregroundColor(Color(colors.textLowEmphasis))
+  }
 }
 
 /// View that displays the sending date of a message.
 struct MessageDateView: View {
-    @Injected(\.utils) private var utils
-    @Injected(\.fonts) private var fonts
-    @Injected(\.colors) private var colors
+  @Injected(\.utils) private var utils
+  @Injected(\.fonts) private var fonts
+  @Injected(\.colors) private var colors
+  
+  private var dateFormatter: DateFormatter {
+    utils.dateFormatter
+  }
+  
+  var message: ChatMessage
+  
+  
+  var body: some View {
+    Text(formatChatMessageDate(date: message.createdAt))
+      .font(fonts.footnote)
+      .foregroundColor(Color(colors.textLowEmphasis))
+      .animation(nil)
+      .accessibilityIdentifier("MessageDateView")
+  }
+  
+  func formatChatMessageDate(date: Date) -> String {
+    let calendar = Calendar.current
+    let components = calendar.dateComponents([.day, .month, .hour, .minute], from: date)
     
-    private var dateFormatter: DateFormatter {
-        utils.dateFormatter
+    let day = components.day ?? 1
+    let month = components.month ?? 1
+    let hour = components.hour ?? 0
+    let minute = components.minute ?? 0
+    
+    let dateFormatter = DateFormatter()
+    if day == 1 {
+      dateFormatter.dateFormat = "M/d HH:mm"
+    } else {
+      dateFormatter.dateFormat = "HH:mm"
     }
-    
-    var message: ChatMessage
-    
-    var body: some View {
-        Text(dateFormatter.string(from: message.createdAt))
-            .font(fonts.footnote)
-            .foregroundColor(Color(colors.textLowEmphasis))
-            .animation(nil)
-            .accessibilityIdentifier("MessageDateView")
-    }
+    return dateFormatter.string(from: date)
+  }
 }
 
 /// View that displays the read indicator for a message.
