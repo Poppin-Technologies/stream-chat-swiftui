@@ -25,7 +25,8 @@ public struct MessageListConfig {
         iPadSplitViewEnabled: Bool = true,
         scrollingAnchor: UnitPoint = .bottom,
         showNewMessagesSeparator: Bool = false,
-        handleTabBarVisibility: Bool = true
+        handleTabBarVisibility: Bool = true,
+        messageListAlignment: MessageListAlignment = .standard
     ) {
         self.messageListType = messageListType
         self.typingIndicatorPlacement = typingIndicatorPlacement
@@ -44,6 +45,7 @@ public struct MessageListConfig {
         self.scrollingAnchor = scrollingAnchor
         self.showNewMessagesSeparator = showNewMessagesSeparator
         self.handleTabBarVisibility = handleTabBarVisibility
+        self.messageListAlignment = messageListAlignment
     }
 
     public let messageListType: MessageListType
@@ -63,6 +65,7 @@ public struct MessageListConfig {
     public let scrollingAnchor: UnitPoint
     public let showNewMessagesSeparator: Bool
     public let handleTabBarVisibility: Bool
+    public let messageListAlignment: MessageListAlignment
 }
 
 /// Contains information about the message paddings.
@@ -98,6 +101,7 @@ public struct MessageDisplayOptions {
     public let currentUserMessageTransition: AnyTransition
     public let otherUserMessageTransition: AnyTransition
     public let shouldAnimateReactions: Bool
+    public let reactionsPlacement: ReactionsPlacement
     public let messageLinkDisplayResolver: (ChatMessage) -> [NSAttributedString.Key: Any]
     public let spacerWidth: (CGFloat) -> CGFloat
     public let reactionsTopPadding: (ChatMessage) -> CGFloat
@@ -116,6 +120,7 @@ public struct MessageDisplayOptions {
         currentUserMessageTransition: AnyTransition = .identity,
         otherUserMessageTransition: AnyTransition = .identity,
         shouldAnimateReactions: Bool = true,
+        reactionsPlacement: ReactionsPlacement = .top,
         messageLinkDisplayResolver: @escaping (ChatMessage) -> [NSAttributedString.Key: Any] = MessageDisplayOptions
             .defaultLinkDisplay,
         spacerWidth: @escaping (CGFloat) -> CGFloat = MessageDisplayOptions.defaultSpacerWidth,
@@ -138,6 +143,7 @@ public struct MessageDisplayOptions {
         self.reactionsTopPadding = reactionsTopPadding
         self.newMessagesSeparatorSize = newMessagesSeparatorSize
         self.dateSeparator = dateSeparator
+        self.reactionsPlacement = reactionsPlacement
     }
 
     public func showAvatars(for channel: ChatChannel) -> Bool {
@@ -186,4 +192,19 @@ public enum MessageListType {
     case team
     case livestream
     case commerce
+}
+
+public enum ReactionsPlacement {
+    case top
+    case bottom
+}
+
+/// The alignment of the messages in the message list.
+public enum MessageListAlignment {
+    /// Standard message alignment.
+    /// The current user's messages are on the right.
+    /// The other users' messages are on the left.
+    case standard
+    /// Everything is left aligned.
+    case leftAligned
 }

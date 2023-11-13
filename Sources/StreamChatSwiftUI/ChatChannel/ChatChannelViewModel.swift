@@ -3,7 +3,6 @@
 //
 
 import Combine
-import Nuke
 import StreamChat
 import SwiftUI
 
@@ -38,6 +37,7 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
     private var disableDateIndicator = false
     private var channelName = ""
     private var onlineIndicatorShown = false
+    private let throttler = Throttler(interval: 3, broadcastLatestEvent: true)
     
     public var channelController: ChatChannelController
     public var messageController: ChatMessageController?
@@ -139,6 +139,13 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
             object: nil
         )
         
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(applicationWillEnterForeground),
+            name: UIApplication.willEnterForegroundNotification,
+            object: nil
+        )
+        
         if messageController == nil {
             NotificationCenter.default.addObserver(
                 self,
@@ -162,8 +169,14 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
     
     @objc
     private func didReceiveMemoryWarning() {
-        Nuke.ImageCache.shared.removeAll()
+        ImageCache.shared.removeAll()
         messageCachingUtils.clearCache()
+    }
+    
+    @objc
+    private func applicationWillEnterForeground() {
+        guard let first = messages.first else { return }
+        maybeSendReadEvent(for: first)
     }
     
     public func scrollToLastMessage() {
@@ -184,7 +197,10 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
             save(lastDate: message.createdAt)
         }
         if index == 0 {
-            maybeSendReadEvent(for: message)
+            let isActive = UIApplication.shared.applicationState == .active
+            if isActive {
+                maybeSendReadEvent(for: message)
+            }
         }
     }
     
@@ -343,7 +359,9 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
     private func maybeSendReadEvent(for message: ChatMessage) {
         if message.id != lastMessageRead {
             lastMessageRead = message.id
-            channelController.markRead()
+            throttler.throttle { [weak self] in
+                self?.channelController.markRead()
+            }
         }
     }
     
@@ -508,7 +526,7 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
         messageCachingUtils.clearCache()
         if messageController == nil {
             utils.channelControllerFactory.clearCurrentController()
-            Nuke.ImageCache.shared.trim(toCost: utils.messageListConfig.cacheSizeOnChatDismiss)
+            ImageCache.shared.trim(toCost: utils.messageListConfig.cacheSizeOnChatDismiss)
         }
     }
 }

@@ -26,7 +26,7 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
         viewFactory: Factory,
         viewModel: MessageComposerViewModel? = nil,
         channelController: ChatChannelController,
-        messageController: ChatMessageController?,
+        messageController: ChatMessageController? = nil,
         quotedMessage: Binding<ChatMessage?>,
         editedMessage: Binding<ChatMessage?>,
         onMessageSent: @escaping () -> Void
@@ -208,6 +208,7 @@ public struct ComposerInputView<Factory: ViewFactory>: View {
     @Injected(\.colors) private var colors
     @Injected(\.fonts) private var fonts
     @Injected(\.images) private var images
+    @Injected(\.utils) private var utils
 
     var factory: Factory
     @Binding var text: String
@@ -265,6 +266,10 @@ public struct ComposerInputView<Factory: ViewFactory>: View {
         }
 
         return textHeight
+    }
+    
+    var inputPaddingsConfig: PaddingsConfig {
+        utils.composerConfig.inputPaddingsConfig
     }
 
     public var body: some View {
@@ -352,8 +357,9 @@ public struct ComposerInputView<Factory: ViewFactory>: View {
             }
             .frame(height: textFieldHeight)
         }
-        .padding(.vertical, shouldAddVerticalPadding ? 8 : 0)
-        .padding(.leading, 8)
+        .padding(.vertical, shouldAddVerticalPadding ? inputPaddingsConfig.vertical : 0)
+        .padding(.leading, inputPaddingsConfig.leading)
+        .padding(.trailing, inputPaddingsConfig.trailing)
         .background(composerInputBackground)
         .overlay(
             RoundedRectangle(cornerRadius: TextSizeConstants.cornerRadius)

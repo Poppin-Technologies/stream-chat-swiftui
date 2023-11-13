@@ -3,7 +3,49 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 # Upcoming
 
+### 🐞 Fixed
+- Fix marked read while the app is in the background
+- Fix recently saved images to camera roll don't show up
+
+# [4.41.0](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.41.0)
+_November 03, 2023_
+
+### ✅ Added
+- Config for bottom placement of reactions
+
+### 🐞 Fixed
+- Video playing after being dismissed on iOS 17.1
+
+# [4.40.0](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.40.0)
+_October 26, 2023_
+
+### ⚠️ Important
+
+- Dependencies are no longer exposed (this includes Nuke and SwiftyGif). If you were using those dependencies we were exposing, you would need to import them manually. This is due to our newest addition supporting Module Stable XCFramework, see more below in the "Added" section. If you encounter any SPM-related problems, be sure to reset the package caches.
+
+### ✅ Added
+- Add message preview with attachments in channel list
+- Add support for pre-built XCFramework
+- Config for composer text input paddings
+- Config for left alignment of messages
+
 ### 🔄 Changed
+- Made some `ChannelList` and `MessageListView` parameters optional
+
+# [4.39.0](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.39.0)
+_October 06, 2023_
+
+### 🐞 Fixed
+- Fixed visibility for deleted messages indicator for current user
+
+### ✅ Added
+- Add throttling to mark as read
+
+# [4.38.0](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.38.0)
+_September 29, 2023_
+
+### 🐞 Fixed
+- Performance improvements in the low-level client
 
 # [4.37.1](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.37.1)
 _September 27, 2023_
