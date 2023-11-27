@@ -74,21 +74,24 @@ struct MessageDateView: View {
   }
   
   func formatChatMessageDate(date: Date) -> String {
-    let calendar = Calendar.current
-    let components = calendar.dateComponents([.day, .month, .hour, .minute], from: date)
-    
-    let day = components.day ?? 1
-    let month = components.month ?? 1
-    let hour = components.hour ?? 0
-    let minute = components.minute ?? 0
-    
-    let dateFormatter = DateFormatter()
-    if day == 1 {
-      dateFormatter.dateFormat = "M/d HH:mm"
-    } else {
-      dateFormatter.dateFormat = "HH:mm"
-    }
-    return dateFormatter.string(from: date)
+      let calendar = Calendar.current
+      let components = calendar.dateComponents([.day, .month, .hour, .minute], from: date)
+      
+      let day = components.day ?? 1
+      let month = components.month ?? 1
+      let hour = components.hour ?? 0
+      let minute = components.minute ?? 0
+      
+      let dateFormatter = DateFormatter()
+      
+      let currentDate = Date()
+      if date.timeIntervalSince(currentDate) > -86400 {
+          dateFormatter.dateFormat = "HH:mm"
+      } else {
+          dateFormatter.dateFormat = "M/d HH:mm"
+      }
+      
+      return dateFormatter.string(from: date)
   }
 }
 
