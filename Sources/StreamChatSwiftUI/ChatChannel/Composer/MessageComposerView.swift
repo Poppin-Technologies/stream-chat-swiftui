@@ -134,6 +134,7 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
                 popupHeight: popupSize
             )
         }
+        .environmentObject(viewModel)
         .background(
             GeometryReader { proxy in
                 let frame = proxy.frame(in: .local)
