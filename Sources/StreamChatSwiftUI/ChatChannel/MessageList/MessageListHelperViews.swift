@@ -85,10 +85,10 @@ struct MessageDateView: View {
       let dateFormatter = DateFormatter()
       
       let currentDate = Date()
-      if date.timeIntervalSince(currentDate) > -86400 {
-          dateFormatter.dateFormat = "HH:mm"
+      if currentDate.timeIntervalSince(date) < 86400 {
+        dateFormatter.dateFormat = "h:mm a"
       } else {
-          dateFormatter.dateFormat = "M/d HH:mm"
+        dateFormatter.dateFormat = "MM/dd h:mm a"
       }
       
       return dateFormatter.string(from: date)
