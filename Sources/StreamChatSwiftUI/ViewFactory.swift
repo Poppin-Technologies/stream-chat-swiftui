@@ -28,6 +28,14 @@ public protocol ViewFactory: AnyObject {
     associatedtype LoadingContent: View
     /// Creates the loading view.
     func makeLoadingView() -> LoadingContent
+  
+  
+    associatedtype ChannelTopBar: View
+    /// Makes topbar of channel.
+    /// - parameter channel: the channel being displayed.
+    func makeChannelTopBar(
+      channel: ChatChannel
+    ) -> ChannelTopBar
 
     associatedtype ChannelListItemType: View
     /// Creates the channel list item.

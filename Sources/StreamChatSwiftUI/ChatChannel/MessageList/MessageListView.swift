@@ -112,130 +112,133 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
 
     public var body: some View {
         ZStack {
+          VStack {
+            factory.makeChannelTopBar(channel: channel)
             ScrollViewReader { scrollView in
-                ScrollView {
-                    GeometryReader { proxy in
-                        let frame = proxy.frame(in: .named(scrollAreaId))
-                        let offset = frame.minY
-                        let width = frame.width
-                        Color.clear.preference(key: ScrollViewOffsetPreferenceKey.self, value: offset)
-                        Color.clear.preference(key: WidthPreferenceKey.self, value: width)
-                    }
-
-                    LazyVStack(spacing: 0) {
-                        ForEach(messages, id: \.messageId) { message in
-                            var index: Int? = messageListDateUtils.indexForMessageDate(message: message, in: messages)
-                            let messageDate: Date? = messageListDateUtils.showMessageDate(for: index, in: messages)
-                            let showUnreadSeparator = message.id == newMessagesStartId
-                            let showsLastInGroupInfo = showsLastInGroupInfo(for: message, channel: channel)
-                            factory.makeMessageContainerView(
-                                channel: channel,
-                                message: message,
-                                width: width,
-                                showsAllInfo: showsAllData(for: message),
-                                isInThread: isMessageThread,
-                                scrolledId: $scrolledId,
-                                quotedMessage: $quotedMessage,
-                                onLongPress: handleLongPress(messageDisplayInfo:),
-                                isLast: !showsLastInGroupInfo && message == messages.last
-                            )
-                            .onAppear {
-                                if index == nil {
-                                    index = messageListDateUtils.index(for: message, in: messages)
-                                }
-                                if let index = index {
-                                    onMessageAppear(index)
-                                }
-                            }
-                            .padding(
-                                .top,
-                                messageDate != nil ?
-                                    offsetForDateIndicator(
-                                        showsLastInGroupInfo: showsLastInGroupInfo,
-                                        showUnreadSeparator: showUnreadSeparator
-                                    ) :
-                                    additionalTopPadding(
-                                        showsLastInGroupInfo: showsLastInGroupInfo,
-                                        showUnreadSeparator: showUnreadSeparator
-                                    )
-                            )
-                            .overlay(
-                                (messageDate != nil || showsLastInGroupInfo || showUnreadSeparator) ?
-                                    VStack(spacing: 0) {
-                                        messageDate != nil ?
-                                            factory.makeMessageListDateIndicator(date: messageDate!)
-                                            .frame(maxHeight: messageListConfig.messageDisplayOptions.dateLabelSize)
-                                            : nil
-                                        
-                                        showUnreadSeparator ?
-                                            factory.makeNewMessagesIndicatorView(
-                                                newMessagesStartId: $newMessagesStartId,
-                                                count: newMessagesCount(for: index, message: message)
-                                            )
-                                            : nil
-
-                                        showsLastInGroupInfo ?
-                                            factory.makeLastInGroupHeaderView(for: message)
-                                            .frame(maxHeight: lastInGroupHeaderSize)
-                                            : nil
-
-                                        Spacer()
-                                    }
-                                    : nil
-                            )
-                            .flippedUpsideDown()
-                            .animation(nil, value: messageDate != nil)
-                        }
-                        .id(listId)
-                    }
-                    .modifier(factory.makeMessageListModifier())
+              ScrollView {
+                GeometryReader { proxy in
+                  let frame = proxy.frame(in: .named(scrollAreaId))
+                  let offset = frame.minY
+                  let width = frame.width
+                  Color.clear.preference(key: ScrollViewOffsetPreferenceKey.self, value: offset)
+                  Color.clear.preference(key: WidthPreferenceKey.self, value: width)
                 }
-                .background(
-                    factory.makeMessageListBackground(
-                        colors: colors,
-                        isInThread: isMessageThread
+                
+                LazyVStack(spacing: 0) {
+                  ForEach(messages, id: \.messageId) { message in
+                    var index: Int? = messageListDateUtils.indexForMessageDate(message: message, in: messages)
+                    let messageDate: Date? = messageListDateUtils.showMessageDate(for: index, in: messages)
+                    let showUnreadSeparator = message.id == newMessagesStartId
+                    let showsLastInGroupInfo = showsLastInGroupInfo(for: message, channel: channel)
+                    factory.makeMessageContainerView(
+                      channel: channel,
+                      message: message,
+                      width: width,
+                      showsAllInfo: showsAllData(for: message),
+                      isInThread: isMessageThread,
+                      scrolledId: $scrolledId,
+                      quotedMessage: $quotedMessage,
+                      onLongPress: handleLongPress(messageDisplayInfo:),
+                      isLast: !showsLastInGroupInfo && message == messages.last
                     )
+                    .onAppear {
+                      if index == nil {
+                        index = messageListDateUtils.index(for: message, in: messages)
+                      }
+                      if let index = index {
+                        onMessageAppear(index)
+                      }
+                    }
+                    .padding(
+                      .top,
+                      messageDate != nil ?
+                      offsetForDateIndicator(
+                        showsLastInGroupInfo: showsLastInGroupInfo,
+                        showUnreadSeparator: showUnreadSeparator
+                      ) :
+                        additionalTopPadding(
+                          showsLastInGroupInfo: showsLastInGroupInfo,
+                          showUnreadSeparator: showUnreadSeparator
+                        )
+                    )
+                    .overlay(
+                      (messageDate != nil || showsLastInGroupInfo || showUnreadSeparator) ?
+                      VStack(spacing: 0) {
+                        messageDate != nil ?
+                        factory.makeMessageListDateIndicator(date: messageDate!)
+                          .frame(maxHeight: messageListConfig.messageDisplayOptions.dateLabelSize)
+                        : nil
+                        
+                        showUnreadSeparator ?
+                        factory.makeNewMessagesIndicatorView(
+                          newMessagesStartId: $newMessagesStartId,
+                          count: newMessagesCount(for: index, message: message)
+                        )
+                        : nil
+                        
+                        showsLastInGroupInfo ?
+                        factory.makeLastInGroupHeaderView(for: message)
+                          .frame(maxHeight: lastInGroupHeaderSize)
+                        : nil
+                        
+                        Spacer()
+                      }
+                      : nil
+                    )
+                    .flippedUpsideDown()
+                    .animation(nil, value: messageDate != nil)
+                  }
+                  .id(listId)
+                }
+                .modifier(factory.makeMessageListModifier())
+              }
+              .background(
+                factory.makeMessageListBackground(
+                  colors: colors,
+                  isInThread: isMessageThread
                 )
-                .coordinateSpace(name: scrollAreaId)
-                .onPreferenceChange(WidthPreferenceKey.self) { value in
-                    if let value = value, value != width {
-                        self.width = value
-                    }
+              )
+              .coordinateSpace(name: scrollAreaId)
+              .onPreferenceChange(WidthPreferenceKey.self) { value in
+                if let value = value, value != width {
+                  self.width = value
                 }
-                .onPreferenceChange(ScrollViewOffsetPreferenceKey.self) { value in
-                    DispatchQueue.main.async {
-                        let offsetValue = value ?? 0
-                        let diff = offsetValue - utils.messageCachingUtils.scrollOffset
-                        utils.messageCachingUtils.scrollOffset = offsetValue
-                        let scrollButtonShown = offsetValue < -20
-                        if scrollButtonShown != showScrollToLatestButton {
-                            showScrollToLatestButton = scrollButtonShown
-                        }
-                        if keyboardShown && diff < -20 {
-                            keyboardShown = false
-                            resignFirstResponder()
-                        }
-                    }
+              }
+              .onPreferenceChange(ScrollViewOffsetPreferenceKey.self) { value in
+                DispatchQueue.main.async {
+                  let offsetValue = value ?? 0
+                  let diff = offsetValue - utils.messageCachingUtils.scrollOffset
+                  utils.messageCachingUtils.scrollOffset = offsetValue
+                  let scrollButtonShown = offsetValue < -20
+                  if scrollButtonShown != showScrollToLatestButton {
+                    showScrollToLatestButton = scrollButtonShown
+                  }
+                  if keyboardShown && diff < -20 {
+                    keyboardShown = false
+                    resignFirstResponder()
+                  }
                 }
-                .flippedUpsideDown()
-                .frame(maxWidth: .infinity)
-                .clipped()
-                .onChange(of: scrolledId) { scrolledId in
-                    if let scrolledId = scrolledId {
-                        if scrolledId == messages.first?.messageId {
-                            self.scrolledId = nil
-                        } else {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                                self.scrolledId = nil
-                            }
-                        }
-                        withAnimation {
-                            scrollView.scrollTo(scrolledId, anchor: messageListConfig.scrollingAnchor)
-                        }
+              }
+              .flippedUpsideDown()
+              .frame(maxWidth: .infinity)
+              .clipped()
+              .onChange(of: scrolledId) { scrolledId in
+                if let scrolledId = scrolledId {
+                  if scrolledId == messages.first?.messageId {
+                    self.scrolledId = nil
+                  } else {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                      self.scrolledId = nil
                     }
+                  }
+                  withAnimation {
+                    scrollView.scrollTo(scrolledId, anchor: messageListConfig.scrollingAnchor)
+                  }
                 }
-                .accessibilityIdentifier("MessageListScrollView")
+              }
+              .accessibilityIdentifier("MessageListScrollView")
             }
+          }
 
             if showScrollToLatestButton {
                 factory.makeScrollToBottomButton(
