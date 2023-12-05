@@ -151,7 +151,7 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                                     index = messageListDateUtils.index(for: message, in: messages)
                                 }
                                 if let index = index {
-                                    onMessageAppear(index)
+                                    onMessageAppear(index, scrollDirection)
                                 }
                             }
                             .padding(
@@ -196,7 +196,9 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                         .id(listId)
                     }
                     .modifier(factory.makeMessageListModifier())
+                    .modifier(ScrollTargetLayoutModifier(enabled: loadingNextMessages))
                 }
+                .modifier(ScrollPositionModifier(scrollPosition: loadingNextMessages ? $scrollPosition : .constant(nil)))
                 .background(
                     factory.makeMessageListBackground(
                         colors: colors,
@@ -213,6 +215,15 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                     DispatchQueue.main.async {
                         let offsetValue = value ?? 0
                         let diff = offsetValue - utils.messageCachingUtils.scrollOffset
+                        if abs(diff) > 15 {
+                            if diff > 0 {
+                                if scrollDirection == .up {
+                                    scrollDirection = .down
+                                }
+                            } else if diff < 0 && scrollDirection == .down {
+                                scrollDirection = .up
+                            }
+                        }
                         utils.messageCachingUtils.scrollOffset = offsetValue
                         let scrollButtonShown = offsetValue < -20
                         if scrollButtonShown != showScrollToLatestButton {
@@ -222,6 +233,9 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                             keyboardShown = false
                             resignFirstResponder()
                         }
+                        if offsetValue > 5 {
+                            onMessageAppear(0, .down)
+                        }
                     }
                 }
                 .flippedUpsideDown()
@@ -229,12 +243,9 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                 .clipped()
                 .onChange(of: scrolledId) { scrolledId in
                     if let scrolledId = scrolledId {
-                        if scrolledId == messages.first?.messageId {
-                            self.scrolledId = nil
-                        } else {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                                self.scrolledId = nil
-                            }
+                        let shouldJump = onJumpToMessage?(scrolledId) ?? false
+                        if !shouldJump {
+                            return
                         }
                         withAnimation {
                             scrollView.scrollTo(scrolledId, anchor: messageListConfig.scrollingAnchor)
