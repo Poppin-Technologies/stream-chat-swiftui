@@ -202,7 +202,8 @@ extension ViewFactory {
             return ChatChannelView(
                 viewFactory: self,
                 channelController: channelController,
-                messageController: messageController
+                messageController: messageController,
+                scrollToMessage: message
             )
         }
     }
@@ -836,6 +837,10 @@ extension ViewFactory {
             forceLeftToRight: isInComposer,
             scrolledId: scrolledId
         )
+    }
+    
+    public func makeCustomAttachmentQuotedView(for message: ChatMessage) -> some View {
+        EmptyView()
     }
     
     public func makeEditedMessageHeaderView(

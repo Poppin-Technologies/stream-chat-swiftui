@@ -3,6 +3,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 # Upcoming
 
+### 🔄 Changed
+
+# [4.44.0](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.44.0)
+_December 01, 2023_
+
+### ✅ Added
+- Jump to a message that is not on the first page
+- Jump to a message in a thread
+- Bi-directional scrolling of the message list
+- Handling of bounced messages
+
+### 🐞 Fixed
+- Some links not being rendered correctly
+
+# [4.43.0](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.43.0)
+_November 20, 2023_
+
+### 🐞 Fixed
+- Fix skip slow mode capability not handled
+
+# [4.42.0](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.42.0)
+_November 15, 2023_
+
+### ✅ Added
+- Add factory method for custom attachments in quoted messages
+
 ### 🐞 Fixed
 - Fix marked read while the app is in the background
 - Fix recently saved images to camera roll don't show up
