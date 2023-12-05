@@ -122,7 +122,7 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
 
     public var body: some View {
         ZStack {
-          VStack {
+            VStack {
             factory.makeChannelTopBar(channel: channel)
             ScrollViewReader { scrollView in
                 ScrollView {
@@ -156,7 +156,7 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                                     index = messageListDateUtils.index(for: message, in: messages)
                                 }
                                 if let index = index {
-                                    onMessageAppear(index, scrollDirection)
+                                    onMessageAppear(index)
                                 }
                             }
                             .padding(
@@ -201,89 +201,23 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                         .id(listId)
                     }
                     .modifier(factory.makeMessageListModifier())
-                    .modifier(ScrollTargetLayoutModifier(enabled: loadingNextMessages))
                 }
-                .modifier(ScrollPositionModifier(scrollPosition: loadingNextMessages ? $scrollPosition : .constant(nil)))
                 .background(
                     factory.makeMessageListBackground(
                         colors: colors,
                         isInThread: isMessageThread
                     )
-                    .onAppear {
-                      if index == nil {
-                        index = messageListDateUtils.index(for: message, in: messages)
-                      }
-                      if let index = index {
-                        onMessageAppear(index)
-                      }
-                    }
-                    .padding(
-                      .top,
-                      messageDate != nil ?
-                      offsetForDateIndicator(
-                        showsLastInGroupInfo: showsLastInGroupInfo,
-                        showUnreadSeparator: showUnreadSeparator
-                      ) :
-                        additionalTopPadding(
-                          showsLastInGroupInfo: showsLastInGroupInfo,
-                          showUnreadSeparator: showUnreadSeparator
-                        )
-                    )
-                    .overlay(
-                      (messageDate != nil || showsLastInGroupInfo || showUnreadSeparator) ?
-                      VStack(spacing: 0) {
-                        messageDate != nil ?
-                        factory.makeMessageListDateIndicator(date: messageDate!)
-                          .frame(maxHeight: messageListConfig.messageDisplayOptions.dateLabelSize)
-                        : nil
-                        
-                        showUnreadSeparator ?
-                        factory.makeNewMessagesIndicatorView(
-                          newMessagesStartId: $newMessagesStartId,
-                          count: newMessagesCount(for: index, message: message)
-                        )
-                        : nil
-                        
-                        showsLastInGroupInfo ?
-                        factory.makeLastInGroupHeaderView(for: message)
-                          .frame(maxHeight: lastInGroupHeaderSize)
-                        : nil
-                        
-                        Spacer()
-                      }
-                      : nil
-                    )
-                    .flippedUpsideDown()
-                    .animation(nil, value: messageDate != nil)
-                  }
-                  .id(listId)
-                }
-                .modifier(factory.makeMessageListModifier())
-              }
-              .background(
-                factory.makeMessageListBackground(
-                  colors: colors,
-                  isInThread: isMessageThread
                 )
-              )
-              .coordinateSpace(name: scrollAreaId)
-              .onPreferenceChange(WidthPreferenceKey.self) { value in
-                if let value = value, value != width {
-                  self.width = value
+                .coordinateSpace(name: scrollAreaId)
+                .onPreferenceChange(WidthPreferenceKey.self) { value in
+                    if let value = value, value != width {
+                        self.width = value
+                    }
                 }
                 .onPreferenceChange(ScrollViewOffsetPreferenceKey.self) { value in
                     DispatchQueue.main.async {
                         let offsetValue = value ?? 0
                         let diff = offsetValue - utils.messageCachingUtils.scrollOffset
-                        if abs(diff) > 15 {
-                            if diff > 0 {
-                                if scrollDirection == .up {
-                                    scrollDirection = .down
-                                }
-                            } else if diff < 0 && scrollDirection == .down {
-                                scrollDirection = .up
-                            }
-                        }
                         utils.messageCachingUtils.scrollOffset = offsetValue
                         let scrollButtonShown = offsetValue < -20
                         if scrollButtonShown != showScrollToLatestButton {
@@ -293,9 +227,6 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                             keyboardShown = false
                             resignFirstResponder()
                         }
-                        if offsetValue > 5 {
-                            onMessageAppear(0, .down)
-                        }
                     }
                 }
                 .flippedUpsideDown()
@@ -303,23 +234,21 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                 .clipped()
                 .onChange(of: scrolledId) { scrolledId in
                     if let scrolledId = scrolledId {
-                        let shouldJump = onJumpToMessage?(scrolledId) ?? false
-                        if !shouldJump {
-                            return
+                        if scrolledId == messages.first?.messageId {
+                            self.scrolledId = nil
+                        } else {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                self.scrolledId = nil
+                            }
                         }
                         withAnimation {
                             scrollView.scrollTo(scrolledId, anchor: messageListConfig.scrollingAnchor)
                         }
                     }
-                  }
-                  withAnimation {
-                    scrollView.scrollTo(scrolledId, anchor: messageListConfig.scrollingAnchor)
-                  }
                 }
-              }
-              .accessibilityIdentifier("MessageListScrollView")
+                .accessibilityIdentifier("MessageListScrollView")
             }
-          }
+            } 
 
             if showScrollToLatestButton {
                 factory.makeScrollToBottomButton(
