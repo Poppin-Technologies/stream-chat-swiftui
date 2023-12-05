@@ -122,7 +122,7 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
 
     public var body: some View {
         ZStack {
-            VStack {
+            VStack(spacing: 0) {
             factory.makeChannelTopBar(channel: channel)
             ScrollViewReader { scrollView in
                 ScrollView {
