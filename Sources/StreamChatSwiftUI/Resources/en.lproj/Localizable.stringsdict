@@ -2,6 +2,24 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>recording.presentation.name</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@recording@</string>
+		<key>recording</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>Recording(%d)</string>
+			<key>zero</key>
+			<string>Recording</string>
+			<key>one</key>
+			<string>Recording(%d)</string>
+		</dict>
+	</dict>
 	<key>reaction.authors.number-of-reactions</key>
 	<dict>
 		<key>NSStringLocalizedFormatKey</key>
@@ -18,6 +36,24 @@
 			<string>%d Message Reaction</string>
 			<key>other</key>
 			<string>%d Message Reactions</string>
+		</dict>
+	</dict>
+	<key>message.unread.count</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@unread@</string>
+		<key>unread</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>%d unread</string>
+			<key>one</key>
+			<string>%d unread</string>
+			<key>other</key>
+			<string>%d unread</string>
 		</dict>
 	</dict>
 	<key>message.search.number-of-results</key>
@@ -49,11 +85,11 @@
 			<key>NSStringFormatValueTypeKey</key>
 			<string>d</string>
 			<key>zero</key>
-			<string>%d new messages</string>
+			<string>New messages</string>
 			<key>one</key>
-			<string>%d new message</string>
+			<string>New messages</string>
 			<key>other</key>
-			<string>%d new messages</string>
+			<string>New messages</string>
 		</dict>
 	</dict>
 	<key>messageList.typingIndicator.users</key>

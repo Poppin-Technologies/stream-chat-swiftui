@@ -18,8 +18,8 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/Flowductive/shiny-swift-ui.git", from: "1.2.0"),
-        .package(url: "https://github.com/GetStream/stream-chat-swift.git", from: "4.44.0"),
         .package(url: "https://github.com/kean/Nuke.git", .exact("11.3.1"))
+        .package(url: "https://github.com/GetStream/stream-chat-swift.git", from: "4.46.0"),
     ],
     targets: [
         .target(

@@ -3,7 +3,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 # Upcoming
 
+### 🐞 Fixed
+- Improved loading of gallery images
+
+# [4.46.0](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.46.0)
+_December 21, 2023_
+
+### ✅ Added
+- Recording of async voice messages
+- Rendering and playing async voice messages
+
 ### 🔄 Changed
+
+# [4.45.0](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.45.0)
+_December 13, 2023_
+
+### ✅ Added
+- Mark message as unread
+- Jump to first unread message
+- Factory method to swap jump to unread button
 
 # [4.44.0](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.44.0)
 _December 01, 2023_
