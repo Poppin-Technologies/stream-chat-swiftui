@@ -57,7 +57,6 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
                             shouldShowTypingIndicator: viewModel.shouldShowTypingIndicator,
                             scrollPosition: $viewModel.scrollPosition,
                             loadingNextMessages: viewModel.loadingNextMessages,
-                            firstUnreadMessageId: $viewModel.firstUnreadMessageId,
                             onMessageAppear: viewModel.handleMessageAppear(index:scrollDirection:),
                             onScrollToBottom: viewModel.scrollToLastMessage,
                             onLongPress: { displayInfo in
