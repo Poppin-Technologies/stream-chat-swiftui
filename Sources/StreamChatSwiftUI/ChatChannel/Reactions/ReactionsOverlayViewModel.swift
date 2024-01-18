@@ -1,5 +1,5 @@
 //
-// Copyright © 2023 Stream.io Inc. All rights reserved.
+// Copyright © 2024 Stream.io Inc. All rights reserved.
 //
 
 import Combine
@@ -33,7 +33,10 @@ open class ReactionsOverlayViewModel: ObservableObject, ChatMessageControllerDel
             messageController?.deleteReaction(reaction)
         } else {
             // reaction should be added
-            messageController?.addReaction(reaction)
+            messageController?.addReaction(
+                reaction,
+                enforceUnique: utils.messageListConfig.uniqueReactionsEnabled
+            )
         }
     }
 

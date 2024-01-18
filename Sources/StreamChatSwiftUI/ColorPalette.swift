@@ -1,5 +1,5 @@
 //
-// Copyright © 2023 Stream.io Inc. All rights reserved.
+// Copyright © 2024 Stream.io Inc. All rights reserved.
 //
 
 import SwiftUI
@@ -84,6 +84,7 @@ public struct ColorPalette {
 
     public lazy var composerPlaceholderColor: UIColor = subtitleText
     public lazy var composerInputBackground: UIColor = background
+    public lazy var composerInputHighlightedBorder: UIColor = innerBorder
 }
 
 // Those colors are default defined stream constants, which are fallback values if you don't implement your color theme.

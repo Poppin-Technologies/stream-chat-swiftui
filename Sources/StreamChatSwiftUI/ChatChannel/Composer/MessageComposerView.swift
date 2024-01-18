@@ -1,5 +1,5 @@
 //
-// Copyright © 2023 Stream.io Inc. All rights reserved.
+// Copyright © 2024 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
@@ -229,7 +229,7 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
 }
 
 /// View for the composer's input (text and media).
-public struct ComposerInputView<Factory: ViewFactory>: View {
+public struct ComposerInputView<Factory: ViewFactory>: View, KeyboardReadable {
 
     @EnvironmentObject var viewModel: MessageComposerViewModel
     
@@ -252,6 +252,7 @@ public struct ComposerInputView<Factory: ViewFactory>: View {
     var removeAttachmentWithId: (String) -> Void
 
     @State var textHeight: CGFloat = TextSizeConstants.minimumHeight
+    @State var keyboardShown = false
 
     public init(
         factory: Factory,
@@ -400,17 +401,25 @@ public struct ComposerInputView<Factory: ViewFactory>: View {
         .background(composerInputBackground)
         .overlay(
             RoundedRectangle(cornerRadius: TextSizeConstants.cornerRadius)
-                .stroke(Color(colors.innerBorder))
+                .stroke(Color(keyboardShown ? highlightedBorder : colors.innerBorder))
         )
         .clipShape(
             RoundedRectangle(cornerRadius: TextSizeConstants.cornerRadius)
         )
+        .onReceive(keyboardWillChangePublisher) { visible in
+            keyboardShown = visible
+        }
         .accessibilityIdentifier("ComposerInputView")
     }
 
     private var composerInputBackground: Color {
         var colors = colors
         return Color(colors.composerInputBackground)
+    }
+    
+    private var highlightedBorder: UIColor {
+        var colors = colors
+        return colors.composerInputHighlightedBorder
     }
 
     private var shouldAddVerticalPadding: Bool {

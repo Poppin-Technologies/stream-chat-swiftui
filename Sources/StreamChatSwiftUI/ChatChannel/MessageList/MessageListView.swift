@@ -1,5 +1,5 @@
 //
-// Copyright © 2023 Stream.io Inc. All rights reserved.
+// Copyright © 2024 Stream.io Inc. All rights reserved.
 //
 
 import StreamChat
@@ -133,10 +133,7 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                         ForEach(messages, id: \.messageId) { message in
                             var index: Int? = messageListDateUtils.indexForMessageDate(message: message, in: messages)
                             let messageDate: Date? = messageListDateUtils.showMessageDate(for: index, in: messages)
-                            let messageIsFirstUnread = firstUnreadMessageId?.contains(message.id) == true
-                            let showUnreadSeparator = messageListConfig.showNewMessagesSeparator &&
-                                messageIsFirstUnread &&
-                                !isMessageThread
+                            let showUnreadSeparator = message.id == newMessagesStartId
                             let showsLastInGroupInfo = showsLastInGroupInfo(for: message, channel: channel)
                             factory.makeMessageContainerView(
                                 channel: channel,
@@ -179,15 +176,9 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                                         
                                         showUnreadSeparator ?
                                             factory.makeNewMessagesIndicatorView(
-                                                newMessagesStartId: $firstUnreadMessageId,
+                                                newMessagesStartId: $newMessagesStartId,
                                                 count: newMessagesCount(for: index, message: message)
                                             )
-                                            .onAppear {
-                                                unreadMessagesBannerShown = true
-                                            }
-                                            .onDisappear {
-                                                unreadMessagesBannerShown = false
-                                            }
                                             : nil
 
                                         showsLastInGroupInfo ?
