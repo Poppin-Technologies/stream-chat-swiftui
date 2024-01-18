@@ -84,7 +84,6 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
                     shouldScroll: viewModel.inputComposerShouldScroll,
                     removeAttachmentWithId: viewModel.removeAttachment(with:)
                 )
-                .environmentObject(viewModel)
                 .alert(isPresented: $viewModel.attachmentSizeExceeded) {
                     Alert(
                         title: Text(L10n.Attachment.MaxSize.title),

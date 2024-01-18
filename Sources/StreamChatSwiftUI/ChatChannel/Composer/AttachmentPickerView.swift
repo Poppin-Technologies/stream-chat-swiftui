@@ -9,6 +9,7 @@ import SwiftUI
 /// View for the attachment picker.
 public struct AttachmentPickerView<Factory: ViewFactory>: View {
 
+  @EnvironmentObject var viewmodel: MessageComposerViewModel
     @Injected(\.colors) private var colors
     @Injected(\.fonts) private var fonts
 
@@ -28,6 +29,8 @@ public struct AttachmentPickerView<Factory: ViewFactory>: View {
 
     var isDisplayed: Bool
     var height: CGFloat
+  
+    @State var displayingImagePicker: Bool = false
 
     public init(
         viewFactory: Factory,
@@ -63,58 +66,61 @@ public struct AttachmentPickerView<Factory: ViewFactory>: View {
         self.height = height
     }
 
-    public var body: some View {
-        VStack(spacing: 0) {
-            viewFactory.makeAttachmentSourcePickerView(
-                selected: selectedPickerState,
-                onPickerStateChange: onPickerStateChange
-            )
-
-            if selectedPickerState == .photos {
-                if let assets = photoLibraryAssets {
-                    let collection = PHFetchResultCollection(fetchResult: assets)
-                    if !collection.isEmpty {
-                        viewFactory.makePhotoAttachmentPickerView(
-                            assets: collection,
-                            onAssetTap: onAssetTap,
-                            isAssetSelected: isAssetSelected
-                        )
-                        .edgesIgnoringSafeArea(.bottom)
-                    } else {
-                        viewFactory.makeAssetsAccessPermissionView()
-                    }
-                } else {
-                    LoadingView()
-                }
-
-            } else if selectedPickerState == .files {
-                viewFactory.makeFilePickerView(
-                    filePickerShown: $filePickerShown,
-                    addedFileURLs: $addedFileURLs
-                )
-            } else if selectedPickerState == .camera {
-                viewFactory.makeCameraPickerView(
-                    selected: $selectedPickerState,
-                    cameraPickerShown: $cameraPickerShown,
-                    cameraImageAdded: cameraImageAdded
-                )
-            } else if selectedPickerState == .custom {
-                viewFactory.makeCustomAttachmentView(
-                    addedCustomAttachments: addedCustomAttachments,
-                    onCustomAttachmentTap: onCustomAttachmentTap
-                )
+  public var body: some View {
+    VStack(spacing: 0) {
+      HStack {
+        Spacer()
+        Rectangle()
+          .frame(height: 6)
+          .frame(width: 60)
+          .background(Color(UIColor.lightGray))
+          .opacity(0.7)
+          .cornerRadius(16)
+          .padding(.vertical, 7)
+          .gesture(DragGesture().onEnded({ gesture in
+            if (gesture.translation.height) > 50 {
+              withAnimation(.interpolatingSpring(stiffness: 170, damping: 25)) {
+                viewmodel.pickerTypeState = .expanded(.none)
+              }
             }
-        }
-        .frame(height: height)
-        .background(Color(colors.background1))
-        .onChange(of: isDisplayed) { newValue in
-            if newValue {
-                askForAssetsAccessPermissions()
+            if (gesture.translation.height) < -50 {
+              displayingImagePicker = true
             }
+          }))
+        Spacer()
+      }
+      .padding(.top, 8)
+      .padding(.bottom, 4)
+      .sheet(isPresented: $displayingImagePicker) {
+        ImagePickerView(sourceType: .photoLibrary, onAssetPicked: onAssetTap)
+          .ignoresSafeArea(.all)
+      }
+      if let assets = photoLibraryAssets {
+        let collection = PHFetchResultCollection(fetchResult: assets)
+        if !collection.isEmpty {
+          viewFactory.makePhotoAttachmentPickerView(
+            assets: collection,
+            onAssetTap: onAssetTap,
+            isAssetSelected: isAssetSelected
+          )
+          .edgesIgnoringSafeArea(.bottom)
+        } else {
+          viewFactory.makeAssetsAccessPermissionView()
         }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("AttachmentPickerView")
+      } else {
+        LoadingView()
+      }
     }
+    .frame(height: height)
+    .background(Color(colors.background1))
+    .onChange(of: isDisplayed) { newValue in
+      if newValue {
+        askForAssetsAccessPermissions()
+      }
+    }
+    .accessibilityElement(children: .contain)
+    .accessibilityIdentifier("AttachmentPickerView")
+  }
 }
 
 /// View for picking the source of the attachment (photo, files or camera).

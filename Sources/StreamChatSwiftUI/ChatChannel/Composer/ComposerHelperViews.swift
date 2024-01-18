@@ -58,11 +58,11 @@ public struct AttachmentTypeContainer<Content: View>: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            Color(colors.background)
-                .frame(height: 20)
+            Color(colors.background1)
+                .frame(height: 10)
 
             content()
-                .background(Color(colors.background))
+                .background(Color(colors.background1))
         }
         .background(Color(colors.background1))
         .cornerRadius(16)
