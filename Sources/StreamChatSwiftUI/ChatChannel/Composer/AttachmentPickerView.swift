@@ -119,7 +119,7 @@ public struct AttachmentPickerView<Factory: ViewFactory>: View {
         LoadingView()
       }
     }
-    .frame(height: height + barOffset)
+    .frame(height: height - 0.1 * barOffset)
     .background(Color(colors.background1))
     .onChange(of: isDisplayed) { newValue in
       if newValue {

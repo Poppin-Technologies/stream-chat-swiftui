@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 55;
+	objectVersion = 60;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -472,6 +472,7 @@
 		A3D7B0DF2840E23100E308B3 /* UIView+AccessibilityIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3D7B0DE2840E23100E308B3 /* UIView+AccessibilityIdentifier.swift */; };
 		C14A465B284665B100EF498E /* SDKIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14A465A284665B100EF498E /* SDKIdentifier.swift */; };
 		E3A1C01C282BAC66002D1E26 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E3A1C01B282BAC66002D1E26 /* Sentry */; };
+		EE328CDC2B605E08004B2054 /* ShinySwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = EE328CDB2B605E08004B2054 /* ShinySwiftUI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -1028,6 +1029,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				EE328CDC2B605E08004B2054 /* ShinySwiftUI in Frameworks */,
 				84E95A77284A486600699FD3 /* StreamChat in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -2148,6 +2150,7 @@
 			name = StreamChatSwiftUI;
 			packageProductDependencies = (
 				84E95A76284A486600699FD3 /* StreamChat */,
+				EE328CDB2B605E08004B2054 /* ShinySwiftUI */,
 			);
 			productName = StreamChatSwiftUI;
 			productReference = 8465FBB52746873A00AF091E /* StreamChatSwiftUI.framework */;
@@ -2242,6 +2245,7 @@
 				8400A346282C06F90067D3A0 /* XCRemoteSwiftPackageReference "OHHTTPStubs" */,
 				84E95A75284A486600699FD3 /* XCRemoteSwiftPackageReference "stream-chat-swift" */,
 				82543C7B2AD41B0400D5F6CD /* XCRemoteSwiftPackageReference "stream-chat-swift-test-helpers" */,
+				EE328CD82B605DF1004B2054 /* XCLocalSwiftPackageReference "../shiny-swift-ui" */,
 			);
 			productRefGroup = 8465FBB62746873A00AF091E /* Products */;
 			projectDirPath = "";
@@ -3106,7 +3110,7 @@
 					"@loader_path/Frameworks",
 				);
 				MARKETING_VERSION = 4.8.0;
-				PRODUCT_BUNDLE_IDENTIFIER = io.getstream.iOS.StreamChatSwiftUI;
+				PRODUCT_BUNDLE_IDENTIFIER = joinpoppin.iOS.DemoAppSwiftUI;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
@@ -3140,7 +3144,7 @@
 					"@loader_path/Frameworks",
 				);
 				MARKETING_VERSION = 4.8.0;
-				PRODUCT_BUNDLE_IDENTIFIER = io.getstream.iOS.StreamChatSwiftUI;
+				PRODUCT_BUNDLE_IDENTIFIER = joinpoppin.iOS.DemoAppSwiftUI;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
@@ -3211,7 +3215,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 46;
 				DEVELOPMENT_ASSET_PATHS = "\"DemoAppSwiftUI/Preview Content\"";
-				DEVELOPMENT_TEAM = EHV7XZLAHA;
+				DEVELOPMENT_TEAM = 5QXSW95H5M;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = DemoAppSwiftUI/Info.plist;
@@ -3225,7 +3229,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 4.46.0;
-				PRODUCT_BUNDLE_IDENTIFIER = io.getstream.iOS.DemoAppSwiftUI;
+				PRODUCT_BUNDLE_IDENTIFIER = joinpoppin.iOS.DemoAppSwiftUI;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -3260,7 +3264,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 4.46.0;
-				PRODUCT_BUNDLE_IDENTIFIER = io.getstream.iOS.DemoAppSwiftUI;
+				PRODUCT_BUNDLE_IDENTIFIER = joinpoppin.iOS.DemoAppSwiftUI;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "match AppStore io.getstream.iOS.DemoAppSwiftUI";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -3327,6 +3331,13 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		EE328CD82B605DF1004B2054 /* XCLocalSwiftPackageReference "../shiny-swift-ui" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../shiny-swift-ui";
+		};
+/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
 		82543C7B2AD41B0400D5F6CD /* XCRemoteSwiftPackageReference "stream-chat-swift-test-helpers" */ = {
@@ -3421,6 +3432,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E3A1C01A282BAC66002D1E26 /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
 			productName = Sentry;
+		};
+		EE328CDB2B605E08004B2054 /* ShinySwiftUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = EE328CD82B605DF1004B2054 /* XCLocalSwiftPackageReference "../shiny-swift-ui" */;
+			productName = ShinySwiftUI;
 		};
 /* End XCSwiftPackageProductDependency section */
 
