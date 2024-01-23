@@ -75,23 +75,23 @@ public struct AttachmentPickerView<Factory: ViewFactory>: View {
         Rectangle()
           .frame(height: 6)
           .frame(width: 60)
-          .background(Color(abs(barOffset) > 50 ? UIColor.white : UIColor.gray))
+          .background(Color.white)
+          .opacity(Color(abs(barOffset) > 75 ? 1.0 : 0.4))
           .opacity(0.7)
           .cornerRadius(16)
           .padding(.vertical, 7)
-          .offset(y: barOffset * 0.1)
           .gesture(DragGesture().onChanged({ gesture in
-            if abs(barOffset) <= 50, abs(gesture.translation.height) > 50 {
-              UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            if abs(barOffset) <= 75, abs(gesture.translation.height) > 75 {
+              UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             }
             barOffset = gesture.translation.height
           }).onEnded({ gesture in
-            if (gesture.translation.height) > 50 {
+            if (gesture.translation.height) > 75 {
               withAnimation(.interpolatingSpring(stiffness: 170, damping: 25)) {
                 viewmodel.pickerTypeState = .expanded(.none)
               }
             }
-            if (gesture.translation.height) < -50 {
+            if (gesture.translation.height) < -75 {
               displayingImagePicker = true
             }
           }))
@@ -119,7 +119,7 @@ public struct AttachmentPickerView<Factory: ViewFactory>: View {
         LoadingView()
       }
     }
-    .frame(height: height)
+    .frame(height: height + barOffset)
     .background(Color(colors.background1))
     .onChange(of: isDisplayed) { newValue in
       if newValue {
