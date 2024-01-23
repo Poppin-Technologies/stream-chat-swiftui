@@ -76,29 +76,29 @@ public struct AttachmentPickerView<Factory: ViewFactory>: View {
           .frame(height: 6)
           .frame(width: 60)
           .background(Color.white)
-          .opacity(Color(abs(barOffset) > 75 ? 1.0 : 0.4))
+          .opacity(abs(barOffset) > 75 ? 1.0 : 0.4)
           .opacity(0.7)
           .cornerRadius(16)
           .padding(.vertical, 7)
-          .gesture(DragGesture().onChanged({ gesture in
-            if abs(barOffset) <= 75, abs(gesture.translation.height) > 75 {
-              UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            }
-            barOffset = gesture.translation.height
-          }).onEnded({ gesture in
-            if (gesture.translation.height) > 75 {
-              withAnimation(.interpolatingSpring(stiffness: 170, damping: 25)) {
-                viewmodel.pickerTypeState = .expanded(.none)
-              }
-            }
-            if (gesture.translation.height) < -75 {
-              displayingImagePicker = true
-            }
-          }))
         Spacer()
       }
       .padding(.top, 8)
       .padding(.bottom, 4)
+      .gesture(DragGesture().onChanged({ gesture in
+        if abs(barOffset) <= 75, abs(gesture.translation.height) > 75 {
+          UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        }
+        barOffset = gesture.translation.height
+      }).onEnded({ gesture in
+        if (gesture.translation.height) > 75 {
+          withAnimation(.interpolatingSpring(stiffness: 170, damping: 25)) {
+            viewmodel.pickerTypeState = .expanded(.none)
+          }
+        }
+        if (gesture.translation.height) < -75 {
+          displayingImagePicker = true
+        }
+      }))
       .sheet(isPresented: $displayingImagePicker) {
         ImagePickerView(sourceType: .photoLibrary, onAssetPicked: onAssetTap)
           .ignoresSafeArea(.all)
