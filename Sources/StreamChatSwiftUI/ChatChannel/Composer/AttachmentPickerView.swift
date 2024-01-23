@@ -75,16 +75,17 @@ public struct AttachmentPickerView<Factory: ViewFactory>: View {
         Rectangle()
           .frame(height: 6)
           .frame(width: 60)
-          .background(barOffset > 75 ? Color.yellow : Color.white)
+          .background(barOffset < -75 ? Color.pink : Color.white)
           .opacity(abs(barOffset) > 75 ? 1.0 : 0.2)
           .opacity(0.7)
           .cornerRadius(16)
           .padding(.vertical, 7)
+          .animation(.easeInOut(duration: 0.1), value: barOffset)
         Spacer()
       }
-      .padding(.top, 8)
-      .padding(.bottom, 4)
-      .background(Color.init(red: 0.2, green: 0.2, blue: 0.2))
+      .padding(.top, 6)
+      .padding(.bottom, 6)
+      .background(Color.init(red: 0.07, green: 0.07, blue: 0.07))
       .gesture(DragGesture().onChanged({ gesture in
         if abs(barOffset) <= 75, abs(gesture.translation.height) > 75 {
           UIImpactFeedbackGenerator(style: .medium).impactOccurred()
