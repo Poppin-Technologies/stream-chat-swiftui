@@ -75,8 +75,8 @@ public struct AttachmentPickerView<Factory: ViewFactory>: View {
         Rectangle()
           .frame(height: 6)
           .frame(width: 60)
-          .background(Color.white)
-          .opacity(abs(barOffset) > 75 ? 1.0 : 0.4)
+          .background(barOffset > 75 ? Color.yellow : Color.white)
+          .opacity(abs(barOffset) > 75 ? 1.0 : 0.2)
           .opacity(0.7)
           .cornerRadius(16)
           .padding(.vertical, 7)
@@ -84,6 +84,7 @@ public struct AttachmentPickerView<Factory: ViewFactory>: View {
       }
       .padding(.top, 8)
       .padding(.bottom, 4)
+      .background(Color.y)
       .gesture(DragGesture().onChanged({ gesture in
         if abs(barOffset) <= 75, abs(gesture.translation.height) > 75 {
           UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -98,6 +99,7 @@ public struct AttachmentPickerView<Factory: ViewFactory>: View {
         if (gesture.translation.height) < -75 {
           displayingImagePicker = true
         }
+        barOffset = 0
       }))
       .sheet(isPresented: $displayingImagePicker) {
         ImagePickerView(sourceType: .photoLibrary, onAssetPicked: onAssetTap)
