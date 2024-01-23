@@ -65,6 +65,8 @@ public struct AttachmentPickerView<Factory: ViewFactory>: View {
         self.isDisplayed = isDisplayed
         self.height = height
     }
+  
+  @State private var barOffset: CGFloat = .zero
 
   public var body: some View {
     VStack(spacing: 0) {
@@ -73,11 +75,17 @@ public struct AttachmentPickerView<Factory: ViewFactory>: View {
         Rectangle()
           .frame(height: 6)
           .frame(width: 60)
-          .background(Color(UIColor.lightGray))
+          .background(Color(abs(barOffset) > 50 ? UIColor.white : UIColor.gray))
           .opacity(0.7)
           .cornerRadius(16)
           .padding(.vertical, 7)
-          .gesture(DragGesture().onEnded({ gesture in
+          .offset(y: barOffset * 0.1)
+          .gesture(DragGesture().onChanged({ gesture in
+            if abs(barOffset) <= 50, abs(gesture.translation.height) > 50 {
+              UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }
+            barOffset = gesture.translation.height
+          }).onEnded({ gesture in
             if (gesture.translation.height) > 50 {
               withAnimation(.interpolatingSpring(stiffness: 170, damping: 25)) {
                 viewmodel.pickerTypeState = .expanded(.none)
