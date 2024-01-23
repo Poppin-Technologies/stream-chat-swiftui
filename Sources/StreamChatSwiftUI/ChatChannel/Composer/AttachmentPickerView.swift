@@ -80,12 +80,12 @@ public struct AttachmentPickerView<Factory: ViewFactory>: View {
           .opacity(0.7)
           .cornerRadius(16)
           .padding(.vertical, 7)
-          .animation(.easeInOut(duration: 0.1), value: barOffset)
         Spacer()
       }
       .padding(.top, 6)
       .padding(.bottom, 6)
       .background(Color.init(red: 0.07, green: 0.07, blue: 0.07))
+      .animation(.easeInOut(duration: 0.1), value: barOffset)
       .gesture(DragGesture().onChanged({ gesture in
         if abs(barOffset) <= 75, abs(gesture.translation.height) > 75 {
           UIImpactFeedbackGenerator(style: .medium).impactOccurred()
