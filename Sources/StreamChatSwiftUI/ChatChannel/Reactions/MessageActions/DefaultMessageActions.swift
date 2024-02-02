@@ -190,7 +190,7 @@ extension MessageAction {
         let copyAction = MessageAction(
             id: MessageActionId.copy,
             title: L10n.Message.Actions.copy,
-            iconName: "icn_copy",
+            iconName: "doc.on.doc",
             action: {
                 UIPasteboard.general.string = message.adjustedText
                 onFinish(

@@ -837,7 +837,7 @@ extension ViewFactory {
     ) -> some View {
         Image(uiImage: currentSnapshot)
             .overlay(Color.black.opacity(popInAnimationInProgress ? 0 : 0.1))
-            .blur(radius: popInAnimationInProgress ? 0 : 4)
+            .blur(radius: popInAnimationInProgress ? 0 : 6)
     }
     
     public func makeQuotedMessageHeaderView(

@@ -203,6 +203,16 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                     .modifier(factory.makeMessageListModifier())
                     .modifier(ScrollTargetLayoutModifier(enabled: loadingNextMessages))
                 }
+                .if(true) { view in
+                  Group {
+                    if #available(iOS 16.0, *) {
+                      view
+                        .scrollDismissesKeyboard(.interactively)
+                    } else {
+                      view
+                    }
+                  }
+                }
                 .modifier(ScrollPositionModifier(scrollPosition: loadingNextMessages ? $scrollPosition : .constant(nil)))
                 .background(
                     factory.makeMessageListBackground(

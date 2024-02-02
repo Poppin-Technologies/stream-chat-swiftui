@@ -26,6 +26,7 @@ public struct MessageAuthorAndDateView: View {
             }
             Spacer()
         }
+        .offset(x: 4)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("MessageAuthorAndDateView")
     }

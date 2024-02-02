@@ -7,7 +7,7 @@ import StreamChat
 import SwiftUI
 
 /// View model for the `FileAttachmentsView`.
-class FileAttachmentsViewModel: ObservableObject {
+public class FileAttachmentsViewModel: ObservableObject {
 
     @Published var loading = false
     @Published var attachmentsDataSource = [MonthlyFileAttachments]()
@@ -23,7 +23,7 @@ class FileAttachmentsViewModel: ObservableObject {
 
     private var loadingNextMessages = false
 
-    init(channel: ChatChannel) {
+    public init(channel: ChatChannel) {
         self.channel = channel
 
         dateFormatter.dateFormat = "MMMM yyyy"
@@ -31,7 +31,7 @@ class FileAttachmentsViewModel: ObservableObject {
         loadMessages()
     }
 
-    init(channel: ChatChannel, messageSearchController: ChatMessageSearchController) {
+    public init(channel: ChatChannel, messageSearchController: ChatMessageSearchController) {
         self.channel = channel
 
         dateFormatter.dateFormat = "MMMM yyyy"

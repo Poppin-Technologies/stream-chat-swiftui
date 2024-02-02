@@ -4,6 +4,7 @@
 
 import StreamChat
 import SwiftUI
+import ShinySwiftUI
 
 public struct ReactionsOverlayView<Factory: ViewFactory>: View {
     @Injected(\.utils) private var utils
@@ -127,7 +128,7 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
                         }
                     }
                     .scaleEffect(popIn || willPopOut ? 1 : 0.95)
-                    .animation(willPopOut ? .easeInOut : popInAnimation, value: popIn)
+                    .animation(willPopOut ? easeInOutAnimation : popInAnimation, value: popIn)
                     .offset(
                         x: messageOriginX(proxy: reader)
                     )
@@ -144,7 +145,7 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
                             )
                             .scaleEffect(popIn ? 1 : 0)
                             .opacity(willPopOut ? 0 : 1)
-                            .animation(willPopOut ? .easeInOut : popInAnimation, value: popIn)
+                            .animation(willPopOut ? easeInOutAnimation : popInAnimation, value: popIn)
                             .offset(
                                 x: messageOriginX(proxy: reader),
                                 y: popIn ? -24 : -messageContainerHeight / 2
@@ -177,7 +178,7 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
                         .padding(.top, paddingValue)
                         .opacity(willPopOut ? 0 : 1)
                         .scaleEffect(popIn ? 1 : (willPopOut ? 0.4 : 0))
-                        .animation(willPopOut ? .easeInOut : popInAnimation, value: popIn)
+                        .animation(willPopOut ? easeInOutAnimation : popInAnimation, value: popIn)
                     } else if messageDisplayInfo.showsBottomContainer {
                         factory.makeReactionsUsersView(
                             message: viewModel.message,
@@ -191,7 +192,7 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
                         .padding(.trailing, paddingValue)
                         .scaleEffect(popIn ? 1 : 0)
                         .opacity(willPopOut ? 0 : 1)
-                        .animation(willPopOut ? .easeInOut : popInAnimation, value: popIn)
+                        .animation(willPopOut ? easeInOutAnimation : popInAnimation, value: popIn)
                     }
                 }
                 .offset(y: !popIn ? (messageDisplayInfo.frame.origin.y - spacing) : originY)
@@ -263,6 +264,10 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
         return containerHeight > maxAllowed ? maxAllowed : containerHeight
     }
 
+    private var easeInOutAnimation: Animation {
+      .slickEaseOut
+    }
+  
     private var popInAnimation: Animation {
         .spring(response: 0.2, dampingFraction: 0.7, blendDuration: 0.2)
     }

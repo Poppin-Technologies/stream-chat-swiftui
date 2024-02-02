@@ -18,24 +18,29 @@ public struct ActionItemView: View {
 
     public var body: some View {
         HStack(spacing: 16) {
-            Image(uiImage: image)
-                .customizable()
-                .frame(width: 18, height: 18)
-                .foregroundColor(
-                    isDestructive ? Color(colors.alert) : Color(colors.textLowEmphasis)
-                )
-
             Text(title)
+                .font(.body)
                 .if(boldTitle) {
                   $0.bold()
                 }
                 .foregroundColor(
                     isDestructive ? Color(colors.alert) : Color(colors.text)
                 )
+                .padding(.leading)
 
-            Spacer()
+          Spacer()
+
+          Image(uiImage: image)
+              .customizable()
+              .frame(width: 18, height: 18)
+              .foregroundColor(
+                isDestructive ? Color(colors.alert) : Color.white
+              )
+              .padding(.trailing)
         }
         .frame(height: 40)
+        .padding(.vertical, 1)
+        .padding(.horizontal, 4)
     }
 
     private var image: UIImage {
