@@ -19,15 +19,6 @@ public struct ReactionsBubbleModifier: ViewModifier {
     public func body(content: Content) -> some View {
         content
             .background(Color(backgroundColor))
-            .overlay(
-                BubbleBackgroundShape(
-                    cornerRadius: cornerRadius, corners: corners
-                )
-                .stroke(
-                    borderColor ?? Color(colors.innerBorder),
-                    lineWidth: 1.0
-                )
-            )
             .clipShape(
                 BubbleBackgroundShape(
                     cornerRadius: cornerRadius,

@@ -131,7 +131,7 @@ public struct VideoAttachmentView: View {
     }
 }
 
-struct VideoAttachmentContentView: View {
+public struct VideoAttachmentContentView: View {
 
     @Injected(\.utils) private var utils
     @Injected(\.images) private var images
@@ -140,11 +140,20 @@ struct VideoAttachmentContentView: View {
         utils.videoPreviewLoader
     }
 
-    let attachment: ChatMessageVideoAttachment
-    let author: ChatUser
-    let width: CGFloat
-    var ratio: CGFloat = 0.75
-    var cornerRadius: CGFloat = 24
+    public let attachment: ChatMessageVideoAttachment
+    public let author: ChatUser
+    public let width: CGFloat
+    public var ratio: CGFloat = 0.75
+    public var cornerRadius: CGFloat = 24
+  
+  
+    public init(attachment: ChatMessageVideoAttachment, author: ChatUser, width: CGFloat, ratio: CGFloat, cornerRadius: CGFloat) {
+      self.attachment = attachment
+      self.author = author
+      self.width = width
+      self.ratio = ratio
+      self.cornerRadius = cornerRadius
+    }
 
     @State var previewImage: UIImage?
     @State var error: Error?

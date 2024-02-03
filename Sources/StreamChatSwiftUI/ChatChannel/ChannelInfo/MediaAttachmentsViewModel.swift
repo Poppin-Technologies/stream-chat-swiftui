@@ -9,9 +9,9 @@ import SwiftUI
 /// View model for the `MediaAttachmentsView`.
 public class MediaAttachmentsViewModel: ObservableObject {
 
-    @Published var mediaItems = [MediaItem]()
-    @Published var loading = false
-    @Published var galleryShown = false
+    @Published public var mediaItems = [MediaItem]()
+    @Published public var loading = false
+    @Published public var galleryShown = false
 
     @Injected(\.chatClient) var chatClient
 
@@ -20,7 +20,7 @@ public class MediaAttachmentsViewModel: ObservableObject {
 
     private var loadingNextMessages = false
 
-    var allImageAttachments: [ChatMessageImageAttachment] {
+    public var allImageAttachments: [ChatMessageImageAttachment] {
         mediaItems.compactMap(\.imageAttachment)
     }
 
@@ -100,11 +100,11 @@ public class MediaAttachmentsViewModel: ObservableObject {
     }
 }
 
-struct MediaItem: Identifiable {
-    let id: String
-    let isVideo: Bool
-    let author: ChatUser
+public struct MediaItem: Identifiable {
+    public let id: String
+    public let isVideo: Bool
+    public let author: ChatUser
 
-    var videoAttachment: ChatMessageVideoAttachment?
-    var imageAttachment: ChatMessageImageAttachment?
+    public var videoAttachment: ChatMessageVideoAttachment?
+    public var imageAttachment: ChatMessageImageAttachment?
 }

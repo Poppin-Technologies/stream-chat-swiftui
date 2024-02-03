@@ -19,7 +19,7 @@ public struct FileAttachmentsView: View {
         )
     }
 
-    init(viewModel: FileAttachmentsViewModel) {
+    public init(viewModel: FileAttachmentsViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
 

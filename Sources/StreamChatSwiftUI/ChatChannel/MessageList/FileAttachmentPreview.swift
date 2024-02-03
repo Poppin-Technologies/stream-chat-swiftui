@@ -11,11 +11,15 @@ public struct FileAttachmentPreview: View {
     @Injected(\.fonts) private var fonts
     @Injected(\.images) private var images
 
-    var url: URL
+    public var url: URL
 
     @State private var isLoading = false
     @State private var title: String?
     @State private var error: Error?
+  
+    public init(url: URL) {
+      self.url = url
+    }
 
     public var body: some View {
         NavigationView {

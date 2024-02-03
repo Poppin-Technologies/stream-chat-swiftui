@@ -10,8 +10,8 @@ import SwiftUI
 public class FileAttachmentsViewModel: ObservableObject {
 
     @Published var loading = false
-    @Published var attachmentsDataSource = [MonthlyFileAttachments]()
-    @Published var selectedAttachment: ChatMessageFileAttachment?
+    @Published public var attachmentsDataSource = [MonthlyFileAttachments]()
+    @Published public var selectedAttachment: ChatMessageFileAttachment?
 
     @Injected(\.chatClient) private var chatClient
 
@@ -126,11 +126,11 @@ public class FileAttachmentsViewModel: ObservableObject {
     }
 }
 
-struct MonthlyFileAttachments: Identifiable {
-    var id: String {
+public struct MonthlyFileAttachments: Identifiable {
+    public var id: String {
         monthAndYear
     }
 
-    let monthAndYear: String
-    let attachments: [ChatMessageFileAttachment]
+    public let monthAndYear: String
+    public let attachments: [ChatMessageFileAttachment]
 }

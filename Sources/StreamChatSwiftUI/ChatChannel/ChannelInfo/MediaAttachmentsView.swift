@@ -28,7 +28,7 @@ public struct MediaAttachmentsView: View {
         )
     }
 
-    init(viewModel: MediaAttachmentsViewModel) {
+    public init(viewModel: MediaAttachmentsViewModel) {
         _viewModel = StateObject(
             wrappedValue: viewModel
         )
@@ -100,17 +100,31 @@ public struct MediaAttachmentsView: View {
     }
 }
 
-struct ImageAttachmentContentView: View {
+public struct ImageAttachmentContentView: View {
 
     @State private var galleryShown = false
 
-    let mediaItem: MediaItem
-    let imageAttachment: ChatMessageImageAttachment
-    let allImageAttachments: [ChatMessageImageAttachment]
-    let itemWidth: CGFloat
-    let index: Int
+    public let mediaItem: MediaItem
+    public let imageAttachment: ChatMessageImageAttachment
+    public let allImageAttachments: [ChatMessageImageAttachment]
+    public let itemWidth: CGFloat
+    public let index: Int
+  
+    public init(
+      mediaItem: MediaItem,
+      imageAttachment: ChatMessageImageAttachment,
+      allImageAttachments: [ChatMessageImageAttachment],
+      itemWidth: CGFloat,
+      index: Int
+    ) {
+      self.mediaItem = mediaItem
+      self.imageAttachment = imageAttachment
+      self.allImageAttachments = allImageAttachments
+      self.itemWidth = itemWidth
+      self.index = index
+    }
 
-    var body: some View {
+    public var body: some View {
         Button {
             galleryShown = true
         } label: {
