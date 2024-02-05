@@ -6,6 +6,7 @@ import SwiftUI
 
 /// An object containing visual configuration for the whole application.
 public class Appearance {
+    public var customized: Appearance?
     public var colors: ColorPalette
     public var images: Images
     public var fonts: Fonts

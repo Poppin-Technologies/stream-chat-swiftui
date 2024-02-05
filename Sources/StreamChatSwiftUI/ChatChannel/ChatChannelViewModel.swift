@@ -703,6 +703,7 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
                 channelDataSource.loadFirstPage { _ in }
             }
         }
+        InjectedValues[\.streamChat].appearance.customized = nil
     }
 }
 

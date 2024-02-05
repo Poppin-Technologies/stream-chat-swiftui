@@ -26,8 +26,12 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
         viewModel: ChatChannelViewModel? = nil,
         channelController: ChatChannelController,
         messageController: ChatMessageController? = nil,
-        scrollToMessage: ChatMessage? = nil
+        scrollToMessage: ChatMessage? = nil,
+        chatTheme: Appearance? = nil
     ) {
+        if let chatTheme {
+          InjectedValues[\.streamChat].appearance.customized = chatTheme
+        }
         _viewModel = StateObject(
             wrappedValue: viewModel ?? ViewModelsFactory.makeChannelViewModel(
                 with: channelController,

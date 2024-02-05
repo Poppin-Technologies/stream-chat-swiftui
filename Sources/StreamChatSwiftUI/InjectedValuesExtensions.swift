@@ -19,10 +19,17 @@ extension InjectedValues {
     /// Provides access to the `ColorPalette` instance.
     public var colors: ColorPalette {
         get {
-            streamChat.appearance.colors
+          if let app = streamChat.appearance.customized {
+            return app.colors
+          }
+          return streamChat.appearance.colors
         }
         set {
+          if streamChat.appearance.customized != nil {
+            streamChat.appearance.customized?.colors = newValue
+          } else {
             streamChat.appearance.colors = newValue
+          }
         }
     }
 

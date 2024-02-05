@@ -6,7 +6,8 @@ import SwiftUI
 import UIKit
 
 /// Provides the colors used throughout the SDK.
-public struct ColorPalette {
+public struct ColorPalette: Identifiable {
+  public var id = UUID()
     public init() {
         // Public init.
     }

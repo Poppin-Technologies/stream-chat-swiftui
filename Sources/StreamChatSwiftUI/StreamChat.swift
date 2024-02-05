@@ -8,9 +8,9 @@ import StreamChat
 ///
 /// Provides context for the views and view models. Must be initialized with a `ChatClient` on app start.
 public class StreamChat {
-    var chatClient: ChatClient
-    var appearance: Appearance
-    var utils: Utils
+    public var chatClient: ChatClient
+    public var appearance: Appearance
+    public var utils: Utils
 
     public init(
         chatClient: ChatClient,
@@ -31,7 +31,7 @@ private struct StreamChatProviderKey: InjectionKey {
 
 extension InjectedValues {
     /// Provides access to the `StreamChat` instance in the views and view models.
-    var streamChat: StreamChat {
+    public var streamChat: StreamChat {
         get {
             guard let injected = Self[StreamChatProviderKey.self] else {
                 fatalError("Chat client was not setup")

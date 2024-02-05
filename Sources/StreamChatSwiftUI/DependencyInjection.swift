@@ -4,6 +4,7 @@
 
 import Foundation
 import StreamChat
+import SwiftUI
 
 public protocol InjectionKey {
     /// The associated type representing the type of the dependency injection key's value.
@@ -36,7 +37,7 @@ public struct Injected<T> {
     private let keyPath: WritableKeyPath<InjectedValues, T>
     public var wrappedValue: T {
         get { InjectedValues[keyPath] }
-        set { InjectedValues[keyPath] = newValue }
+        nonmutating set { InjectedValues[keyPath] = newValue }
     }
 
     public init(_ keyPath: WritableKeyPath<InjectedValues, T>) {
