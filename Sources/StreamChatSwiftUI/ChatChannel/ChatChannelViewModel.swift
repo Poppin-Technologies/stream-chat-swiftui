@@ -56,6 +56,7 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
     
     @Published public var scrolledId: String?
     @Published public var listId = UUID().uuidString
+    @Published public var initialTheme: Appearance? = nil
 
     @Published public var showScrollToLatestButton = false
 
@@ -149,6 +150,7 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
         channelDataSource.delegate = self
         messages = channelDataSource.messages
         
+        self.initialTheme = InjectedValues[\.streamChat].appearance.customized
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             if let scrollToMessage, let parentMessageId = scrollToMessage.parentMessageId, messageController == nil {
                 let message = channelController.dataStore.message(id: parentMessageId)
@@ -703,7 +705,9 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
                 channelDataSource.loadFirstPage { _ in }
             }
         }
-        InjectedValues[\.streamChat].appearance.customized = nil
+//        if InjectedValues[\.streamChat].appearance.customized == initialTheme {
+//          InjectedValues[\.streamChat].appearance.customized = nil
+//        }
     }
 }
 

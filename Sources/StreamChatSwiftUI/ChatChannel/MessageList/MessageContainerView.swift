@@ -5,6 +5,7 @@
 import AVKit
 import StreamChat
 import SwiftUI
+import ShinySwiftUI
 
 public struct MessageContainerView<Factory: ViewFactory>: View {
 
@@ -23,6 +24,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
     var isLast: Bool
     @Binding var scrolledId: String?
     @Binding var quotedMessage: ChatMessage?
+    @Binding var optionalOffset: CGFloat
     var onLongPress: (MessageDisplayInfo) -> Void
 
     @State private var frame: CGRect = .zero
@@ -44,7 +46,8 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
         isLast: Bool,
         scrolledId: Binding<String?>,
         quotedMessage: Binding<ChatMessage?>,
-        onLongPress: @escaping (MessageDisplayInfo) -> Void
+        onLongPress: @escaping (MessageDisplayInfo) -> Void,
+        optionalOffset: Binding<CGFloat>? = nil
     ) {
         self.factory = factory
         self.channel = channel
@@ -56,6 +59,11 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
         self.onLongPress = onLongPress
         _scrolledId = scrolledId
         _quotedMessage = quotedMessage
+        if let optionalOffset {
+          self._optionalOffset = optionalOffset
+        } else {
+          self._optionalOffset = .constant(.zero)
+        }
     }
 
     public var body: some View {
@@ -83,88 +91,106 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                             reactionsShown: topReactionsShown
                         )
                     }
-
+                  
+                  VStack(alignment: message.isRightAligned ? .trailing : .leading, spacing: 0) {
+                    if !message.isRightAligned && showsAllInfo {
+                      MessageAuthorView(message: message)
+                        .padding(.leading, 10)
+                    }
                     MessageView(
-                        factory: factory,
-                        message: message,
-                        contentWidth: contentWidth,
-                        isFirst: showsAllInfo,
-                        scrolledId: $scrolledId
+                      factory: factory,
+                      message: message,
+                      contentWidth: contentWidth,
+                      isFirst: showsAllInfo,
+                      scrolledId: $scrolledId
+                    )
+                    .onChange(of: optionalOffset) { val in
+                      if val == -55 {
+                        triggerHapticFeedback(style: .medium)
+                      }
+                    }
+                    .overlay(
+                      GeometryReader { proxy in
+                        let f = proxy.frame(in: .global)
+                        MessageDateView(message: message)
+                          .position(x: UIScreen.main.bounds.maxX - f.minX + (max(optionalOffset, -55)) + 30, y: f.midY - f.minY)
+                      }
                     )
                     .overlay(
-                        ZStack {
-                            topReactionsShown ?
-                                factory.makeMessageReactionView(
-                                    message: message,
-                                    onTapGesture: {
-                                        handleGestureForMessage(showsMessageActions: false)
-                                    },
-                                    onLongPressGesture: {
-                                        handleGestureForMessage(showsMessageActions: false)
-                                    }
-                                )
-                                : nil
-
-                            (message.localState == .sendingFailed || message.isBounced) ? SendFailureIndicator() : nil
-                        }
+                      ZStack {
+                        topReactionsShown ?
+                        factory.makeMessageReactionView(
+                          message: message,
+                          onTapGesture: {
+                            handleGestureForMessage(showsMessageActions: false)
+                          },
+                          onLongPressGesture: {
+                            handleGestureForMessage(showsMessageActions: false)
+                          }
+                        )
+                        : nil
+                        
+                        (message.localState == .sendingFailed || message.isBounced) ? SendFailureIndicator() : nil
+                      }
                     )
                     .background(
-                        GeometryReader { proxy in
-                            Rectangle().fill(Color.clear)
-                                .onChange(of: computeFrame, perform: { _ in
-                                    DispatchQueue.main.async {
-                                        frame = proxy.frame(in: .global)
-                                    }
-                                })
-                        }
+                      GeometryReader { proxy in
+                        Rectangle().fill(Color.clear)
+                          .onChange(of: computeFrame, perform: { _ in
+                            DispatchQueue.main.async {
+                              frame = proxy.frame(in: .global)
+                            }
+                          })
+                      }
                     )
                     .onTapGesture(count: 2) {
-                        if messageListConfig.doubleTapOverlayEnabled {
-                            handleGestureForMessage(showsMessageActions: true)
-                        }
+                      if messageListConfig.doubleTapOverlayEnabled {
+                        handleGestureForMessage(showsMessageActions: true)
+                      }
                     }
-                    .onLongPressGesture(minimumDuration: 0.001) {
+                    .onLongPressGesture(minimumDuration: 0.1) {
                       if !message.isDeleted {
-                          handleGestureForMessage(showsMessageActions: true)
+                        handleGestureForMessage(showsMessageActions: true)
                       }
                     }
                     .offset(x: min(self.offsetX, maximumHorizontalSwipeDisplacement))
                     .simultaneousGesture(
-                        DragGesture(
-                            minimumDistance: minimumSwipeDistance,
-                            coordinateSpace: .local
-                        )
-                        .updating($offset) { (value, gestureState, _) in
-                            if message.isDeleted || !channel.config.repliesEnabled {
-                                return
-                            }
-                            // Using updating since onEnded is not called if the gesture is canceled.
-                            let diff = CGSize(
-                                width: value.location.x - value.startLocation.x,
-                                height: value.location.y - value.startLocation.y
-                            )
-
-                            if diff == .zero {
-                                gestureState = .zero
-                            } else {
-                                gestureState = value.translation
-                            }
+                      DragGesture(
+                        minimumDistance: minimumSwipeDistance,
+                        coordinateSpace: .local
+                      )
+                      .updating($offset) { (value, gestureState, _) in
+                        if message.isDeleted || !channel.config.repliesEnabled {
+                          return
                         }
+                        // Using updating since onEnded is not called if the gesture is canceled.
+                        let diff = CGSize(
+                          width: value.location.x - value.startLocation.x,
+                          height: value.location.y - value.startLocation.y
+                        )
+                        
+                        if diff == .zero {
+                          gestureState = .zero
+                        } else {
+                          gestureState = value.translation
+                        }
+                      }
                     )
                     .onChange(of: offset, perform: { _ in
-                        if !channel.config.quotesEnabled {
-                            return
-                        }
-
-                        if offset == .zero {
-                            // gesture ended or cancelled
-                            setOffsetX(value: 0)
-                        } else {
-                            dragChanged(to: offset.width)
-                        }
+                      if !channel.config.quotesEnabled {
+                        return
+                      }
+                      
+                      if offset == .zero {
+                        // gesture ended or cancelled
+                        setOffsetX(value: 0)
+                      } else {
+                        dragChanged(to: offset.width)
+                      }
                     })
                     .accessibilityElement(children: .contain)
                     .accessibilityIdentifier("MessageView")
+                  }
 
                     if message.replyCount > 0 && !isInThread {
                         factory.makeMessageRepliesView(
@@ -206,17 +232,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                                     channel: channel,
                                     message: message
                                 )
-
-                                if messageListConfig.messageDisplayOptions.showMessageDate {
-                                    factory.makeMessageDateView(for: message)
-                                }
                             }
-                        } else if !message.isRightAligned
-                            && !channel.isDirectMessageChannel
-                            && messageListConfig.messageDisplayOptions.showAuthorName {
-                            factory.makeMessageAuthorAndDateView(for: message)
-                        } else if messageListConfig.messageDisplayOptions.showMessageDate {
-                            factory.makeMessageDateView(for: message)
                         }
                     }
                 }

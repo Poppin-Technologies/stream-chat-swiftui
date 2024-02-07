@@ -5,17 +5,24 @@
 import SwiftUI
 
 /// An object containing visual configuration for the whole application.
-public class Appearance {
+public class Appearance : Equatable{
+    public static func == (lhs: Appearance, rhs: Appearance) -> Bool {
+      lhs.id == rhs.id
+    }
+  
+    public var id: String
     public var customized: Appearance?
     public var colors: ColorPalette
     public var images: Images
     public var fonts: Fonts
 
     public init(
+        id: String = "Default",
         colors: ColorPalette = ColorPalette(),
         images: Images = Images(),
         fonts: Fonts = Fonts()
     ) {
+        self.id = id
         self.colors = colors
         self.images = images
         self.fonts = fonts
@@ -25,6 +32,7 @@ public class Appearance {
     public static var localizationProvider: (_ key: String, _ table: String) -> String = { key, table in
         Bundle.streamChatUI.localizedString(forKey: key, value: nil, table: table)
     }
+  
 }
 
 // MARK: - Appearance + Default

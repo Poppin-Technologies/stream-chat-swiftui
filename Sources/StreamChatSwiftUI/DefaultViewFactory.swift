@@ -272,7 +272,8 @@ extension ViewFactory {
         scrolledId: Binding<String?>,
         quotedMessage: Binding<ChatMessage?>,
         onLongPress: @escaping (MessageDisplayInfo) -> Void,
-        isLast: Bool
+        isLast: Bool,
+        optionalOffset: Binding<CGFloat>? = nil
     ) -> some View {
         MessageContainerView(
             factory: self,
@@ -284,7 +285,8 @@ extension ViewFactory {
             isLast: isLast,
             scrolledId: scrolledId,
             quotedMessage: quotedMessage,
-            onLongPress: onLongPress
+            onLongPress: onLongPress,
+            optionalOffset: optionalOffset
         )
     }
     

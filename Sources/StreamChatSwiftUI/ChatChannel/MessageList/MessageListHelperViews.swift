@@ -48,7 +48,7 @@ public struct MessageAuthorView: View {
   public var body: some View {
     Text(utils.messageCachingUtils.authorName(for: message))
       .lineLimit(1)
-      .font(fonts.footnoteBold)
+      .font(fonts.footnote)
       .foregroundColor(Color(colors.textLowEmphasis))
   }
 }
@@ -68,7 +68,7 @@ struct MessageDateView: View {
   
   var body: some View {
     Text(formatChatMessageDate(date: message.createdAt))
-      .font(fonts.footnote)
+      .font(.system(size: 10))
       .foregroundColor(Color(colors.textLowEmphasis))
       .animation(nil)
       .accessibilityIdentifier("MessageDateView")
@@ -86,12 +86,7 @@ struct MessageDateView: View {
       let dateFormatter = DateFormatter()
       
       let currentDate = Date()
-      if currentDate.timeIntervalSince(date) < 86400 {
-        dateFormatter.dateFormat = "h:mm a"
-      } else {
-        dateFormatter.dateFormat = "MM/dd h:mm a"
-      }
-      
+      dateFormatter.dateFormat = "h:mm a"
       return dateFormatter.string(from: date)
   }
 }

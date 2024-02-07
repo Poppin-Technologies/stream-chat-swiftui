@@ -137,8 +137,8 @@ public struct MessageTextView<Factory: ViewFactory>: View {
         trailingPadding: CGFloat = 16,
         topPadding: CGFloat = 8,
         bottomPadding: CGFloat = 8,
-        scrolledId: Binding<String?>
-    ) {
+        scrolledId: Binding<String?>)
+    {
         self.factory = factory
         self.message = message
         self.isFirst = isFirst

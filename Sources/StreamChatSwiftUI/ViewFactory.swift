@@ -275,7 +275,8 @@ public protocol ViewFactory: AnyObject {
         scrolledId: Binding<String?>,
         quotedMessage: Binding<ChatMessage?>,
         onLongPress: @escaping (MessageDisplayInfo) -> Void,
-        isLast: Bool
+        isLast: Bool,
+        optionalOffset: Binding<CGFloat>?
     ) -> MessageContainerViewType
 
     associatedtype MessageTextViewType: View

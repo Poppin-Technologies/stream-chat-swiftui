@@ -35,6 +35,8 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
     @State private var pendingKeyboardUpdate: Bool?
     @State private var scrollDirection = ScrollDirection.up
     @State private var newMessagesStartId: String?
+    @State private var offsetX: CGFloat = 0.0
+    @GestureState private var offset: CGSize = .zero
 
     private var messageRenderingUtil = MessageRenderingUtil.shared
     private var skipRenderingMessageIds = [String]()
@@ -148,7 +150,8 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                                 scrolledId: $scrolledId,
                                 quotedMessage: $quotedMessage,
                                 onLongPress: handleLongPress(messageDisplayInfo:),
-                                isLast: !showsLastInGroupInfo && message == messages.last
+                                isLast: !showsLastInGroupInfo && message == messages.last,
+                                optionalOffset: $offsetX
                             )
                             .onAppear {
                                 if index == nil {
@@ -194,6 +197,7 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                                     }
                                     : nil
                             )
+                            .offset(x: max(offsetX, -55))
                             .flippedUpsideDown()
                             .animation(nil, value: messageDate != nil)
                         }
@@ -252,6 +256,34 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                         }
                     }
                 }
+                .simultaneousGesture(
+                    DragGesture(
+                        minimumDistance: 10,
+                        coordinateSpace: .global
+                    )
+                    .updating($offset) { (value, gestureState, _) in
+                        // Using updating since onEnded is not called if the gesture is canceled.
+                        let diff = CGSize(
+                            width: value.location.x - value.startLocation.x,
+                            height: value.location.y - value.startLocation.y
+                        )
+
+                        if diff == .zero {
+                            gestureState = .zero
+                        } else {
+                            gestureState = value.translation
+                        }
+                    }
+                )
+                .onChange(of: offset, perform: { _ in
+                  withAnimation(.interpolatingSpring(stiffness: 170, damping: 20)) {
+                    if offset == .zero {
+                        self.offsetX = 0
+                    } else {
+                      dragChanged(to: offset.width)
+                    }
+                  }
+                })
                 .flippedUpsideDown()
                 .frame(maxWidth: .infinity)
                 .clipped()
@@ -378,6 +410,17 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
             onLongPress(messageDisplayInfo)
         }
     }
+  
+    private func dragChanged(to value: CGFloat) {
+        let horizontalTranslation = value
+
+        
+        if horizontalTranslation <= -10 {
+            offsetX = horizontalTranslation
+        } else {
+            offsetX = 0
+        }
+    }
 }
 
 struct ScrollPositionModifier: ViewModifier {
@@ -458,10 +501,12 @@ public struct ScrollToBottomButton: View {
             Button {
                 onScrollToBottom()
             } label: {
-                Image(uiImage: images.scrollDownArrow)
+                Image(systemName: "chevron.down")
+                    .renderingMode(.template)
                     .aspectRatio(contentMode: .fit)
                     .frame(width: buttonSize, height: buttonSize)
                     .modifier(ShadowViewModifier(cornerRadius: buttonSize / 2))
+                    .foregroundColor(colors.tintColor)
             }
             .padding()
             .overlay(
