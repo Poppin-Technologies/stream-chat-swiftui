@@ -22,6 +22,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
     var showsAllInfo: Bool
     var isInThread: Bool
     var isLast: Bool
+    var isLastGroup: Bool
     @Binding var scrolledId: String?
     @Binding var quotedMessage: ChatMessage?
     @Binding var optionalOffset: CGFloat
@@ -44,6 +45,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
         showsAllInfo: Bool,
         isInThread: Bool,
         isLast: Bool,
+        isLastGroup: Bool = false,
         scrolledId: Binding<String?>,
         quotedMessage: Binding<ChatMessage?>,
         onLongPress: @escaping (MessageDisplayInfo) -> Void,
@@ -57,6 +59,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
         self.isInThread = isInThread
         self.isLast = isLast
         self.onLongPress = onLongPress
+        self.isLastGroup = isLastGroup
         _scrolledId = scrolledId
         _quotedMessage = quotedMessage
         if let optionalOffset {
@@ -93,7 +96,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                     }
                   
                   VStack(alignment: message.isRightAligned ? .trailing : .leading, spacing: 0) {
-                    if !message.isRightAligned && showsAllInfo {
+                    if !message.isRightAligned && isLastGroup {
                       MessageAuthorView(message: message)
                         .padding(.leading, 10)
                     }

@@ -66,6 +66,7 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
             if utils.messageListConfig.groupMessages {
                 groupMessages()
             }
+            setupDateMessages()
         }
     }
 
@@ -118,6 +119,7 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
             }
         }
     }
+    @Published var messageWithDates: [String: Date] = [:]
     
     public var channel: ChatChannel? {
         channelController.channel
@@ -191,6 +193,18 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
         channelName = channel?.name ?? ""
         checkHeaderType()
         checkUnreadCount()
+    }
+  
+  
+    func setupDateMessages() {
+      var lastGroupDate = Date()
+      for i in 0..<messages.count {
+        let message = messages[i]
+        if lastGroupDate.timeIntervalSince(message.createdAt) > 86400 {
+          self.messageWithDates[message.id] = message.createdAt
+          lastGroupDate = message.createdAt
+        }
+      }
     }
     
     @objc

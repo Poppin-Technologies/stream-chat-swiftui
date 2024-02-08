@@ -7,6 +7,7 @@ import SwiftUI
 
 public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
 
+    @EnvironmentObject var viewModel: ChatChannelViewModel
     @Injected(\.utils) private var utils
     @Injected(\.chatClient) private var chatClient
     @Injected(\.colors) private var colors
@@ -141,65 +142,74 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                             let messageDate: Date? = messageListDateUtils.showMessageDate(for: index, in: messages)
                             let showUnreadSeparator = message.id == newMessagesStartId
                             let showsLastInGroupInfo = showsLastInGroupInfo(for: message, channel: channel)
+                          VStack(spacing: 4) {
+                            if let m = viewModel.messageWithDates[message.id] {
+                              formatDate(date: m).font(.footnote)
+                                .padding(.vertical, 8)
+                                .foregroundColor(Color(colors.textLowEmphasis))
+                                .flippedUpsideDown()
+                            }
                             factory.makeMessageContainerView(
-                                channel: channel,
-                                message: message,
-                                width: width,
-                                showsAllInfo: showsAllData(for: message),
-                                isInThread: isMessageThread,
-                                scrolledId: $scrolledId,
-                                quotedMessage: $quotedMessage,
-                                onLongPress: handleLongPress(messageDisplayInfo:),
-                                isLast: !showsLastInGroupInfo && message == messages.last,
-                                optionalOffset: $offsetX
+                              channel: channel,
+                              message: message,
+                              width: width,
+                              showsAllInfo: showsAllData(for: message),
+                              isInThread: isMessageThread,
+                              scrolledId: $scrolledId,
+                              quotedMessage: $quotedMessage,
+                              onLongPress: handleLongPress(messageDisplayInfo:),
+                              isLast: !showsLastInGroupInfo && message == messages.last,
+                              isLastGroup: showsFirstData(for: message),
+                              optionalOffset: $offsetX
                             )
                             .onAppear {
-                                if index == nil {
-                                    index = messageListDateUtils.index(for: message, in: messages)
-                                }
-                                if let index = index {
-                                    onMessageAppear(index, scrollDirection)
-                                }
+                              if index == nil {
+                                index = messageListDateUtils.index(for: message, in: messages)
+                              }
+                              if let index = index {
+                                onMessageAppear(index, scrollDirection)
+                              }
                             }
                             .padding(
-                                .top,
-                                messageDate != nil ?
-                                    offsetForDateIndicator(
-                                        showsLastInGroupInfo: showsLastInGroupInfo,
-                                        showUnreadSeparator: showUnreadSeparator
-                                    ) :
-                                    additionalTopPadding(
-                                        showsLastInGroupInfo: showsLastInGroupInfo,
-                                        showUnreadSeparator: showUnreadSeparator
-                                    )
+                              .top,
+                              messageDate != nil ?
+                              offsetForDateIndicator(
+                                showsLastInGroupInfo: showsLastInGroupInfo,
+                                showUnreadSeparator: showUnreadSeparator
+                              ) :
+                                additionalTopPadding(
+                                  showsLastInGroupInfo: showsLastInGroupInfo,
+                                  showUnreadSeparator: showUnreadSeparator
+                                )
                             )
                             .overlay(
-                                (messageDate != nil || showsLastInGroupInfo || showUnreadSeparator) ?
-                                    VStack(spacing: 0) {
-                                        messageDate != nil ?
-                                            factory.makeMessageListDateIndicator(date: messageDate!)
-                                            .frame(maxHeight: messageListConfig.messageDisplayOptions.dateLabelSize)
-                                            : nil
-                                        
-                                        showUnreadSeparator ?
-                                            factory.makeNewMessagesIndicatorView(
-                                                newMessagesStartId: $newMessagesStartId,
-                                                count: newMessagesCount(for: index, message: message)
-                                            )
-                                            : nil
-
-                                        showsLastInGroupInfo ?
-                                            factory.makeLastInGroupHeaderView(for: message)
-                                            .frame(maxHeight: lastInGroupHeaderSize)
-                                            : nil
-
-                                        Spacer()
-                                    }
-                                    : nil
+                              (messageDate != nil || showsLastInGroupInfo || showUnreadSeparator) ?
+                              VStack(spacing: 0) {
+                                messageDate != nil ?
+                                factory.makeMessageListDateIndicator(date: messageDate!)
+                                  .frame(maxHeight: messageListConfig.messageDisplayOptions.dateLabelSize)
+                                : nil
+                                
+                                showUnreadSeparator ?
+                                factory.makeNewMessagesIndicatorView(
+                                  newMessagesStartId: $newMessagesStartId,
+                                  count: newMessagesCount(for: index, message: message)
+                                )
+                                : nil
+                                
+                                showsLastInGroupInfo ?
+                                factory.makeLastInGroupHeaderView(for: message)
+                                  .frame(maxHeight: lastInGroupHeaderSize)
+                                : nil
+                                
+                                Spacer()
+                              }
+                              : nil
                             )
                             .offset(x: max(offsetX, -55))
                             .flippedUpsideDown()
                             .animation(nil, value: messageDate != nil)
+                          }
                         }
                         .id(listId)
                     }
@@ -373,6 +383,14 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
         let groupInfo = messagesGroupingInfo[message.id] ?? []
         return groupInfo.contains(firstMessageKey) == true
     }
+  
+    private func showsFirstData(for message: ChatMessage) -> Bool {
+        if !messageListConfig.groupMessages {
+            return true
+        }
+        let groupInfo = messagesGroupingInfo[message.id] ?? []
+        return groupInfo.contains(lastMessageKey) == true
+    }
 
     private func showsLastInGroupInfo(
         for message: ChatMessage,
@@ -419,6 +437,32 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
             offsetX = horizontalTranslation
         } else {
             offsetX = 0
+        }
+    }
+    func formatDate(date: Date) -> Text {
+        let dateFormatter: DateFormatter = {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "EEEE"
+            return formatter
+        }()
+        
+        let timeFormatter: DateFormatter = {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "h:mm a"
+            return formatter
+        }()
+        let now = Date()
+        
+        if Calendar.current.isDateInToday(date) {
+            return Text("**Today** \(timeFormatter.string(from: date))")
+        } else if Calendar.current.isDateInYesterday(date) {
+            return Text("**Yesterday** \(timeFormatter.string(from: date))")
+        } else if Calendar.current.isDate(date, equalTo: now, toGranularity: .weekOfYear) {
+            return Text("**\(dateFormatter.string(from: date))** \(timeFormatter.string(from: date))")
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "E, MM/dd, h:mm a"
+            return Text(formatter.string(from: date))
         }
     }
 }

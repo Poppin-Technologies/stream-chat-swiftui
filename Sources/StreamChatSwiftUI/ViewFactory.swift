@@ -276,6 +276,7 @@ public protocol ViewFactory: AnyObject {
         quotedMessage: Binding<ChatMessage?>,
         onLongPress: @escaping (MessageDisplayInfo) -> Void,
         isLast: Bool,
+        isLastGroup: Bool,
         optionalOffset: Binding<CGFloat>?
     ) -> MessageContainerViewType
 
