@@ -240,12 +240,24 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                     }
                 }
                 .overlay(
-                    offsetX > 0 ?
-                        TopLeftView {
-                            Image(uiImage: images.messageActionInlineReply)
-                        }
-                        .offset(x: -32)
-                        : nil
+                  Group {
+                    if #available(iOS 13.0, *) {
+                      offsetX > 0 ?
+                      TopLeftView {
+                        Image(systemName: "arrowshape.turn.up.left.fill")
+                          .resizable()
+                          .scaledToFit()
+                          .frame(width: 12, height: 12)
+                          .rotationEffect(.degrees(-44 + offsetX))
+                          .padding(8)
+                          .background(Color(colors.textLowEmphasis))
+                          .clipShape(Circle())
+                      }
+                      .offset(x: max(-58, -1 * offsetX))
+                      .animation(.spring(response: 0.3, dampingFraction: 1.2), value: offsetX)
+                      : nil
+                    }
+                  }
                 )
 
                 if !message.isRightAligned {
