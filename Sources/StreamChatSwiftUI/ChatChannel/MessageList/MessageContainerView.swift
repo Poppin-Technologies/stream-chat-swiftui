@@ -151,11 +151,17 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                         handleGestureForMessage(showsMessageActions: true)
                       }
                     }
-                    .onLongPressGesture(minimumDuration: 0.1) {
-                      if !message.isDeleted {
-                        handleGestureForMessage(showsMessageActions: true)
-                      }
+                    .delaysTouches(for: 0.01) {
+                        //some code here, if needed
                     }
+                    .gesture(
+                        LongPressGesture(minimumDuration: 0.4)
+                            .onEnded { finished in
+                              if !message.isDeleted {
+                                handleGestureForMessage(showsMessageActions: true)
+                              }
+                            })
+                    
                     .offset(x: min(self.offsetX, maximumHorizontalSwipeDisplacement))
                     .simultaneousGesture(
                       DragGesture(
@@ -425,5 +431,59 @@ public struct MessageDisplayInfo {
         self.showsMessageActions = showsMessageActions
         self.keyboardWasShown = keyboardWasShown
         self.showsBottomContainer = showsBottomContainer
+    }
+}
+
+
+extension View {
+    func delaysTouches(for duration: TimeInterval = 0.25, onTap action: @escaping () -> Void = {}) -> some View {
+        modifier(DelaysTouches(duration: duration, action: action))
+    }
+}
+
+fileprivate struct DelaysTouches: ViewModifier {
+    @State private var disabled = false
+    @State private var touchDownDate: Date? = nil
+    
+    var duration: TimeInterval
+    var action: () -> Void
+    
+    func body(content: Content) -> some View {
+        Button(action: action) {
+            content
+        }
+        .buttonStyle(DelaysTouchesButtonStyle(disabled: $disabled, duration: duration, touchDownDate: $touchDownDate))
+        .disabled(disabled)
+    }
+}
+
+fileprivate struct DelaysTouchesButtonStyle: ButtonStyle {
+    @Binding var disabled: Bool
+    var duration: TimeInterval
+    @Binding var touchDownDate: Date?
+    
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .onChange(of: configuration.isPressed, perform: handleIsPressed)
+    }
+    
+    private func handleIsPressed(isPressed: Bool) {
+        if isPressed {
+            let date = Date()
+            touchDownDate = date
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + max(duration, 0)) {
+                if date == touchDownDate {
+                    disabled = true
+                    
+                    DispatchQueue.main.async {
+                        disabled = false
+                    }
+                }
+            }
+        } else {
+            touchDownDate = nil
+            disabled = false
+        }
     }
 }
