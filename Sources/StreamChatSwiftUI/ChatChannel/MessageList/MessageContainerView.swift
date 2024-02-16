@@ -9,6 +9,8 @@ import ShinySwiftUI
 
 public struct MessageContainerView<Factory: ViewFactory>: View {
 
+  
+    @EnvironmentObject var viewmodel: ChatChannelViewModel
     @Injected(\.fonts) private var fonts
     @Injected(\.colors) private var colors
     @Injected(\.images) private var images
@@ -209,6 +211,17 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                         )
                         .accessibilityElement(children: .contain)
                         .accessibility(identifier: "MessageRepliesView")
+                    }
+                  if message.showReplyInChannel, let quotedMessage = viewmodel.messages.first(where: { message2 in
+                    if message2.isRootOfThread {
+                      return message2.latestReplies.contains { m in
+                        m.id == message.id
+                      }
+                    } else {
+                      return false
+                    }
+                  }) {
+                      MessageThreadReplyView(factory: factory, channel: channel, message: message, repliedMessage: quotedMessage)
                     }
                     
                     if bottomReactionsShown {

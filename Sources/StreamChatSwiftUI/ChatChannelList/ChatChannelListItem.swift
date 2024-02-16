@@ -216,14 +216,21 @@ public struct InjectedChannelInfo {
 }
 
 extension ChatChannel {
-
-    public var lastMessageText: String? {
-        if let latestMessage = latestMessages.first {
-            return "\(latestMessage.author.name ?? latestMessage.author.id): \(textContent(for: latestMessage))"
-        } else {
-            return nil
-        }
+  
+  public var lastMessageText: String? {
+    if let latestMessage = latestMessages.first {
+      return "\(latestMessage.author.name ?? latestMessage.author.id): \(textContent(for: latestMessage))"
+    } else {
+      return nil
     }
+  }
+  public var lastMessageAdjustedText: String? {
+    if let latestMessage = latestMessages.first {
+      return textContent(for: latestMessage)
+    } else {
+      return nil
+    }
+  }
 
     public var shouldShowTypingIndicator: Bool {
         !currentlyTypingUsersFiltered(
