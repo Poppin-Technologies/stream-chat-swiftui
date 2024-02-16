@@ -212,7 +212,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                         .accessibilityElement(children: .contain)
                         .accessibility(identifier: "MessageRepliesView")
                     }
-                  if message.showReplyInChannel, let quotedMessage = viewmodel.messages.first(where: { message2 in
+                  if message.showReplyInChannel, !isInThread, let quotedMessage = viewmodel.messages.first(where: { message2 in
                     if message2.isRootOfThread {
                       return message2.latestReplies.contains { m in
                         m.id == message.id
