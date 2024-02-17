@@ -147,7 +147,6 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                               formatDate(date: m).font(.footnote)
                                 .padding(.vertical, 8)
                                 .foregroundColor(Color(colors.textLowEmphasis))
-                                .flippedUpsideDown()
                             }
                             factory.makeMessageContainerView(
                               channel: channel,
@@ -207,9 +206,10 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                               : nil
                             )
                             .offset(x: max(offsetX, -55))
-                            .flippedUpsideDown()
                             .animation(nil, value: messageDate != nil)
                           }
+                          .flippedUpsideDown()
+
                         }
                         .id(listId)
                     }
@@ -460,9 +460,9 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
         } else if Calendar.current.isDate(date, equalTo: now, toGranularity: .weekOfYear) {
             return Text("**\(dateFormatter.string(from: date))** \(timeFormatter.string(from: date))")
         } else {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "E, MM/dd, h:mm a"
-            return Text(formatter.string(from: date))
+          let formatter = DateFormatter()
+          formatter.dateFormat = "E, MMM d"
+          return Text("**\(formatter.string(from: date))**, \(timeFormatter.string(from: date))")
         }
     }
 }

@@ -75,6 +75,13 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
         HStack(alignment: .bottom) {
             if message.type == .system || (message.type == .error && message.isBounced == false) {
                 factory.makeSystemMessageView(message: message)
+                  .overlay(
+                    GeometryReader { proxy in
+                      let f = proxy.frame(in: .global)
+                      MessageDateView(message: message)
+                        .position(x: UIScreen.main.bounds.maxX - f.minX + (max(optionalOffset, -55)) + 30, y: f.midY - f.minY)
+                    }
+                  )
             } else {
                 if message.isRightAligned {
                     MessageSpacer(spacerWidth: spacerWidth)

@@ -198,9 +198,10 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
   
     func setupDateMessages() {
       var lastGroupDate = Date()
-      for i in 0..<messages.count {
-        let message = messages[i]
-        if lastGroupDate.timeIntervalSince(message.createdAt) > 86400 {
+      let count = messages.count
+      for i in 0..<count {
+        let message = messages[(count - 1) - i]
+        if lastGroupDate.timeIntervalSince(message.createdAt) >= 43200 {
           self.messageWithDates[message.id] = message.createdAt
           lastGroupDate = message.createdAt
         }
