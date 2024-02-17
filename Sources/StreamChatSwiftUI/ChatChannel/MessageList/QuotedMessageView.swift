@@ -134,7 +134,7 @@ public struct QuotedMessageView<Factory: ViewFactory>: View {
             Text(textForMessage)
                 .foregroundColor(textColor(for: quotedMessage))
                 .lineLimit(3)
-                .font(fonts.footnote)
+                .font(.caption2)
                 .accessibility(identifier: "quotedMessageText")
 
             if fillAvailableSpace {
@@ -164,7 +164,7 @@ public struct QuotedMessageView<Factory: ViewFactory>: View {
 
         var colors = colors
         let color = quotedMessage.isSentByCurrentUser ?
-            colors.quotedMessageBackgroundCurrentUser : colors.quotedMessageBackgroundOtherUser
+        colors.quotedMessageBackgroundCurrentUser : colors.background8
         return color
     }
 
