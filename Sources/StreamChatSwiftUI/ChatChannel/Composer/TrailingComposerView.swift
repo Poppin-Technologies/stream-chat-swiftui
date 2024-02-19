@@ -38,16 +38,16 @@ public struct TrailingComposerView: View {
     }
 }
 
-struct VoiceRecordingButton: View {
+public struct VoiceRecordingButton: View {
     @Injected(\.colors) var colors
     @Injected(\.utils) var utils
     
-    @ObservedObject var viewModel: MessageComposerViewModel
+    @ObservedObject public var viewModel: MessageComposerViewModel
     
     @State private var longPressed = false
     @State private var longPressStarted: Date?
 
-    var body: some View {
+    public var body: some View {
         Image(systemName: "mic")
             .foregroundColor(Color(colors.textLowEmphasis))
             .gesture(
