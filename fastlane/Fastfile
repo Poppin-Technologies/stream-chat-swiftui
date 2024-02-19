@@ -7,7 +7,7 @@ require 'xcodeproj'
 import 'Sonarfile'
 import 'Allurefile'
 
-xcode_version = ENV['XCODE_VERSION'] || '15.0.1'
+xcode_version = ENV['XCODE_VERSION'] || '15.2'
 xcode_project = 'StreamChatSwiftUI.xcodeproj'
 sdk_names = ['StreamChatSwiftUI']
 github_repo = ENV['GITHUB_REPOSITORY'] || 'GetStream/stream-chat-swiftui'
@@ -23,7 +23,7 @@ before_all do |lane|
     setup_ci
     ENV['FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT'] = '180'
     ENV['FASTLANE_XCODEBUILD_SETTINGS_RETRIES'] = '10'
-    xcversion(version: xcode_version) unless [:publish_release, :allure_launch, :pod_lint].include?(lane)
+    xcversion(version: xcode_version) unless [:publish_release, :allure_launch, :allure_upload, :copyright, :pod_lint].include?(lane)
   end
 end
 
@@ -69,19 +69,21 @@ lane :release do |options|
   end
 
   pod_lint
-  version_number = release_ios_sdk(
+  release_ios_sdk(
     version: options[:version],
     bump_type: options[:type],
     sdk_names: sdk_names,
     podspec_names: ['StreamChatSwiftUI', 'StreamChatSwiftUI-XCFramework'],
     github_repo: github_repo,
-    extra_changes: extra_changes
+    extra_changes: extra_changes,
+    create_pull_request: true
   )
-  publish_release(version: version_number)
 end
 
 desc "Publish a new release to GitHub and CocoaPods"
 lane :publish_release do |options|
+  xcversion(version: '15.0.1')
+
   clean_products
   build_xcframeworks
   compress_frameworks
@@ -125,7 +127,8 @@ desc 'Runs tests in Debug config'
 lane :test_ui do |options|
   next unless is_check_required(sources: sources_matrix[:ui], force_check: @force_check)
 
-  remove_snapshots unless options[:record].to_s.empty?
+  record_mode = !options[:record].to_s.empty?
+  remove_snapshots if record_mode
 
   update_testplan_on_ci(path: 'StreamChatSwiftUITests/Tests/StreamChatSwiftUI.xctestplan')
 
@@ -143,14 +146,16 @@ lane :test_ui do |options|
     skip_build: options[:skip_build],
     number_of_retries: options[:record].to_s.empty? ? 1 : nil,
     xcargs: buildcache_xcargs,
-    fail_build: options[:record].to_s.empty?
+    fail_build: !record_mode
   )
 
-  if options[:record] && is_ci
+  if record_mode && is_ci
     png_files = git_status(ext: '.png').map { |_, png| png }.flatten
     next if png_files.empty?
 
+    # Discard all files apart from the snapshots
     png_files.each { |png| sh("git add #{png}") || true }
+    sh('git restore .')
 
     create_pr(
       title: '[CI] Snapshots',
@@ -189,7 +194,6 @@ lane :test_e2e_mock do |options|
   next unless is_check_required(sources: sources_matrix[:e2e], force_check: @force_check)
 
   start_sinatra
-  prepare_simulator(device: options[:device]) if is_ci
 
   scan_options = {
     project: xcode_project,
@@ -202,6 +206,7 @@ lane :test_e2e_mock do |options|
     test_without_building: options[:test_without_building],
     xcargs: buildcache_xcargs,
     devices: options[:device],
+    prelaunch_simulator: is_ci,
     number_of_retries: 3 # TODO: CIS-1737
   }
 
@@ -400,7 +405,7 @@ private_lane :create_pr do |options|
 end
 
 private_lane :current_branch do
-  ENV['BRANCH_NAME'] || git_branch
+  ENV['BRANCH_NAME'].to_s.empty? ? git_branch : ENV.fetch('BRANCH_NAME')
 end
 
 private_lane :git_status do |options|

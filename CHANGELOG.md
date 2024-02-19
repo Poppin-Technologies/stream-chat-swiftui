@@ -5,6 +5,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### 🔄 Changed
 
+# [4.48.0](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.48.0)
+_February 09, 2024_
+
+### ✅ Added
+- Factory method for customizing the search results view
+
+### 🔄 Changed
+- Updated StreamChat dependency
+
+# [4.47.1](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.47.1)
+_January 29, 2024_
+
+### 🐞 Fixed
+- Cleanup of audio session only when voice recording is enabled
+
 # [4.47.0](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.47.0)
 _January 09, 2024_
 
