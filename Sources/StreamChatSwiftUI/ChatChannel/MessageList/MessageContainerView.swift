@@ -298,7 +298,13 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
         .padding(.horizontal, messageListConfig.messagePaddings.horizontal)
         .padding(.bottom, showsAllInfo || isMessagePinned ? paddingValue : 2)
         .padding(.top, isLast ? paddingValue : 0)
-        .background(isMessagePinned ? Color(colors.pinnedBackground) : nil)
+        .background(
+          Group {
+            if message.isPinned {
+              Color.black.opacity(0.3)
+            }
+          }
+        )
         .padding(.bottom, isMessagePinned ? paddingValue / 2 : 0)
         .transition(
             message.isSentByCurrentUser ?

@@ -56,36 +56,15 @@ public struct MessageRepliesView<Factory: ViewFactory>: View {
                     )
                 }
             }
-            .padding(.horizontal, 16)
-            .overlay(
-                Path { path in
-                    let corner: CGFloat = 16
-                    let height: CGFloat = 2 * corner
-                    let startX: CGFloat = 0
-                    let endX = startX + corner
-
-                    path.move(to: CGPoint(x: startX, y: 0))
-                    path.addLine(to: CGPoint(x: startX, y: height - corner))
-                    path.addQuadCurve(
-                        to: CGPoint(x: endX, y: height),
-                        control: CGPoint(x: startX, y: height)
-                    )
-                }
-                .stroke(
-                    Color(colors.innerBorder),
-                    style: StrokeStyle(
-                        lineWidth: 1.0,
-                        lineCap: .round,
-                        lineJoin: .round
-                    )
-                )
-                .offset(y: -24)
-                .rotation3DEffect(
-                    .degrees(message.isRightAligned ? 180 : 0),
-                    axis: (x: 0, y: 1, z: 0)
-                )
+            .padding(.vertical, 3)
+            .padding(.horizontal, 5)
+            .background(
+              Color.black.opacity(0.3)
             )
+            .clipShape(Capsule())
+            .padding(.horizontal, 5)
             .foregroundColor(colors.tintColor)
+            .offset(y: -3)
         }
     }
 
@@ -144,36 +123,15 @@ public struct MessageThreadReplyView<Factory: ViewFactory>: View {
             )
         }
       }
-      .padding(.horizontal, 16)
-      .overlay(
-        Path { path in
-          let corner: CGFloat = 16
-          let height: CGFloat = 2 * corner
-          let startX: CGFloat = 0
-          let endX = startX + corner
-          
-          path.move(to: CGPoint(x: startX, y: 0))
-          path.addLine(to: CGPoint(x: startX, y: height - corner))
-          path.addQuadCurve(
-            to: CGPoint(x: endX, y: height),
-            control: CGPoint(x: startX, y: height)
-          )
-        }
-          .stroke(
-            Color(colors.innerBorder),
-            style: StrokeStyle(
-              lineWidth: 1.0,
-              lineCap: .round,
-              lineJoin: .round
-            )
-          )
-          .offset(y: -24)
-          .rotation3DEffect(
-            .degrees(message.isRightAligned ? 180 : 0),
-            axis: (x: 0, y: 1, z: 0)
-          )
+      .padding(.vertical, 3)
+      .padding(.horizontal, 5)
+      .background(
+        Color.black.opacity(0.3)
       )
+      .clipShape(Capsule())
+      .padding(.horizontal, 5)
       .foregroundColor(colors.tintColor)
+      .offset(y: -3)
     }
   }
 }

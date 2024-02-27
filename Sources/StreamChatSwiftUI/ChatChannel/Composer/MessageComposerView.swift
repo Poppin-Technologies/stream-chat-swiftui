@@ -69,6 +69,7 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
                     state: $viewModel.pickerTypeState,
                     channelConfig: channelConfig
                 )
+                .padding(.trailing, -3)
 
                 factory.makeComposerInputView(
                     text: $viewModel.text,

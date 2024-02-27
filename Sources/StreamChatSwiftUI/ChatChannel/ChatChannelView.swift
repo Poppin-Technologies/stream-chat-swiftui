@@ -46,6 +46,7 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
         ZStack {
             if let channel = viewModel.channel {
                 VStack(spacing: 0) {
+                    factory.makeChannelTopBar(channel: channel)
                     if !viewModel.messages.isEmpty {
                         MessageListView(
                             factory: factory,

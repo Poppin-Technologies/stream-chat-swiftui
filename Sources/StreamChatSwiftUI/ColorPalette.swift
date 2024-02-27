@@ -44,6 +44,7 @@ public struct ColorPalette: Identifiable {
     public var background6: UIColor = .streamGrayWhisper
     public var background7: UIColor = .streamDarkGray
     public var background8: UIColor = .streamWhite
+    public var background9: UIColor = .black
 
     public var overlayBackground: UIColor = .streamOverlayLight
     public var popoverBackground: UIColor = .streamWhite

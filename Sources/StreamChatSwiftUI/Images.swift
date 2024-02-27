@@ -4,7 +4,7 @@
 
 import Foundation
 import StreamChat
-import UIKit
+import SwiftUI
 
 /// Provides access to the images used in the SDK.
 public class Images {
@@ -31,6 +31,7 @@ public class Images {
     
     // MARK: - General
 
+    public var background: Image? = nil
     public var loadingIndicator: UIImage = loadImageSafely(with: "loading_indicator")
     public var close: UIImage = UIImage(systemName: "xmark")!
     public var closeFilled: UIImage = UIImage(systemName: "xmark.circle.fill")!

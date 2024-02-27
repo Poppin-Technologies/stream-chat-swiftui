@@ -91,7 +91,18 @@ public struct VoiceRecordingContainerView<Factory: ViewFactory>: View {
         .background(Color(colors.background))
         .cornerRadius(16)
         .padding(.all, 4)
-        .messageBubble(for: message, isFirst: isFirst)
+        .modifier(
+            factory.makeMessageViewModifier(
+                for: MessageModifierInfo(
+                    message: message,
+                    isFirst: true,
+                    injectedBackgroundColor: message.isSentByCurrentUser ?
+                    colors.messageCurrentUserBackground.first ?? .black : colors.background8,
+                    cornerRadius: 12,
+                    forceLeftToRight: false
+                )
+            )
+        )
     }
     
     private func index(for attachment: ChatMessageVoiceRecordingAttachment) -> Int {

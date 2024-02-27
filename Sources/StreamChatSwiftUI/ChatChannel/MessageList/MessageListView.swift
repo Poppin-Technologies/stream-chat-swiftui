@@ -4,6 +4,7 @@
 
 import StreamChat
 import SwiftUI
+import ShinySwiftUI
 
 public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
 
@@ -125,7 +126,6 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
 
     public var body: some View {
         ZStack {
-            factory.makeChannelTopBar(channel: channel)
             ScrollViewReader { scrollView in
                 ScrollView {
                     GeometryReader { proxy in
@@ -633,8 +633,9 @@ struct TypingIndicatorBottomView: View {
             .standardPadding()
             .background(
                 Color(colors.background)
-                    .opacity(0.9)
+                    .opacity(0.3)
             )
+            .transition(.swipeUp.animation(.slickEaseIn(duration: 0.3)))
             .accessibilityIdentifier("TypingIndicatorBottomView")
         }
         .accessibilityElement(children: .contain)

@@ -125,6 +125,12 @@ public struct MessageReadIndicatorView: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("MessageReadIndicatorView")
+        .padding(.vertical, 3)
+        .padding(.horizontal, 5)
+        .background(
+          Color.black.opacity(0.3)
+        )
+        .clipShape(Capsule())
     }
     
     private var image: UIImage {
@@ -166,7 +172,7 @@ public struct MessagePinDetailsView: View {
             Text("\(L10n.Message.Cell.pinnedBy) \(message.pinDetails?.pinnedBy.name ?? L10n.Message.Cell.unknownPin)")
                 .font(fonts.footnote)
         }
-        .foregroundColor(Color(colors.textLowEmphasis))
+        .foregroundColor(colors.tintColor)
         .frame(height: 16)
         .padding(.bottom, reactionsShown ? 16 : 0)
         .padding(.top, 4)
