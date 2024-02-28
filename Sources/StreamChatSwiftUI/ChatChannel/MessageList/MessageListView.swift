@@ -220,7 +220,7 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                   Group {
                     if #available(iOS 16.0, *) {
                       view
-                        .scrollDismissesKeyboard(.interactively)
+                        .scrollDismissesKeyboard(.immediately)
                     } else {
                       view
                     }

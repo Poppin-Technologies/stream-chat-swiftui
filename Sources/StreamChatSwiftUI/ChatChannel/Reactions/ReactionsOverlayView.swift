@@ -117,6 +117,7 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
                                     scrolledId: .constant(nil)
                                 )
                             }
+                            .frame(height: messageContainerHeight - 100)
                         } else {
                             MessageView(
                                 factory: factory,
