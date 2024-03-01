@@ -57,6 +57,7 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
     @Published public var scrolledId: String?
     @Published public var listId = UUID().uuidString
     @Published public var initialTheme: Appearance? = nil
+    @Published public var onPinAction: (MessageActionInfo) -> () = { _ in }
 
     @Published public var showScrollToLatestButton = false
 
@@ -434,10 +435,13 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
     }
     
     public func messageActionExecuted(_ messageActionInfo: MessageActionInfo) {
-        utils.messageActionsResolver.resolveMessageAction(
-            info: messageActionInfo,
-            viewModel: self
-        )
+      if messageActionInfo.identifier == "pin" || messageActionInfo.identifier == "unpin" {
+        onPinAction(messageActionInfo)
+      }
+      utils.messageActionsResolver.resolveMessageAction(
+          info: messageActionInfo,
+          viewModel: self
+      )
     }
     
     public func onViewAppear() {
