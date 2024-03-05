@@ -111,7 +111,8 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
                     Alert.defaultErrorAlert
                 }
             }
-            .padding(.all, 8)
+            .padding(.horizontal, 8)
+            .padding(.bottom, keyboardShown ? 12 : 0)
             .opacity(viewModel.recordingState.showsComposer ? 1 : 0)
             .overlay(
                 ZStack {
@@ -216,6 +217,7 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
             alignment: .bottom
         )
         .modifier(factory.makeComposerViewModifier())
+        .background(VisualEffectView().ignoresSafeArea(.all).opacity(0.5))
         .onChange(of: editedMessage) { _ in
             viewModel.text = editedMessage?.text ?? ""
             if editedMessage != nil {
@@ -225,6 +227,7 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
             }
         }
         .accessibilityElement(children: .contain)
+        .padding(.bottom, -4)
     }
 }
 

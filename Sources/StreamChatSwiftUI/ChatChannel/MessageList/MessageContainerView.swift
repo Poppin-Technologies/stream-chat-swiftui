@@ -70,17 +70,24 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
           self._optionalOffset = .constant(.zero)
         }
     }
-
+  
+    var offsetDateView: some View {
+      GeometryReader { proxy in
+        let f = proxy.frame(in: .global)
+        let offsetX = UIScreen.main.bounds.maxX - f.minX + (max(optionalOffset, -55)) + 30
+        if (offsetX > 0) {
+          MessageDateView(message: message)
+            .position(x: offsetX, y: f.midY - f.minY)
+        }
+      }
+    }
+  
     public var body: some View {
         HStack(alignment: .bottom) {
             if message.type == .system || (message.type == .error && message.isBounced == false) {
                 factory.makeSystemMessageView(message: message)
                   .overlay(
-                    GeometryReader { proxy in
-                      let f = proxy.frame(in: .global)
-                      MessageDateView(message: message)
-                        .position(x: UIScreen.main.bounds.maxX - f.minX + (max(optionalOffset, -55)) + 30, y: f.midY - f.minY)
-                    }
+                    offsetDateView
                   )
             } else {
                 if message.isRightAligned {
@@ -122,11 +129,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                       }
                     }
                     .overlay(
-                      GeometryReader { proxy in
-                        let f = proxy.frame(in: .global)
-                        MessageDateView(message: message)
-                          .position(x: UIScreen.main.bounds.maxX - f.minX + (max(optionalOffset, -55)) + 30, y: f.midY - f.minY)
-                      }
+                      offsetDateView
                     )
                     .overlay(
                       ZStack {

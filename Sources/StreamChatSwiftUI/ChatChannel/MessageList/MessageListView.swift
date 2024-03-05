@@ -227,12 +227,6 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                   }
                 }
                 .modifier(ScrollPositionModifier(scrollPosition: loadingNextMessages ? $scrollPosition : .constant(nil)))
-                .background(
-                    factory.makeMessageListBackground(
-                        colors: colors,
-                        isInThread: isMessageThread
-                    )
-                )
                 .coordinateSpace(name: scrollAreaId)
                 .onPreferenceChange(WidthPreferenceKey.self) { value in
                     if let value = value, value != width {

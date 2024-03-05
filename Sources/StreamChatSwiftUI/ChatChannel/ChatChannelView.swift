@@ -89,8 +89,25 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
                         }
                     }
 
-                    Divider()
+                    Text("")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .frame(width: 0, height: 0)
+                        .fixedSize()
                         .navigationBarBackButtonHidden(viewModel.reactionsShown)
+                        .if(true) { view in
+                          Group {
+                            if #available(iOS 16.0, *) {
+                              view
+                                .toolbarBackground(.visible, for: .navigationBar)
+                                .toolbarBackground(.black.opacity(0.05), for: .navigationBar, .tabBar, .automatic)
+                            } else {
+                              view
+                            }
+                          }
+                        }
+                        .if(viewModel.reactionsShown, transform: { view in
+                            view.navigationBarHidden(true)
+                        })
                         .if(viewModel.reactionsShown, transform: { view in
                             view.navigationBarHidden(true)
                         })
@@ -119,6 +136,7 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
                         utils.messageListConfig.messagePopoverEnabled && messageDisplayInfo != nil && !viewModel
                             .reactionsShown && viewModel.channel?.isFrozen == false
                     ) ? 0 : 1)
+                    .padding(.top, -4)
 
                     NavigationLink(
                         isActive: $viewModel.threadMessageShown
@@ -154,6 +172,12 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
                         .transition(.identity)
                         .edgesIgnoringSafeArea(.all)
                         : nil
+                )
+                .background(
+                    factory.makeMessageListBackground(
+                        colors: colors,
+                        isInThread: false
+                    )
                 )
             } else {
                 LoadingView()
