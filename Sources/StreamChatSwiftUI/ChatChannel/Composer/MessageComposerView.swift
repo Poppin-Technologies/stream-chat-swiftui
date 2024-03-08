@@ -59,6 +59,8 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
         Text("You're not allowed to send messages")
           .font(.caption)
           .foregroundColor(Color(colors.textLowEmphasis))
+          .frame(maxWidth: .infinity)
+          .padding(.top, 16)
       } else {
         if quotedMessage != nil {
           factory.makeQuotedMessageHeaderView(
