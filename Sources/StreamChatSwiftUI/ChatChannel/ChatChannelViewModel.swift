@@ -198,19 +198,29 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
   
   
     func setupDateMessages() {
-      var lastGroupDate = Date()
       let count = messages.count
+      
       for i in 0..<count {
-        let message = messages[(count - 1) - i]
-        if lastGroupDate.timeIntervalSince(message.createdAt) >= 43200 {
-          self.messageWithDates[message.id] = message.createdAt
-          lastGroupDate = message.createdAt
+        let message = messages[i]
+        
+        var reachedEnd = i >= count - 2
+        if !reachedEnd {
+          let nextmessage = messages[i + 1]
+          let calendar = Calendar.current
+          let messageDate = calendar.startOfDay(for: message.createdAt)
+          let nextMessageDate = calendar.startOfDay(for: nextmessage.createdAt)
+          if (nextmessage.createdAt.timeIntervalSince(message.createdAt) >= 23600 || messageDate != nextMessageDate) {
+            self.messageWithDates[message.id] = message.createdAt
+          }
+        } else {
+          if !loadingNextMessages {
+            self.messageWithDates[message.id] = message.createdAt
+          }
         }
       }
     }
     
-    @objc
-    private func selectedMessageThread(notification: Notification) {
+  @objc private func selectedMessageThread(notification: Notification) {
         if let message = notification.userInfo?[MessageRepliesConstants.selectedMessage] as? ChatMessage {
             threadMessage = message
             threadMessageShown = true
