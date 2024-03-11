@@ -10,6 +10,7 @@ public struct MessageModifierInfo {
 
     public var message: ChatMessage
     public var isFirst: Bool
+    public var isQuoted: Bool
     public var injectedBackgroundColor: UIColor?
     public var cornerRadius: CGFloat = 18
     public var forceLeftToRight = false
@@ -17,12 +18,14 @@ public struct MessageModifierInfo {
     public init(
         message: ChatMessage,
         isFirst: Bool,
+        isQuoted: Bool = false,
         injectedBackgroundColor: UIColor? = nil,
         cornerRadius: CGFloat = 18,
         forceLeftToRight: Bool = false
     ) {
         self.message = message
         self.isFirst = isFirst
+        self.isQuoted = isQuoted
         self.injectedBackgroundColor = injectedBackgroundColor
         self.cornerRadius = cornerRadius
         self.forceLeftToRight = forceLeftToRight
@@ -36,6 +39,7 @@ public struct MessageBubbleModifier: ViewModifier {
 
     public var message: ChatMessage
     public var isFirst: Bool
+    public var isQuoted: Bool = false
     public var injectedBackgroundColor: UIColor?
     public var cornerRadius: CGFloat = 18
     public var forceLeftToRight = false
@@ -45,6 +49,7 @@ public struct MessageBubbleModifier: ViewModifier {
     public init(
         message: ChatMessage,
         isFirst: Bool,
+        isQuoted: Bool = false,
         injectedBackgroundColor: UIColor? = nil,
         cornerRadius: CGFloat = 18,
         forceLeftToRight: Bool = false,
@@ -53,6 +58,7 @@ public struct MessageBubbleModifier: ViewModifier {
     ) {
         self.message = message
         self.isFirst = isFirst
+        self.isQuoted = isQuoted
         self.injectedBackgroundColor = injectedBackgroundColor
         self.cornerRadius = cornerRadius
         if utils.messageListConfig.messageListAlignment == .leftAligned {

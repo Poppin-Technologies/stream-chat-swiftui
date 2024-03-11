@@ -148,6 +148,7 @@ public struct QuotedMessageView<Factory: ViewFactory>: View {
                 for: MessageModifierInfo(
                     message: quotedMessage,
                     isFirst: true,
+                    isQuoted: true,
                     injectedBackgroundColor: bubbleBackground,
                     cornerRadius: 12,
                     forceLeftToRight: forceLeftToRight
