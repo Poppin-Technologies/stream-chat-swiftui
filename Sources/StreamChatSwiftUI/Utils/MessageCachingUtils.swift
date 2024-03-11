@@ -8,13 +8,13 @@ import UIKit
 
 /// Caches messages related data to avoid accessing the database.
 /// Cleared on chat channel view dismiss or memory warning.
-class MessageCachingUtils {
+public class MessageCachingUtils {
 
     private var messageAuthorMapping = [String: String]()
-    private var messageAuthors = [String: UserDisplayInfo]()
-    private var messageAttachments = [String: Bool]()
-    private var checkedMessageIds = Set<String>()
-    private var quotedMessageMapping = [String: ChatMessage]()
+    public var messageAuthors = [String: UserDisplayInfo]()
+    public var messageAttachments = [String: Bool]()
+    public var checkedMessageIds = Set<String>()
+    public var quotedMessageMapping = [String: ChatMessage]()
 
     var scrollOffset: CGFloat = 0
     var messageThreadShown = false {
@@ -63,7 +63,7 @@ class MessageCachingUtils {
         return userDisplayInfo
     }
 
-    func quotedMessage(for message: ChatMessage) -> ChatMessage? {
+    public func quotedMessage(for message: ChatMessage) -> ChatMessage? {
         if checkedMessageIds.contains(message.id) {
             return nil
         }
