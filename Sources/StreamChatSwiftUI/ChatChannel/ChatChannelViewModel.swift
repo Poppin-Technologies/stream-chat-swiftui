@@ -209,14 +209,10 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
           let calendar = Calendar.current
           let messageDate = calendar.startOfDay(for: message.createdAt)
           let nextMessageDate = calendar.startOfDay(for: nextmessage.createdAt)
-          if (nextmessage.createdAt.timeIntervalSince(message.createdAt) >= 23600 || messageDate != nextMessageDate) {
+          if (nextmessage.createdAt.timeIntervalSince(message.createdAt) <= -23600 || messageDate != nextMessageDate) {
             self.messageWithDates[message.id] = message.createdAt
           }
-        } else {
-          if !loadingNextMessages {
-            self.messageWithDates[message.id] = message.createdAt
-          }
-        }
+        } 
       }
     }
     
