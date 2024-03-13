@@ -228,7 +228,7 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
       alignment: .bottom
     )
     .modifier(factory.makeComposerViewModifier())
-    .background(VisualEffectView().ignoresSafeArea(.all).opacity(0.5))
+    .background(VisualEffectView().ignoresSafeArea(.all).opacity(0.5).offset(y: 3))
     .onChange(of: editedMessage) { _ in
       viewModel.text = editedMessage?.text ?? ""
       if editedMessage != nil {
