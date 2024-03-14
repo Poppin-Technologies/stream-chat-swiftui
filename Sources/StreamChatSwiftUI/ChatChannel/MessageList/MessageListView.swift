@@ -513,11 +513,17 @@ public struct NewMessagesIndicator: View {
         HStack {
             Text("\(L10n.MessageList.newMessages(count))")
                 .foregroundColor(Color(colors.textLowEmphasis))
-                .font(.headline)
-                .padding(.all, 8)
+                .font(.subheadline)
+                .padding(.all, 12)
         }
+        .background(
+          ZStack {
+            Color(colors.background8).opacity(0.33)
+            VisualEffectView()
+          }
+        )
+        .clipShape(Capsule())
         .frame(maxWidth: .infinity)
-        .background(Color(colors.background8))
         .padding(.top, 4)
         .onDisappear {
             newMessagesStartId = nil
