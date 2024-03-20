@@ -30,7 +30,7 @@ public struct GiphyCommandHandler: CommandHandler {
             )
         )
         displayInfo = CommandDisplayInfo(
-            displayName: "Search Gif",
+            displayName: "Send GIF",
             icon: images.commandGiphy,
             format: "\(id) [\(L10n.Composer.Commands.Format.text)]",
             isInstant: true

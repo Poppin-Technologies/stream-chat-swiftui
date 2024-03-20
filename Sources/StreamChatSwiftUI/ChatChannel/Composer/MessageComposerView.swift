@@ -237,6 +237,15 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
         viewModel.selectedRangeLocation = editedMessage?.text.count ?? 0
       }
     }
+    .onChange(of: viewModel.composerCommand == nil) { c in
+        if viewModel.composerCommand?.id == "/giphy" {
+          if !c {
+            becomeFirstResponder()
+          } else {
+            resignFirstResponder()
+          }
+        }
+    }
     .accessibilityElement(children: .contain)
     .padding(.bottom, -4)
 }
@@ -384,7 +393,7 @@ public struct ComposerInputView<Factory: ViewFactory>: View, KeyboardReadable {
           text: $text,
           height: $textHeight,
           selectedRangeLocation: $selectedRangeLocation,
-          placeholder: isInCooldown ? L10n.Composer.Placeholder.slowMode : L10n.Composer.Placeholder.message,
+          placeholder: isInCooldown ? L10n.Composer.Placeholder.slowMode : viewModel.composerCommand?.id == "/giphy" ? "Search a term" : "Send a message",
           editable: !isInCooldown,
           maxMessageLength: maxMessageLength,
           currentHeight: textFieldHeight
