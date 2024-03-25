@@ -115,6 +115,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                     if !message.isRightAligned && isLastGroup {
                       MessageAuthorView(message: message)
                         .padding(.leading, 10)
+                        .offset(y: topReactionsShown ? message.text.count < (message.author.name?.count ?? 0) ? -16 : 0 : 0)
                     }
                     MessageView(
                       factory: factory,

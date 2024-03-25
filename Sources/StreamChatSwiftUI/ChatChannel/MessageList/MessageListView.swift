@@ -513,8 +513,8 @@ public struct NewMessagesIndicator: View {
         HStack {
             Text("\(L10n.MessageList.newMessages(count))")
                 .foregroundColor(Color(colors.textLowEmphasis))
-                .font(.subheadline)
-                .padding(.all, 12)
+                .font(.system(size: 12))
+                .padding(.all)
         }
         .background(
           ZStack {
