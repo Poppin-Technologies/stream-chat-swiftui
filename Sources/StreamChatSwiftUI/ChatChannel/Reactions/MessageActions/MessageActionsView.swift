@@ -9,6 +9,7 @@ import SwiftUI
 public struct MessageActionsView: View {
     @Injected(\.colors) private var colors
 
+    @State var presenting: Bool = false
     @StateObject var viewModel: MessageActionsViewModel
 
     public init(messageActions: [MessageAction]) {
@@ -23,8 +24,8 @@ public struct MessageActionsView: View {
             ForEach(viewModel.messageActions) { action in
                 VStack(spacing: 0) {
                     if let destination = action.navigationDestination {
-                        NavigationLink {
-                            destination
+                        Button {
+                          presenting = true
                         } label: {
                             ActionItemView(
                                 title: action.title,
@@ -32,6 +33,11 @@ public struct MessageActionsView: View {
                                 isDestructive: action.isDestructive,
                                 boldTitle: false
                             )
+                        }
+                        .background {
+                          NavigationLink("", isActive: $presenting) {
+                              destination
+                          }
                         }
                     } else {
                         Button {
