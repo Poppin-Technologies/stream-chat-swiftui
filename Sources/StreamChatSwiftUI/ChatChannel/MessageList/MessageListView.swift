@@ -280,11 +280,13 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                     }
                 )
                 .onChange(of: offset, perform: { _ in
-                  withAnimation(.interpolatingSpring(stiffness: 170, damping: 20)) {
-                    if offset == .zero {
+                  if !(offset == .zero && self.offsetX == .zero) {
+                    withAnimation(.interpolatingSpring(stiffness: 170, damping: 20)) {
+                      if offset == .zero {
                         self.offsetX = 0
-                    } else {
-                      dragChanged(to: offset.width)
+                      } else {
+                        dragChanged(to: offset.width)
+                      }
                     }
                   }
                 })

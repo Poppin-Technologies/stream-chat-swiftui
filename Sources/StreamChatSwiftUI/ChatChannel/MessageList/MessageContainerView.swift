@@ -124,11 +124,6 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                       isFirst: showsAllInfo,
                       scrolledId: $scrolledId
                     )
-                    .onChange(of: optionalOffset) { val in
-                      if val == -55 {
-                        triggerHapticFeedback(style: .medium)
-                      }
-                    }
                     .overlay(
                       offsetDateView
                     )
