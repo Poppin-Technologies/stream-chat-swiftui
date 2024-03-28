@@ -57,6 +57,7 @@ struct ReactionsContainer: View {
         if message.reactionScores.count == 1 {
             offset = 16
         }
+        offset += 3
         return message.isRightAligned ? -offset : offset
     }
 }

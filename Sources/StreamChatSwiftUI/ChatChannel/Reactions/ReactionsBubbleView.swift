@@ -2,8 +2,10 @@
 // Copyright © 2024 Stream.io Inc. All rights reserved.
 //
 
-import StreamChat
 import SwiftUI
+import StreamChat
+import ShinySwiftUI
+
 
 /// Modifier that enables message bubble container.
 public struct ReactionsBubbleModifier: ViewModifier {
@@ -18,7 +20,13 @@ public struct ReactionsBubbleModifier: ViewModifier {
 
     public func body(content: Content) -> some View {
         content
-            .background(Color(backgroundColor))
+        .background(
+          ZStack {
+            Color(backgroundColor)
+              .opacity(0.66)
+            VisualEffectView()
+          }
+        )
             .clipShape(
                 BubbleBackgroundShape(
                     cornerRadius: cornerRadius,

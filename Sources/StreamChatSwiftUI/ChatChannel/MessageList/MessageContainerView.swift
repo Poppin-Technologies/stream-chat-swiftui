@@ -75,7 +75,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
       GeometryReader { proxy in
         let f = proxy.frame(in: .global)
         let offsetX = UIScreen.main.bounds.maxX - f.minX + (max(optionalOffset, -55)) + 30
-        if (offsetX > 0) {
+        if (offsetX > 2) {
           MessageDateView(message: message)
             .position(x: offsetX, y: f.midY - f.minY)
         }
@@ -115,7 +115,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                     if !message.isRightAligned && isLastGroup {
                       MessageAuthorView(message: message)
                         .padding(.leading, 10)
-                        .offset(y: topReactionsShown ? message.text.count < (message.author.name?.count ?? 0) ? -16 : 0 : 0)
+                        .offset(y: topReactionsShown ? (message.text.count + 1) < (message.author.name?.count ?? 0) ? -16 : 0 : 0)
                     }
                     MessageView(
                       factory: factory,
