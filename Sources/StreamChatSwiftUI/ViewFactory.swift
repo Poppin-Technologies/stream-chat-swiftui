@@ -259,7 +259,7 @@ public protocol ViewFactory: AnyObject {
     associatedtype ChatHeaderViewModifier: ChatChannelHeaderViewModifier
     /// Creates the channel header view modifier.
     /// - Parameter channel: the displayed channel.
-    func makeChannelHeaderViewModifier(for channel: ChatChannel) -> ChatHeaderViewModifier
+    func makeChannelHeaderViewModifier(for channel: ChatChannel, viewmodel: ChatChannelViewModel) -> ChatHeaderViewModifier
 
     associatedtype ThreadHeaderViewModifier: MessageThreadHeaderViewModifier
     /// Creates the message thread header view modifier.

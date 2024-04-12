@@ -94,17 +94,6 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
                         .frame(width: 0, height: 0)
                         .fixedSize()
                         .navigationBarBackButtonHidden(viewModel.reactionsShown)
-                        .if(true) { view in
-                          Group {
-                            if #available(iOS 16.0, *) {
-                              view
-                                .toolbarBackground(.visible, for: .navigationBar)
-                                .toolbarBackground(.black.opacity(0.05), for: .navigationBar, .tabBar, .automatic)
-                            } else {
-                              view
-                            }
-                          }
-                        }
                         .if(viewModel.reactionsShown, transform: { view in
                             view.navigationBarHidden(true)
                         })
@@ -115,10 +104,10 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
                             view.navigationBarHidden(false)
                         })
                         .if(viewModel.channelHeaderType == .regular) { view in
-                            view.modifier(factory.makeChannelHeaderViewModifier(for: channel))
+                          view.modifier(factory.makeChannelHeaderViewModifier(for: channel, viewmodel: viewModel))
                         }
                         .if(viewModel.channelHeaderType == .typingIndicator) { view in
-                            view.modifier(factory.makeChannelHeaderViewModifier(for: channel))
+                          view.modifier(factory.makeChannelHeaderViewModifier(for: channel, viewmodel: viewModel))
                         }
                         .if(viewModel.channelHeaderType == .messageThread) { view in
                             view.modifier(factory.makeMessageThreadHeaderViewModifier())
@@ -183,7 +172,6 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
                 LoadingView()
             }
         }
-        .environmentObject(viewModel)
         .navigationBarTitleDisplayMode(factory.navigationBarDisplayMode())
         .onReceive(keyboardWillChangePublisher, perform: { visible in
             keyboardShown = visible
@@ -218,6 +206,7 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
         .ignoresSafeArea(.container, edges: tabBarAvailable ? .bottom : [])
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("ChatChannelView")
+        .environmentObject(viewModel)
     }
 
     private var generatingSnapshot: Bool {
