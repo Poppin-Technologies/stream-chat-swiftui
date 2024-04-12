@@ -9,6 +9,7 @@ import SwiftUI
 
 /// View model for the `MessageComposerView`.
 open class MessageComposerViewModel: ObservableObject {
+  
     @Injected(\.chatClient) private var chatClient
     @Injected(\.utils) internal var utils
     
@@ -154,6 +155,8 @@ open class MessageComposerViewModel: ObservableObject {
     public var messageController: ChatMessageController?
     public var waveformTargetSamples: Int = 100
     public internal(set) var pendingAudioRecording: AddedVoiceRecording?
+  
+  public var analyticsAction: (String, [String: Any]) -> Void = { _, _ in }
     
     internal lazy var audioRecorder: AudioRecording = {
         let audioRecorder = StreamAudioRecorder()
@@ -247,9 +250,21 @@ open class MessageComposerViewModel: ObservableObject {
         
         clearRemovedMentions()
         let mentionedUserIds = mentionedUsers.map(\.id)
-        
+      
+      var data: [String: Any] = [
+        "messageLength": messageText.count,
+        "cid": self.channelController.channel?.cid
+      ]
+      
         if let editedMessage = editedMessage {
-            edit(message: editedMessage, completion: completion)
+            edit(message: editedMessage, completion: { [weak self] in
+              data["replyCount"] = editedMessage.replyCount
+              data["attachmentsCount"] = editedMessage.allAttachments.count
+              data["reactionsCount"] = editedMessage.totalReactionsCount
+              data["readByCount"] = editedMessage.readBy.count
+              self?.analyticsAction("edit_chat", data)
+              completion()
+            })
             return
         }
         
@@ -274,6 +289,14 @@ open class MessageComposerViewModel: ObservableObject {
             attachments += addedCustomAttachments.map { attachment in
                 attachment.content
             }
+          
+            data["attachmentsCount"] = attachments.count
+          
+          if let quotedMessage {
+            data["replyCount"] = quotedMessage.replyCount
+            data["reactionsCount"] = quotedMessage.totalReactionsCount
+            data["readByCount"] = quotedMessage.readBy.count
+          }
             
             if let messageController = messageController {
                 messageController.createNewReply(
@@ -289,7 +312,8 @@ open class MessageComposerViewModel: ObservableObject {
                 ) { [weak self] in
                     switch $0 {
                     case .success:
-                        completion()
+                      self?.analyticsAction("thread_chat", data)
+                      completion()
                     case .failure:
                         self?.errorShown = true
                     }
@@ -307,6 +331,7 @@ open class MessageComposerViewModel: ObservableObject {
                 ) { [weak self] in
                     switch $0 {
                     case .success:
+                      self?.analyticsAction("send_chat", data)
                         completion()
                     case .failure:
                         self?.errorShown = true
