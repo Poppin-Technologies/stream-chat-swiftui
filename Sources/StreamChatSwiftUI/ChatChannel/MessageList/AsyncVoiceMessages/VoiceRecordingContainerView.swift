@@ -96,7 +96,7 @@ public struct VoiceRecordingContainerView<Factory: ViewFactory>: View {
           }
         )
         .cornerRadius(16)
-        .padding(.trailing, 6)
+        .padding(message.isSentByCurrentUser ? .trailing : .leading, 6)
         .padding(.all, 4)
         .modifier(
             factory.makeMessageViewModifier(
