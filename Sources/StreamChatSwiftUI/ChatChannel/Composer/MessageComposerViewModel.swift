@@ -27,6 +27,8 @@ open class MessageComposerViewModel: ObservableObject {
         }
     }
     
+    @Published var dragLocation: CGPoint = .zero
+    @Published var dragStarted: Bool = false
     @Published public private(set) var imageAssets: PHFetchResult<PHAsset>?
     @Published public private(set) var addedAssets = [AddedAsset]() {
         didSet {

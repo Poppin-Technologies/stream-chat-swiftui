@@ -631,7 +631,8 @@ public protocol ViewFactory: AnyObject {
     /// - Returns: view shown when the composer is recording.
     func makeComposerRecordingView(
         viewModel: MessageComposerViewModel,
-        gestureLocation: CGPoint
+        gestureLocation: CGPoint,
+        namespace: Namespace.ID
     ) -> ComposerRecordingViewType
     
     associatedtype ComposerRecordingLockedViewType: View
@@ -639,7 +640,8 @@ public protocol ViewFactory: AnyObject {
     ///  - Parameter viewModel: the composer view model.
     ///  - Returns: view shown in the locked recording slot.
     func makeComposerRecordingLockedView(
-        viewModel: MessageComposerViewModel
+        viewModel: MessageComposerViewModel,
+        namespace: Namespace.ID
     ) -> ComposerRecordingLockedViewType
     
     associatedtype ComposerRecordingTipViewType: View

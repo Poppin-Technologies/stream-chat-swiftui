@@ -12,16 +12,28 @@ struct RecordingView: View {
     
     var location: CGPoint
     var audioRecordingInfo: AudioRecordingInfo
+    @ObservedObject var viewModel: MessageComposerViewModel
+    var namespace: Namespace.ID
     var onMicTap: () -> Void
     
     private let initialLockOffset: CGFloat = -70
-    
+      
+  var loc: CGPoint {
+    if case let .recording(l) = viewModel.recordingState {
+      return l
+    }
+    return .zero
+  }
+  
     var body: some View {
         HStack {
             Image(systemName: "mic")
                 .foregroundColor(.red)
             RecordingDurationView(duration: audioRecordingInfo.duration)
-            
+              .opacity(viewModel.recordingState == .initial ? 0 : 1)
+              .animation(.easeIn, value: viewModel.recordingState)
+              .matchedGeometryEffect(id: "RecordingView", in: namespace)
+          
             Spacer()
             
             HStack {
@@ -30,6 +42,7 @@ struct RecordingView: View {
             }
             .foregroundColor(Color(colors.textLowEmphasis))
             .opacity(opacityForSlideToCancel)
+            .transition(.opacity.animation(.easeInOut))
             
             Spacer()
             
@@ -37,6 +50,9 @@ struct RecordingView: View {
                 onMicTap()
             } label: {
                 Image(systemName: "mic")
+                .font(.body.weight(.semibold))
+                .foregroundColor(colors.tintColor)
+
             }
         }
         .padding(.all, 12)
@@ -50,15 +66,15 @@ struct RecordingView: View {
     }
     
     private var lockViewOffset: CGFloat {
-        if location.y > 0 {
+        if loc.y > 0 {
             return initialLockOffset
         }
-        return initialLockOffset + location.y
+        return initialLockOffset + loc.y
     }
     
     private var opacityForSlideToCancel: CGFloat {
-        guard location.x < RecordingConstants.cancelMinDistance else { return 1 }
-        let opacity = (1 - location.x / RecordingConstants.cancelMaxDistance)
+        guard loc.x < RecordingConstants.cancelMinDistance else { return 1 }
+        let opacity = (1 - loc.x / RecordingConstants.cancelMaxDistance)
         return opacity
     }
 }

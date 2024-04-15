@@ -44,7 +44,7 @@ open class AudioVisualizationView: UIView {
     open var barColor: UIColor { colors.textLowEmphasis }
 
     /// The colour of the waveform bar that is part of the "played" duration.
-    open var highlightedBarColor: UIColor { .blue }
+    open var highlightedBarColor: UIColor { UIColor(colors.tintColor) }
 
     /// The colour of the waveform bar's background.
     open var barBackgroundColor: UIColor { colors.background }
@@ -98,7 +98,7 @@ open class AudioVisualizationView: UIView {
         setNeedsLayout()
         if let meteringLevels = content {
             meteringLevelsClusteredArray = meteringLevels
-            currentGradientPercentage = 0.0
+          currentGradientPercentage = 0.0
         }
     }
 

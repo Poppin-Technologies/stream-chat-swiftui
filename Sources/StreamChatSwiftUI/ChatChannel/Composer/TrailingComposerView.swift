@@ -54,25 +54,39 @@ public struct VoiceRecordingButton: View {
     public var body: some View {
         Image(systemName: "mic")
             .foregroundColor(Color(colors.textLowEmphasis))
-            .gesture(
+            .padding(3)
+            .contentShape(Rectangle())
+            .simultaneousGesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
+                        viewModel.dragStarted = true
+                        viewModel.dragLocation = value.location
+                        if value.location.y < -60 && viewModel.recordingState == .initial {
+                          withAnimation(.spring(response: 0.3, dampingFraction: 1.2)) {
+                            startRecording(location: value.location)
+                            viewModel.recordingState = .locked
+                          }
+                        }
                         if !longPressed {
                             longPressStarted = Date()
                             longPressed = true
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                                if longPressed {
-                                    viewModel.recordingState = .recording(value.location)
-                                    viewModel.startRecording()
-                                }
+                          DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            if longPressed && viewModel.recordingState == .initial {
+                              withAnimation(.spring(response: 0.3, dampingFraction: 1.2)) {
+                                startRecording(location: value.location)
+                              }
                             }
+                          }
                         } else if case .recording = viewModel.recordingState {
                             viewModel.recordingState = .recording(value.location)
                         }
                     }
                     .onEnded { _ in
                         longPressed = false
-                        if let longPressStarted, Date().timeIntervalSince(longPressStarted) <= 1 {
+                        viewModel.dragStarted = false
+                      if let longPressStarted, Date().timeIntervalSince(longPressStarted) <= 0.5 {
+                            let generator = UINotificationFeedbackGenerator()
+                            generator.notificationOccurred(.warning)
                             if viewModel.recordingState != .showingTip {
                                 viewModel.recordingState = .showingTip
                             }
@@ -84,5 +98,22 @@ public struct VoiceRecordingButton: View {
                         }
                     }
             )
+            .if(true) { view in
+              Group {
+                if #available(iOS 16.0, *) {
+                  view
+                    .defersSystemGestures(on: .all)
+                } else {
+                  view
+                }
+              }
+            }
     }
+  
+  func startRecording(location: CGPoint)
+  {
+    triggerHapticFeedback(style: .soft)
+    viewModel.recordingState = .recording(location)
+    viewModel.startRecording()
+  }
 }

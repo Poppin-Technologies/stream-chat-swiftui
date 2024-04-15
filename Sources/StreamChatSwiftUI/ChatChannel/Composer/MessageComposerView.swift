@@ -10,6 +10,7 @@ import ShinySwiftUI
 public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable {
   @Injected(\.colors) private var colors
   @Injected(\.fonts) private var fonts
+  @Namespace var name
   
   // Initial popup size, before the keyboard is shown.
   @State private var popupSize: CGFloat = 350
@@ -102,6 +103,8 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
               dismissButton: .cancel(Text(L10n.Alert.Actions.ok))
             )
           }
+          .opacity(viewModel.dragStarted ? 0 : 1.0)
+          .animation(.easeInOut, value: viewModel.dragStarted)
           
           factory.makeTrailingComposerView(
             enabled: viewModel.sendButtonEnabled,
@@ -127,14 +130,16 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
         .opacity(viewModel.recordingState.showsComposer ? 1 : 0)
         .overlay(
           ZStack {
-            if case let .recording(location) = viewModel.recordingState {
+            if viewModel.dragStarted {
               factory.makeComposerRecordingView(
                 viewModel: viewModel,
-                gestureLocation: location
+                gestureLocation: .zero,
+                namespace: name
               )
               .frame(height: 60)
+              .transition(.opacity.animation(.easeInOut))
             } else if viewModel.recordingState == .locked || viewModel.recordingState == .stopped {
-              factory.makeComposerRecordingLockedView(viewModel: viewModel)
+              factory.makeComposerRecordingLockedView(viewModel: viewModel, namespace: name)
                 .frame(height: recordingViewHeight)
             } else if viewModel.recordingState == .showingTip {
               factory.makeComposerRecordingTipView()

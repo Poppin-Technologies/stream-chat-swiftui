@@ -13,7 +13,8 @@ struct LockedView: View {
     @State var isPlaying = false
     @State var showLockedIndicator = true
     @StateObject var voiceRecordingHandler = VoiceRecordingHandler()
-    
+    var namespace: Namespace.ID
+
     private var player: AudioPlaying {
         utils.audioPlayer
     }
@@ -30,12 +31,14 @@ struct LockedView: View {
                         handlePlayTap()
                     } label: {
                         Image(systemName: isPlaying ? "pause" : "play")
+                        .foregroundColor(colors.tintColor)
                     }
                 }
                 RecordingDurationView(
                     duration: showContextTime ?
                         voiceRecordingHandler.context.currentTime : viewModel.audioRecordingInfo.duration
                 )
+                .matchedGeometryEffect(id: "RecordingView", in: namespace)
                 RecordingWaveform(
                     duration: viewModel.audioRecordingInfo.duration,
                     currentTime: viewModel.recordingState == .stopped ?
@@ -54,6 +57,7 @@ struct LockedView: View {
                     }
                 } label: {
                     Image(systemName: "trash")
+                    .foregroundColor(colors.tintColor)
                 }
 
                 Spacer()
@@ -77,6 +81,7 @@ struct LockedView: View {
                     }
                 } label: {
                     Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(colors.tintColor)
                 }
             }
             .padding(.horizontal, 8)
@@ -85,7 +90,11 @@ struct LockedView: View {
         .offset(y: -20)
         .background(Color(colors.background).edgesIgnoringSafeArea(.bottom))
         .overlay(
-            showLockedIndicator ? TopRightView { LockedRecordIndicator() } : nil
+          TopRightView {
+            LockedRecordIndicator()
+              .opacity(showLockedIndicator ? 1 : 0)
+              .animation(.easeInOut(duration: 0.5), value: showLockedIndicator)
+          }
         )
         .onAppear {
             player.subscribe(voiceRecordingHandler)

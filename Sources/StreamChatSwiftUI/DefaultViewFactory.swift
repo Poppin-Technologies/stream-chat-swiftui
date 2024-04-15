@@ -610,17 +610,19 @@ extension ViewFactory {
     
     public func makeComposerRecordingView(
         viewModel: MessageComposerViewModel,
-        gestureLocation: CGPoint
+        gestureLocation: CGPoint,
+        namespace: Namespace.ID
     ) -> some View {
-        RecordingView(location: gestureLocation, audioRecordingInfo: viewModel.audioRecordingInfo) {
+      RecordingView(location: gestureLocation, audioRecordingInfo: viewModel.audioRecordingInfo, viewModel: viewModel, namespace: namespace) {
             viewModel.stopRecording()
         }
     }
     
     public func makeComposerRecordingLockedView(
-        viewModel: MessageComposerViewModel
+        viewModel: MessageComposerViewModel,
+        namespace: Namespace.ID
     ) -> some View {
-        LockedView(viewModel: viewModel)
+        LockedView(viewModel: viewModel, namespace: namespace)
     }
     
     public func makeComposerRecordingTipView() -> some View {
