@@ -159,17 +159,30 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                         handleGestureForMessage(showsMessageActions: true)
                       }
                     }
-                    .delaysTouches(for: 0.01) {
-                        //some code here, if needed
-                    }
-                    .gesture(
-                        LongPressGesture(minimumDuration: 0.4)
-                            .onEnded { finished in
+                    .if(true) { view in
+                      Group {
+                        if #unavailable(iOS 16.0) {
+                          view
+                            .onLongPressGesture(minimumDuration: 0.2) {
                               if !message.isDeleted {
                                 handleGestureForMessage(showsMessageActions: true)
                               }
-                            })
-                    
+                            }
+                        } else {
+                          view
+                            .delaysTouches(for: 0.01) {
+                                //some code here, if needed
+                            }
+                            .gesture(
+                              LongPressGesture(minimumDuration: 0.4)
+                                .onEnded { finished in
+                                  if !message.isDeleted {
+                                    handleGestureForMessage(showsMessageActions: true)
+                                  }
+                                })
+                        }
+                      }
+                    }
                     .offset(x: min(self.offsetX, maximumHorizontalSwipeDisplacement))
                     .simultaneousGesture(
                       DragGesture(

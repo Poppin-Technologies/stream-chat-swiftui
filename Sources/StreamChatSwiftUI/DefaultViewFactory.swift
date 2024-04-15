@@ -270,7 +270,8 @@ extension ViewFactory {
     }
     
     public func makeChannelHeaderViewModifier(
-        for channel: ChatChannel
+        for channel: ChatChannel,
+        viewmodel: ChatChannelViewModel
     ) -> some ChatChannelHeaderViewModifier {
         DefaultChannelHeaderModifier(channel: channel)
     }
