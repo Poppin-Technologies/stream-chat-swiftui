@@ -24,6 +24,13 @@ open class AudioVisualizationView: UIView {
         }
     }
     
+    public var scale: Float = 1.0 {
+      didSet {
+        updateContent()
+        setNeedsDisplay()
+      }
+    }
+    
     override open func didMoveToSuperview() {
         super.didMoveToSuperview()
         guard !isInitialized, superview != nil else { return }
@@ -271,7 +278,7 @@ open class AudioVisualizationView: UIView {
     }
 
     private func heightForMeteringLevel(_ meteringLevel: Float) -> CGFloat {
-        max(minimumBarHeight, (CGFloat(meteringLevel) * maximumBarHeight) / 2)
+        max(minimumBarHeight, (CGFloat(meteringLevel) * maximumBarHeight * CGFloat(scale)) / 2)
     }
 
     private func xPointForMeteringLevel(_ atIndex: Int) -> CGFloat {

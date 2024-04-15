@@ -4,6 +4,7 @@
 
 import StreamChat
 import SwiftUI
+import ShinySwiftUI
 
 public struct VoiceRecordingContainerView<Factory: ViewFactory>: View {
 
@@ -88,8 +89,14 @@ public struct VoiceRecordingContainerView<Factory: ViewFactory>: View {
             player.subscribe(handler)
         }
         .padding(.all, 8)
-        .background(Color(colors.background))
+        .background(
+          ZStack {
+            Color(colors.background1).opacity(0.66)
+            VisualEffectView()
+          }
+        )
         .cornerRadius(16)
+        .padding(.trailing, 6)
         .padding(.all, 4)
         .modifier(
             factory.makeMessageViewModifier(
@@ -144,44 +151,33 @@ struct VoiceRecordingView: View {
                 Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                     .padding(.all, 8)
                     .foregroundColor(.primary)
-                    .modifier(ShadowViewModifier(firstRadius: 2, firstY: 4))
             })
                 .opacity(loading ? 0 : 1)
                 .overlay(loading ? ProgressView() : nil)
+                .offset(y: -4)
             
-            VStack(alignment: .leading, spacing: 4) {
-                Text(
-                    utils.audioRecordingNameFormatter.title(
-                        forItemAtURL: addedVoiceRecording.url,
-                        index: index
-                    )
-                )
-                .bold()
-                .lineLimit(1)
-                
-                HStack {
-                    RecordingDurationView(
-                        duration: showContextDuration ? handler.context.currentTime : addedVoiceRecording.duration
-                    )
-                    WaveformViewSwiftUI(
-                        audioContext: handler.context,
-                        addedVoiceRecording: addedVoiceRecording,
-                        onSliderChanged: { timeInterval in
-                            if isCurrentRecordingActive {
-                                player.seek(to: timeInterval)
-                            } else {
-                                player.loadAsset(from: addedVoiceRecording.url)
-                                player.seek(to: timeInterval)
-                            }
-                        },
-                        onSliderTapped: {
-                            handlePlayTap()
-                        }
-                    )
-                    .frame(height: 30)
-                    Spacer()
+          VStack(alignment: .leading, spacing: 0) {
+            WaveformViewSwiftUI(
+              audioContext: handler.context,
+              addedVoiceRecording: addedVoiceRecording,
+              onSliderChanged: { timeInterval in
+                if isCurrentRecordingActive {
+                  player.seek(to: timeInterval)
+                } else {
+                  player.loadAsset(from: addedVoiceRecording.url)
+                  player.seek(to: timeInterval)
                 }
-            }
+              },
+              onSliderTapped: {
+                handlePlayTap()
+              },
+              scale: 1.5
+            )
+            .frame(height: 30)
+            RecordingDurationView(
+              duration: showContextDuration ? handler.context.currentTime : addedVoiceRecording.duration
+            )
+          }
                         
             if isPlaying {
                 Button(action: {
@@ -222,6 +218,7 @@ struct VoiceRecordingView: View {
                 isPlaying = true
             }
         })
+        .padding(6)
     }
     
     private var showContextDuration: Bool {

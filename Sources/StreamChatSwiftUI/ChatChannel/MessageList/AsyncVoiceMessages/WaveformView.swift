@@ -11,6 +11,7 @@ import UIKit
 open class WaveformView: UIView {
     
     @Injected(\.images) var images
+    @Injected(\.colors) var colors
     
     var onSliderChanged: ((TimeInterval) -> Void)?
     var onSliderTapped: (() -> Void)?
@@ -28,24 +29,29 @@ open class WaveformView: UIView {
 
         /// The waveform's data that will be used to render the visualisation.
         public var waveform: [Float]
+      
+        public var scale: CGFloat = 1.0
 
         public static let initial = Content(
             isRecording: false,
             duration: 0,
             currentTime: 0,
-            waveform: []
+            waveform: [],
+            scale: 1.0
         )
 
         public init(
             isRecording: Bool,
             duration: TimeInterval,
             currentTime: TimeInterval,
-            waveform: [Float]
+            waveform: [Float],
+            scale: CGFloat = 1.0
         ) {
             self.isRecording = isRecording
             self.duration = duration
             self.currentTime = currentTime
             self.waveform = waveform
+            self.scale = scale
         }
     }
 
@@ -86,8 +92,10 @@ open class WaveformView: UIView {
     open func setUpAppearance() {
         setNeedsLayout()
         audioVisualizationView.backgroundColor = .clear
-
-        slider.setThumbImage(images.sliderThumb, for: .normal)
+        audioVisualizationView.scale = Float(self.content.scale)
+        let img = UIImage(systemName: "circle.fill")?.tinted(with: UIColor(colors.tintColor))
+        let i = img!.resized(to: CGSize(width: 18, height: 18))
+        slider.setThumbImage(i, for: .normal)
         slider.minimumTrackTintColor = .clear
         slider.maximumTrackTintColor = .clear
     }
@@ -143,7 +151,8 @@ struct WaveformViewSwiftUI: UIViewRepresentable {
     var addedVoiceRecording: AddedVoiceRecording
     var onSliderChanged: (TimeInterval) -> Void
     var onSliderTapped: () -> Void
-    
+    var scale: CGFloat = 1.0
+  
     func makeUIView(context: Context) -> WaveformView {
         let view = WaveformView()
         view.onSliderTapped = onSliderTapped
@@ -162,14 +171,16 @@ struct WaveformViewSwiftUI: UIViewRepresentable {
                 isRecording: false,
                 duration: audioContext.duration,
                 currentTime: audioContext.currentTime,
-                waveform: addedVoiceRecording.waveform
+                waveform: addedVoiceRecording.waveform,
+                scale: scale
             )
         } else {
             view.content = .init(
                 isRecording: false,
                 duration: addedVoiceRecording.duration,
                 currentTime: 0,
-                waveform: addedVoiceRecording.waveform
+                waveform: addedVoiceRecording.waveform,
+                scale: scale
             )
         }
     }
