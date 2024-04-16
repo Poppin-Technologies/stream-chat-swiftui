@@ -18,12 +18,12 @@ struct RecordingView: View {
     
     private let initialLockOffset: CGFloat = -70
       
-  var loc: CGPoint {
-    if case let .recording(l) = viewModel.recordingState {
-      return l
+    var loc: CGPoint {
+      if case let .recording(l) = viewModel.recordingState {
+        return l
+      }
+      return .zero
     }
-    return .zero
-  }
   
     var body: some View {
         HStack {
@@ -52,17 +52,9 @@ struct RecordingView: View {
                 Image(systemName: "mic")
                 .font(.body.weight(.semibold))
                 .foregroundColor(colors.tintColor)
-
             }
         }
         .padding(.all, 12)
-        .overlay(
-            TopRightView {
-                LockView()
-                    .padding(.all, 4)
-                    .offset(y: lockViewOffset)
-            }
-        )
     }
     
     private var lockViewOffset: CGFloat {
