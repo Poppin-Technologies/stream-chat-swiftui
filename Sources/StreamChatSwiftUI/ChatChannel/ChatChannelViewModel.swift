@@ -71,6 +71,7 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
         }
     }
 
+    @Published public var redirectingUserId: String?
     @Published public var messagesGroupingInfo = [String: [String]]()
     @Published public var currentSnapshot: UIImage? {
         didSet {
