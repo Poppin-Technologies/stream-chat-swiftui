@@ -130,7 +130,7 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
         .opacity(viewModel.recordingState.showsComposer ? 1 : 0)
         .overlay(
           ZStack {
-            if viewModel.dragStarted || viewModel.recordingState == .locked {
+            if viewModel.dragStarted || viewModel.recordingState == .locked || viewModel.recordingState == .stopped {
               factory.makeComposerRecordingLockedView(viewModel: viewModel, namespace: name)
                 .frame(height: viewModel.recordingState == .locked ? recordingViewHeight : 60)
                 .animation(.spring(response: 0.3, dampingFraction: 1.2), value: viewModel.recordingState)

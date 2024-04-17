@@ -68,10 +68,10 @@ public struct VoiceRecordingButton: View {
                           }
                         }
                         if !longPressed {
-                            longPressStarted = Date()
-                            longPressed = true
+                          longPressStarted = Date()
+                          longPressed = true
                           DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            if longPressed && viewModel.recordingState == .initial {
+                            if longPressed {
                               withAnimation(.spring(response: 0.3, dampingFraction: 1.2)) {
                                 startRecording(location: value.location)
                               }

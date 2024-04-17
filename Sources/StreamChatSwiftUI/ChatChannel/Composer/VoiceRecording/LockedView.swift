@@ -29,7 +29,7 @@ struct LockedView: View {
         VStack(spacing: 16) {
             Divider()
             HStack {
-              if viewModel.recordingState == .locked {
+              if viewModel.recordingState == .stopped {
                 Button {
                   handlePlayTap()
                 } label: {
@@ -39,6 +39,9 @@ struct LockedView: View {
               } else {
                 Image(systemName: "mic")
                   .foregroundColor(.red)
+              }
+              if viewModel.recordingState != .locked && viewModel.recordingState != .stopped {
+
                 RecordingDurationView(duration: showContextTime ?
                                       voiceRecordingHandler.context.currentTime : viewModel.audioRecordingInfo.duration)
                 .matchedGeometryEffect(id: "Recording", in: namespace)
@@ -58,7 +61,7 @@ struct LockedView: View {
                 
                 Spacer()
               }
-              if viewModel.recordingState == .locked {
+              if viewModel.recordingState == .locked || viewModel.recordingState == .stopped {
                 RecordingDurationView(
                   duration: showContextTime ?
                   voiceRecordingHandler.context.currentTime : viewModel.audioRecordingInfo.duration
@@ -77,7 +80,7 @@ struct LockedView: View {
             .padding(.horizontal, 8)
             .opacity(opacityForSlideToCancel)
 
-          if viewModel.recordingState == .locked {
+          if viewModel.recordingState == .locked || viewModel.recordingState == .stopped {
             HStack {
               Button {
                 withAnimation {
