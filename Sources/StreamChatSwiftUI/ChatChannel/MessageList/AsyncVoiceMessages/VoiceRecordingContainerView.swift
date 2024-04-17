@@ -62,7 +62,7 @@ public struct VoiceRecordingContainerView<Factory: ViewFactory>: View {
                 )
             }
             if !message.text.isEmpty {
-                AttachmentTextView(message: message)
+                AttachmentTextView(message: message, factory: factory)
                     .frame(maxWidth: .infinity)
                     .cornerRadius(16)
             }

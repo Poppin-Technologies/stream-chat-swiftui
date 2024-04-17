@@ -36,6 +36,11 @@ public protocol ViewFactory: AnyObject {
     func makeChannelTopBar(
       channel: ChatChannel
     ) -> ChannelTopBar
+  
+    associatedtype ChannelMessageText: View
+    func makeMessageText(
+      message: ChatMessage
+    ) -> ChannelMessageText
 
     associatedtype ChannelListItemType: View
     /// Creates the channel list item.

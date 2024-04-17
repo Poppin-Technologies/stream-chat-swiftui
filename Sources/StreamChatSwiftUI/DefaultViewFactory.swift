@@ -953,6 +953,10 @@ extension ViewFactory {
             Spacer()
         }
     }
+  
+    public func makeMessageText(message: ChatMessage) -> some View {
+      EmptyView()
+    }
 }
 
 /// Default class conforming to `ViewFactory`, used throughout the SDK.

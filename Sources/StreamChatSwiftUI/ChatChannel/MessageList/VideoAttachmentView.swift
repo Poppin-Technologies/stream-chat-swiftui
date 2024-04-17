@@ -47,7 +47,7 @@ public struct VideoAttachmentsContainer<Factory: ViewFactory>: View {
             }
 
             if !message.text.isEmpty {
-                AttachmentTextView(message: message)
+                AttachmentTextView(message: message, factory: factory)
                     .frame(width: width)
             }
         }

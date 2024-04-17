@@ -47,7 +47,7 @@ public struct ImageAttachmentContainer<Factory: ViewFactory>: View {
                 }
 
                 if !message.text.isEmpty {
-                    AttachmentTextView(message: message)
+                    AttachmentTextView(message: message, factory: factory)
                         .frame(width: width)
                 }
             }
@@ -73,20 +73,22 @@ public struct ImageAttachmentContainer<Factory: ViewFactory>: View {
     }
 }
 
-public struct AttachmentTextView: View {
+public struct AttachmentTextView<Factory: ViewFactory>: View {
 
     @Injected(\.colors) private var colors
     @Injected(\.fonts) private var fonts
 
     var message: ChatMessage
+    var factory: Factory
 
-    public init(message: ChatMessage) {
+    public init(message: ChatMessage, factory: Factory) {
         self.message = message
+        self.factory = factory
     }
 
     public var body: some View {
         HStack {
-            Text(message.adjustedText)
+          factory.makeMessageText(message: message)
                 .font(fonts.body)
                 .standardPadding()
                 .foregroundColor(textColor(for: message))
