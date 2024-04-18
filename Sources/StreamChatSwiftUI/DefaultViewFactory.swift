@@ -196,8 +196,8 @@ extension ViewFactory {
     
     // MARK: messages
     
-    public func makeChannelTopBar(channel: ChatChannel) -> some View {
-        EmptyView()
+    public func makeChannelTopBar(channel: ChatChannel) -> AnyView {
+      .init(Text(""))
     }
   
     public func makeChannelDestination() -> (ChannelSelectionInfo) -> ChatChannelView<Self> {
@@ -954,8 +954,8 @@ extension ViewFactory {
         }
     }
   
-    public func makeMessageText(message: ChatMessage) -> some View {
-      EmptyView()
+    public func makeMessageText(message: ChatMessage) -> AnyView {
+      .init(Text(""))
     }
 }
 
