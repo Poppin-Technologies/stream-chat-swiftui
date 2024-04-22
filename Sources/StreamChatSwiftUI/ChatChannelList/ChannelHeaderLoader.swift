@@ -62,7 +62,7 @@ open class ChannelHeaderLoader: ObservableObject {
             return placeholder4
         }
 
-        if channel.isDirectMessageChannel {
+        if channel.isDirectMessageChannel && channel.lastActiveMembers.count == 2 {
             let lastActiveMembers = self.lastActiveMembers(for: channel)
             if let otherMember = lastActiveMembers.first, let url = otherMember.imageURL {
                 loadChannelThumbnail(for: channel, from: url)
