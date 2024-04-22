@@ -45,6 +45,10 @@ public struct ImageAttachmentContainer<Factory: ViewFactory>: View {
                         galleryShown = true
                     }
                 }
+                .transaction { transaction in
+                  transaction.disablesAnimations = true
+                  transaction.animation = nil
+                }
 
                 if !message.text.isEmpty {
                     AttachmentTextView(message: message, factory: factory)

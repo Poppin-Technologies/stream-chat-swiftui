@@ -356,7 +356,7 @@ extension MessageAction {
         return replyThread
     }
 
-    private static func deleteMessageAction(
+    public static func deleteMessageAction(
         for message: ChatMessage,
         channel: ChatChannel,
         chatClient: ChatClient,
