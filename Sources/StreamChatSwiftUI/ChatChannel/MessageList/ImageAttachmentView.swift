@@ -95,7 +95,6 @@ public struct AttachmentTextView<Factory: ViewFactory>: View {
           factory.makeMessageText(message: message)
                 .font(fonts.body)
                 .standardPadding()
-                .foregroundColor(textColor(for: message))
                 .fixedSize(horizontal: false, vertical: true)
             Spacer()
         }

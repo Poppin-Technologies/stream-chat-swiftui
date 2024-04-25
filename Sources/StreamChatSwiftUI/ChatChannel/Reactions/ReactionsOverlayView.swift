@@ -260,7 +260,7 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
     }
 
     private var messageContainerHeight: CGFloat {
-        let maxAllowed = screenHeight / 2
+        let maxAllowed = screenHeight / 2 - topSafeArea
         let containerHeight = messageDisplayInfo.frame.height
         return containerHeight > maxAllowed ? maxAllowed : containerHeight
     }

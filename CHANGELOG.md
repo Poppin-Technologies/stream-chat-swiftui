@@ -3,6 +3,53 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 # Upcoming
 
+### ✅ Added
+- Highlighting and tapping on user mentions
+- Customization of the channel loading view
+- Public init of InjectedChannelInfo
+
+# [4.52.0](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.52.0)
+_April 09, 2024_
+
+### ✅ Added
+- Added markdown support (enabled by default)
+- `LinkAttachmentView` and `LinkDetectionTextView` available for public use
+
+# [4.51.0](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.51.0)
+_March 26, 2024_
+
+### ✅ Added
+- Role value in the user display info
+
+### 🐞 Fixed
+- Reactions picker for large messages sometimes goes in the safe area
+- Loading of pinned messages in the channel info screen
+
+# [4.50.1](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.50.1)
+_March 14, 2024_
+
+### 🐞 Fixed
+- Message text color when using link detection
+
+# [4.50.0](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.50.0)
+_March 12, 2024_
+
+### ✅ Added
+- Link detection in the text views
+- Indicator when a message was edited
+
+# [4.49.0](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.49.0)
+_February 28, 2024_
+
+### ✅ Added
+- Config the audioRecorder that is used when sending async voice messages
+
+### 🔄 Changed
+- Author name display now depends on number of participants, not channel type
+
+### 🐞 Fixed
+- Voice recording messages now use the standard message modifier
+
 ### 🔄 Changed
 
 # [4.48.0](https://github.com/GetStream/stream-chat-swiftui/releases/tag/4.48.0)

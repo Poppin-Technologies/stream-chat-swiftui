@@ -123,7 +123,12 @@ class ViewFactory_Tests: StreamChatTestCase {
     func test_viewFactory_makeMessageAvatarView() {
         // Given
         let viewFactory = DefaultViewFactory.shared
-        let userInfo = UserDisplayInfo(id: .unique, name: .unique, imageURL: URL(string: "https://example.com"))
+        let userInfo = UserDisplayInfo(
+            id: .unique,
+            name: .unique,
+            imageURL: URL(string: "https://example.com"),
+            role: .user
+        )
 
         // When
         let view = viewFactory.makeMessageAvatarView(for: userInfo)
@@ -135,7 +140,12 @@ class ViewFactory_Tests: StreamChatTestCase {
     func test_viewFactory_makeQuotedMessageAvatarView() {
         // Given
         let viewFactory = DefaultViewFactory.shared
-        let userInfo = UserDisplayInfo(id: .unique, name: .unique, imageURL: URL(string: "https://example.com"))
+        let userInfo = UserDisplayInfo(
+            id: .unique,
+            name: .unique,
+            imageURL: URL(string: "https://example.com"),
+            role: .user
+        )
 
         // When
         let view = viewFactory.makeQuotedMessageAvatarView(
@@ -890,6 +900,17 @@ class ViewFactory_Tests: StreamChatTestCase {
         
         // Then
         XCTAssert(view is LockedView)
+    }
+    
+    func test_viewFactory_makeChannelLoadingView() {
+        // Given
+        let viewFactory = DefaultViewFactory.shared
+        
+        // When
+        let view = viewFactory.makeChannelLoadingView()
+        
+        // Then
+        XCTAssert(view is LoadingView)
     }
 }
 

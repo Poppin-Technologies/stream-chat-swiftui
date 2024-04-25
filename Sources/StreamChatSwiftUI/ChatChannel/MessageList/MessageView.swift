@@ -163,14 +163,12 @@ public struct MessageTextView<Factory: ViewFactory>: View {
                 )
             }
 
-            Text(message.adjustedText)
+            StreamTextView(message: message)
                 .padding(.leading, leadingPadding)
                 .padding(.trailing, trailingPadding)
                 .padding(.top, topPadding)
                 .padding(.bottom, bottomPadding)
                 .fixedSize(horizontal: false, vertical: true)
-                .foregroundColor(textColor(for: message))
-                .font(fonts.body)
         }
         .modifier(
             factory.makeMessageViewModifier(
@@ -221,5 +219,125 @@ public struct EmojiTextView<Factory: ViewFactory>: View {
             }
         }
         .accessibilityIdentifier("MessageTextView")
+    }
+}
+
+struct StreamTextView: View {
+    
+    @Injected(\.fonts) var fonts
+    
+    var message: ChatMessage
+    
+    var body: some View {
+        if #available(iOS 15, *) {
+            LinkDetectionTextView(message: message)
+        } else {
+            Text(message.adjustedText)
+                .foregroundColor(textColor(for: message))
+                .font(fonts.body)
+        }
+    }
+}
+
+@available(iOS 15, *)
+public struct LinkDetectionTextView: View {
+    
+    @Injected(\.colors) var colors
+    @Injected(\.fonts) var fonts
+    @Injected(\.utils) var utils
+    
+    var message: ChatMessage
+    
+    var text: LocalizedStringKey {
+        LocalizedStringKey(message.adjustedText)
+    }
+    
+    @State var displayedText: AttributedString?
+    
+    @State var linkDetector = TextLinkDetector()
+    
+    @State var tintColor = InjectedValues[\.colors].tintColor
+        
+    public init(message: ChatMessage) {
+        self.message = message
+    }
+    
+    private var markdownEnabled: Bool {
+        utils.messageListConfig.markdownSupportEnabled
+    }
+    
+    public var body: some View {
+        Group {
+            if let displayedText {
+                Text(displayedText)
+            } else if markdownEnabled {
+                Text(text)
+            } else {
+                Text(message.adjustedText)
+            }
+        }
+        .foregroundColor(textColor(for: message))
+        .font(fonts.body)
+        .tint(tintColor)
+        .onAppear {
+            guard utils.messageListConfig.localLinkDetectionEnabled else { return }
+            var attributes: [NSAttributedString.Key: Any] = [
+                .foregroundColor: textColor(for: message),
+                .font: fonts.body
+            ]
+            
+            let additional = utils.messageListConfig.messageDisplayOptions.messageLinkDisplayResolver(message)
+            for (key, value) in additional {
+                if key == .foregroundColor, let value = value as? UIColor {
+                    tintColor = Color(value)
+                } else {
+                    attributes[key] = value
+                }
+            }
+            
+            let attributedText = NSMutableAttributedString(
+                string: message.adjustedText,
+                attributes: attributes
+            )
+            let attributedTextString = attributedText.string
+            var containsLinks = false
+
+            message.mentionedUsers.forEach { user in
+                containsLinks = true
+                let mention = "@\(user.name ?? user.id)"
+                attributedTextString
+                    .ranges(of: mention, options: [.caseInsensitive])
+                    .map { NSRange($0, in: attributedTextString) }
+                    .forEach {
+                        let messageId = message.messageId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
+                        if let messageId {
+                            attributedText.addAttribute(.link, value: "getstream://mention/\(messageId)/\(user.id)", range: $0)
+                        }
+                    }
+            }
+
+            let range = NSRange(location: 0, length: message.adjustedText.utf16.count)
+            linkDetector.links(in: message.adjustedText).forEach { textLink in
+                let pattern = "\\[([^\\]]+)\\]\\(\(textLink.originalText)\\)"
+                if let regex = try? NSRegularExpression(pattern: pattern) {
+                    containsLinks = (regex.firstMatch(
+                        in: message.adjustedText,
+                        options: [],
+                        range: range
+                    ) == nil) || !markdownEnabled
+                } else {
+                    containsLinks = true
+                }
+                
+                if !message.adjustedText.contains("](\(textLink.originalText))") {
+                    containsLinks = true
+                }
+                attributedText.addAttribute(.link, value: textLink.url, range: textLink.range)
+            }
+                
+            if containsLinks {
+                self.displayedText = AttributedString(attributedText)
+            }
+        }
     }
 }

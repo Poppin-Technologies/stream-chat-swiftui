@@ -33,6 +33,54 @@ class MessageView_Tests: StreamChatTestCase {
         // Then
         assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
     }
+    
+    func test_messageViewTextMention_snapshot() {
+        // Given
+        let textMessage = ChatMessage.mock(
+            id: .unique,
+            cid: .unique,
+            text: "Hi @Martin, how are you?",
+            author: .mock(id: .unique),
+            mentionedUsers: [.mock(id: "martin", name: "Martin")]
+        )
+
+        // When
+        let view = MessageView(
+            factory: DefaultViewFactory.shared,
+            message: textMessage,
+            contentWidth: defaultScreenSize.width,
+            isFirst: true,
+            scrolledId: .constant(nil)
+        )
+        .frame(width: defaultScreenSize.width, height: 100)
+
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+    
+    func test_messageViewTextMentionMultiple_snapshot() {
+        // Given
+        let textMessage = ChatMessage.mock(
+            id: .unique,
+            cid: .unique,
+            text: "Hi @Martin and @Alexey, how are you? This is @Martin's test!",
+            author: .mock(id: .unique),
+            mentionedUsers: [.mock(id: "martin", name: "Martin"), .mock(id: "alexey", name: "Alexey")]
+        )
+
+        // When
+        let view = MessageView(
+            factory: DefaultViewFactory.shared,
+            message: textMessage,
+            contentWidth: defaultScreenSize.width,
+            isFirst: true,
+            scrolledId: .constant(nil)
+        )
+        .frame(width: defaultScreenSize.width, height: 100)
+
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
 
     func test_messageViewImage_snapshot() {
         // Given
@@ -385,6 +433,218 @@ class MessageView_Tests: StreamChatTestCase {
         .applyDefaultSize()
 
         // When
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+    
+    func test_markdown_noLinks() {
+        // Given
+        let textMessage = ChatMessage.mock(
+            id: .unique,
+            cid: .unique,
+            text: "This is a **bold** text",
+            author: .mock(id: .unique)
+        )
+
+        // When
+        let view = MessageView(
+            factory: DefaultViewFactory.shared,
+            message: textMessage,
+            contentWidth: defaultScreenSize.width,
+            isFirst: true,
+            scrolledId: .constant(nil)
+        )
+        .frame(
+            width: defaultScreenSize.width,
+            height: 100
+        )
+
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+    
+    func test_markdown_withLinks() {
+        // Given
+        let textMessage = ChatMessage.mock(
+            id: .unique,
+            cid: .unique,
+            text: "Visit Apple, click [here](https://apple.com)",
+            author: .mock(id: .unique)
+        )
+
+        // When
+        let view = MessageView(
+            factory: DefaultViewFactory.shared,
+            message: textMessage,
+            contentWidth: defaultScreenSize.width,
+            isFirst: true,
+            scrolledId: .constant(nil)
+        )
+        .frame(
+            width: defaultScreenSize.width,
+            height: 100
+        )
+
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+    
+    func test_markdown_withLinksDifferentTint() {
+        // Given
+        let displayOptions = MessageDisplayOptions { _ in
+            [
+                NSAttributedString.Key.foregroundColor: UIColor.red
+            ]
+        }
+        let config = MessageListConfig(messageDisplayOptions: displayOptions)
+        let utils = Utils(messageListConfig: config)
+        streamChat = StreamChat(chatClient: chatClient, utils: utils)
+        
+        let textMessage = ChatMessage.mock(
+            id: .unique,
+            cid: .unique,
+            text: "Visit Apple, click [here](https://apple.com)",
+            author: .mock(id: .unique)
+        )
+
+        // When
+        let view = MessageView(
+            factory: DefaultViewFactory.shared,
+            message: textMessage,
+            contentWidth: defaultScreenSize.width,
+            isFirst: true,
+            scrolledId: .constant(nil)
+        )
+        .frame(
+            width: defaultScreenSize.width,
+            height: 100
+        )
+
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+    
+    func test_markdown_disabledWithLinks() {
+        // Given
+        let config = MessageListConfig(markdownSupportEnabled: false)
+        let utils = Utils(messageListConfig: config)
+        streamChat = StreamChat(chatClient: chatClient, utils: utils)
+        
+        let textMessage = ChatMessage.mock(
+            id: .unique,
+            cid: .unique,
+            text: "Visit Apple, click [here](https://apple.com)",
+            author: .mock(id: .unique)
+        )
+
+        // When
+        let view = MessageView(
+            factory: DefaultViewFactory.shared,
+            message: textMessage,
+            contentWidth: defaultScreenSize.width,
+            isFirst: true,
+            scrolledId: .constant(nil)
+        )
+        .frame(
+            width: defaultScreenSize.width,
+            height: 100
+        )
+
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+    
+    func test_markdown_disabledWithRegularText() {
+        // Given
+        let config = MessageListConfig(markdownSupportEnabled: false)
+        let utils = Utils(messageListConfig: config)
+        streamChat = StreamChat(chatClient: chatClient, utils: utils)
+        
+        let textMessage = ChatMessage.mock(
+            id: .unique,
+            cid: .unique,
+            text: "This is a **bold** text",
+            author: .mock(id: .unique)
+        )
+
+        // When
+        let view = MessageView(
+            factory: DefaultViewFactory.shared,
+            message: textMessage,
+            contentWidth: defaultScreenSize.width,
+            isFirst: true,
+            scrolledId: .constant(nil)
+        )
+        .frame(
+            width: defaultScreenSize.width,
+            height: 100
+        )
+
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+    
+    func test_markdownAndLinkSupport_disabled() {
+        // Given
+        let config = MessageListConfig(
+            localLinkDetectionEnabled: false,
+            markdownSupportEnabled: false
+        )
+        let utils = Utils(messageListConfig: config)
+        streamChat = StreamChat(chatClient: chatClient, utils: utils)
+        
+        let textMessage = ChatMessage.mock(
+            id: .unique,
+            cid: .unique,
+            text: "Visit Apple, click [here](https://apple.com)",
+            author: .mock(id: .unique)
+        )
+
+        // When
+        let view = MessageView(
+            factory: DefaultViewFactory.shared,
+            message: textMessage,
+            contentWidth: defaultScreenSize.width,
+            isFirst: true,
+            scrolledId: .constant(nil)
+        )
+        .frame(
+            width: defaultScreenSize.width,
+            height: 100
+        )
+
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+    
+    func test_markdown_linkSupportDisabled() {
+        // Given
+        let config = MessageListConfig(
+            localLinkDetectionEnabled: false
+        )
+        let utils = Utils(messageListConfig: config)
+        streamChat = StreamChat(chatClient: chatClient, utils: utils)
+        
+        let textMessage = ChatMessage.mock(
+            id: .unique,
+            cid: .unique,
+            text: "~~A strikethrough example~~",
+            author: .mock(id: .unique)
+        )
+
+        // When
+        let view = MessageView(
+            factory: DefaultViewFactory.shared,
+            message: textMessage,
+            contentWidth: defaultScreenSize.width,
+            isFirst: true,
+            scrolledId: .constant(nil)
+        )
+        .frame(
+            width: defaultScreenSize.width,
+            height: 100
+        )
+
+        // Then
         assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
     }
 }

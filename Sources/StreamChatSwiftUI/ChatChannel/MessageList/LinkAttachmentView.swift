@@ -49,13 +49,22 @@ public struct LinkAttachmentContainer<Factory: ViewFactory>: View {
 
             let availableWidth = width - 4 * padding
             let size = message.adjustedText.frameSize(maxWidth: availableWidth)
-            LinkTextView(
-                message: message,
-                width: availableWidth,
-                textColor: UIColor(textColor(for: message))
-            )
-            .frame(width: availableWidth, height: size.height)
-            .standardPadding()
+            
+            if #available(iOS 15, *) {
+                HStack {
+                    StreamTextView(message: message)
+                        .standardPadding()
+                    Spacer()
+                }
+            } else {
+                LinkTextView(
+                    message: message,
+                    width: availableWidth,
+                    textColor: UIColor(textColor(for: message))
+                )
+                .frame(width: availableWidth, height: size.height)
+                .standardPadding()
+            }
 
             if !message.linkAttachments.isEmpty {
                 LinkAttachmentView(
@@ -89,6 +98,12 @@ public struct LinkAttachmentView: View {
     var linkAttachment: ChatMessageLinkAttachment
     var width: CGFloat
     var isFirst: Bool
+    
+    public init(linkAttachment: ChatMessageLinkAttachment, width: CGFloat, isFirst: Bool) {
+        self.linkAttachment = linkAttachment
+        self.width = width
+        self.isFirst = isFirst
+    }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: padding) {

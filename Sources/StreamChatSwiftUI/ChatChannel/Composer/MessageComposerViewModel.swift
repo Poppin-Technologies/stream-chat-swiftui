@@ -161,7 +161,7 @@ open class MessageComposerViewModel: ObservableObject {
   public var analyticsAction: (String, [String: Any]) -> Void = { _, _ in }
     
     internal lazy var audioRecorder: AudioRecording = {
-        let audioRecorder = StreamAudioRecorder()
+        let audioRecorder = utils.audioRecorder
         audioRecorder.subscribe(self)
         return audioRecorder
     }()
