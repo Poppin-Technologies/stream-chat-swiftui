@@ -104,7 +104,7 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
         if !messageRenderingUtil.hasPreviousMessageSet
             || self.showScrollToLatestButton == false
             || self.scrolledId != nil
-            || messages.first?.isSentByCurrentUser == true {
+            || messages.first != nil ? factory.isSentByCurrentUser(message: messages.first!) : false {
             messageRenderingUtil.update(previousTopMessage: messages.first)
         }
         skipRenderingMessageIds = messageRenderingUtil.messagesToSkipRendering(newMessages: messages)
@@ -168,6 +168,8 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                               if let index = index {
                                 onMessageAppear(index, scrollDirection)
                               }
+                              utils.isSentByCurrentUser = factory.isSentByCurrentUser
+                              utils.isAnon = factory.isFirst
                             }
                             .padding(
                               .top,
@@ -385,7 +387,7 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
             return true
         }
         let groupInfo = messagesGroupingInfo[message.id] ?? []
-        return groupInfo.contains(lastMessageKey) == true
+        return groupInfo.contains(lastMessageKey) == true || factory.isFirst(message: message)
     }
 
     private func showsLastInGroupInfo(

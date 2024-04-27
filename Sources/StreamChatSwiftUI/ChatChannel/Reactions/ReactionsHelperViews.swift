@@ -6,6 +6,7 @@ import StreamChat
 import SwiftUI
 
 public struct ReactionsHStack<Content: View>: View {
+    @Injected(\.utils) var utils
     var message: ChatMessage
     var content: () -> Content
 
@@ -16,13 +17,13 @@ public struct ReactionsHStack<Content: View>: View {
 
     public var body: some View {
         HStack {
-            if !message.isRightAligned {
+            if !utils.isSentByCurrentUser(message)  {
                 Spacer()
             }
 
             content()
 
-            if message.isRightAligned {
+            if utils.isSentByCurrentUser(message) {
                 Spacer()
             }
         }

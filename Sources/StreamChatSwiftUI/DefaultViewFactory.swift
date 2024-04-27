@@ -930,6 +930,14 @@ extension ViewFactory {
             localState: message.localState
         )
     }
+  
+    public func isFirst(message: ChatMessage) -> Bool {
+      return false
+    }
+  
+    public func isSentByCurrentUser(message: ChatMessage) -> Bool {
+      return message.isSentByCurrentUser
+    }
     
     public func makeNewMessagesIndicatorView(
         newMessagesStartId: Binding<String?>,

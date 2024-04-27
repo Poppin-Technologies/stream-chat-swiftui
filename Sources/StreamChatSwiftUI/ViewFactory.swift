@@ -141,6 +141,11 @@ public protocol ViewFactory: AnyObject {
         swipedChannelId: Binding<String?>,
         buttonTapped: @escaping (ChatChannel) -> Void
     ) -> LeadingSwipeActionsViewType
+  
+    /// First message info for message.
+    func isFirst(message: ChatMessage) -> Bool
+    /// Whether the message is sent by current user.
+    func isSentByCurrentUser(message: ChatMessage) -> Bool
 
     associatedtype ChannelListTopViewType: View
     /// Creates the view shown at the top of the channel list. Suitable for search bar.

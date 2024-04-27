@@ -15,6 +15,7 @@ public struct MessageRepliesView<Factory: ViewFactory>: View {
 
     @Injected(\.fonts) private var fonts
     @Injected(\.colors) private var colors
+    @Injected(\.utils) private var utils
 
     var factory: Factory
     var channel: ChatChannel
@@ -41,7 +42,7 @@ public struct MessageRepliesView<Factory: ViewFactory>: View {
             )
         } label: {
             HStack {
-                if !message.isRightAligned {
+                if !utils.isSentByCurrentUser(message) {
                     MessageAvatarView(
                         avatarURL: message.threadParticipants.first?.imageURL,
                         size: .init(width: 16, height: 16)
@@ -49,7 +50,7 @@ public struct MessageRepliesView<Factory: ViewFactory>: View {
                 }
                 Text("\(replyCount) \(repliesText)")
                     .font(fonts.footnoteBold)
-                if message.isRightAligned {
+                if utils.isSentByCurrentUser(message) {
                     MessageAvatarView(
                         avatarURL: message.threadParticipants.first?.imageURL,
                         size: .init(width: 16, height: 16)
@@ -108,7 +109,7 @@ public struct MessageThreadReplyView<Factory: ViewFactory>: View {
       )
     } label: {
       HStack {
-        if !message.isRightAligned {
+        if !(message.isRightAligned || factory.isSentByCurrentUser(message: message)) {
             MessageAvatarView(
                 avatarURL: repliedMessage.author.imageURL,
                 size: .init(width: 16, height: 16)
@@ -116,7 +117,7 @@ public struct MessageThreadReplyView<Factory: ViewFactory>: View {
         }
         Text("Replied to thread \(repliedMessage.adjustedText)").font(fonts.footnoteBold)
         .lineLimit(1)
-        if message.isRightAligned {
+        if (message.isRightAligned || factory.isSentByCurrentUser(message: message)) {
             MessageAvatarView(
               avatarURL: repliedMessage.author.imageURL,
                 size: .init(width: 16, height: 16)

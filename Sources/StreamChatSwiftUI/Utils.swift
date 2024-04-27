@@ -56,6 +56,8 @@ public class Utils {
     public var messageCachingUtils = MessageCachingUtils()
     var messageListDateUtils: MessageListDateUtils
     var channelControllerFactory = ChannelControllerFactory()
+    public var isSentByCurrentUser: (ChatMessage) -> Bool = { m in return m.isSentByCurrentUser }
+    public var isAnon: (ChatMessage) -> Bool = { _ in return false }
     
     internal var _audioPlayer: AudioPlaying?
     internal var _audioRecorder: AudioRecording?

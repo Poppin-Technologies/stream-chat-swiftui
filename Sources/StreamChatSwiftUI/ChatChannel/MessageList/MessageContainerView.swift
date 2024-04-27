@@ -90,20 +90,20 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                     offsetDateView
                   )
             } else {
-                if message.isRightAligned {
+                if message.isRightAligned || factory.isSentByCurrentUser(message: message) {
                     MessageSpacer(spacerWidth: spacerWidth)
                 } else {
                     if messageListConfig.messageDisplayOptions.showAvatars(for: channel) {
                         factory.makeMessageAvatarView(
                             for: utils.messageCachingUtils.authorInfo(from: message)
                         )
-                        .opacity(showsAllInfo ? 1 : 0)
+                        .opacity(showsAllInfo || factory.isFirst(message: message) ? 1 : 0)
                         .offset(y: bottomReactionsShown ? offsetYAvatar : 0)
                         .animation(nil)
                     }
                 }
 
-                VStack(alignment: message.isRightAligned ? .trailing : .leading) {
+                VStack(alignment: message.isRightAligned || factory.isSentByCurrentUser(message: message)  ? .trailing : .leading) {
                     if isMessagePinned {
                         MessagePinDetailsView(
                             message: message,
@@ -111,8 +111,8 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                         )
                     }
                   
-                  VStack(alignment: message.isRightAligned ? .trailing : .leading, spacing: 0) {
-                    if !message.isRightAligned && isLastGroup {
+                  VStack(alignment: message.isRightAligned || factory.isSentByCurrentUser(message: message) ? .trailing : .leading, spacing: 0) {
+                    if !(message.isRightAligned || factory.isSentByCurrentUser(message: message)) && isLastGroup {
                       MessageAuthorView(message: message)
                         .padding(.leading, 10)
                         .offset(y: topReactionsShown ? (message.text.count + 1) < (message.author.name?.count ?? 0) ? -16 : 0 : 0)
@@ -267,7 +267,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                     }
 
                     if showsAllInfo && !message.isDeleted {
-                        if message.isSentByCurrentUser && channel.config.readEventsEnabled {
+                        if factory.isSentByCurrentUser(message: message) && channel.config.readEventsEnabled {
                             HStack(spacing: 4) {
                                 factory.makeMessageReadIndicatorView(
                                     channel: channel,
@@ -298,7 +298,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                   }
                 )
 
-                if !message.isRightAligned {
+                if !(message.isRightAligned || factory.isSentByCurrentUser(message: message)) {
                     MessageSpacer(spacerWidth: spacerWidth)
                 }
             }
@@ -319,7 +319,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
         )
         .padding(.bottom, isMessagePinned ? paddingValue / 2 : 0)
         .transition(
-            message.isSentByCurrentUser ?
+            factory.isSentByCurrentUser(message: message) ?
                 messageListConfig.messageDisplayOptions.currentUserMessageTransition :
                 messageListConfig.messageDisplayOptions.otherUserMessageTransition
         )
@@ -340,7 +340,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
         let minimumWidth: CGFloat = 240
         let available = max(minimumWidth, (width ?? 0) - spacerWidth) - 2 * padding
         let avatarSize: CGFloat = CGSize.messageAvatarSize.width + padding
-        let totalWidth = message.isRightAligned ? available : available - avatarSize
+        let totalWidth = (message.isRightAligned || factory.isSentByCurrentUser(message: message)) ? available : available - avatarSize
         return totalWidth
     }
 
