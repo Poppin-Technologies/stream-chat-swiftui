@@ -171,6 +171,11 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                               utils.isSentByCurrentUser = factory.isSentByCurrentUser
                               utils.isAnon = factory.isFirst
                             }
+                            .onAppear() {
+                              utils.isAnonModeOn = { c in
+                                factory.isAnonModeOn(channel: c)
+                              }
+                            }
                             .padding(
                               .top,
                               messageDate != nil ?

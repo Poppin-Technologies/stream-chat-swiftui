@@ -58,6 +58,7 @@ public class Utils {
     var channelControllerFactory = ChannelControllerFactory()
     public var isSentByCurrentUser: (ChatMessage) -> Bool = { m in return m.isSentByCurrentUser }
     public var isAnon: (ChatMessage) -> Bool = { _ in return false }
+    public var isAnonModeOn: (ChatChannel) -> Bool = { _ in return false }
     
     internal var _audioPlayer: AudioPlaying?
     internal var _audioRecorder: AudioRecording?

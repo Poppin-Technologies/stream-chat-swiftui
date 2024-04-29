@@ -969,6 +969,10 @@ extension ViewFactory {
     public func makeMessageText(message: ChatMessage) -> AnyView {
       .init(Text(""))
     }
+  
+    public func isAnonModeOn(channel: ChatChannel) -> Bool {
+      return false
+    }
 }
 
 /// Default class conforming to `ViewFactory`, used throughout the SDK.

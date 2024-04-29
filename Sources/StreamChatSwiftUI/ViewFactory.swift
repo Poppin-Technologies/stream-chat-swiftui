@@ -146,6 +146,8 @@ public protocol ViewFactory: AnyObject {
     func isFirst(message: ChatMessage) -> Bool
     /// Whether the message is sent by current user.
     func isSentByCurrentUser(message: ChatMessage) -> Bool
+    /// Whether the anon chats is on for channel.
+    func isAnonModeOn(channel: ChatChannel) -> Bool
 
     associatedtype ChannelListTopViewType: View
     /// Creates the view shown at the top of the channel list. Suitable for search bar.

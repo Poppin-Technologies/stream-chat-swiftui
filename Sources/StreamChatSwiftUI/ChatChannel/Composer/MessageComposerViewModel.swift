@@ -49,7 +49,9 @@ open class MessageComposerViewModel: ObservableObject {
                         pickerTypeState = .collapsed
                     }
                 }
+              if let c = channelController.channel, !utils.isAnonModeOn(c) {
                 channelController.sendKeystrokeEvent()
+              }
             } else {
                 if composerCommand?.displayInfo?.isInstant == false {
                     composerCommand = nil
