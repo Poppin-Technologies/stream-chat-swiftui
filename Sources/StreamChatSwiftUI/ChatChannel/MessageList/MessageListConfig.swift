@@ -188,7 +188,7 @@ public struct MessageDisplayOptions {
             if isIPad && availableWidth > 500 {
                 return 2 * availableWidth / 3
             } else {
-                return availableWidth / 4
+                return availableWidth / 6
             }
         }
     }
