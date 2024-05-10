@@ -148,7 +148,7 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
                             .opacity(willPopOut ? 0 : 1)
                             .animation(willPopOut ? easeInOutAnimation : popInAnimation, value: popIn)
                             .offset(
-                                x: messageOriginX(proxy: reader),
+                              x: messageDisplayInfo.message.isRightAligned ? max(messageOriginX(proxy: reader), 110) : min( messageOriginX(proxy: reader), 20),
                                 y: popIn ? -24 : -messageContainerHeight / 2
                             )
                             .accessibilityElement(children: .contain)
@@ -245,7 +245,7 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
         } else if willPopOut {
             return messageOriginX(proxy: reader)
         } else {
-            return messageDisplayInfo.message.isRightAligned ? messageActionsWidth : 0
+          return messageDisplayInfo.message.isRightAligned ? messageActionsWidth : 0
         }
     }
         

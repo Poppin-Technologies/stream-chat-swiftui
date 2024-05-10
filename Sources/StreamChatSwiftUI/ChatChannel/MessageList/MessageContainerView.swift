@@ -343,6 +343,16 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
         let totalWidth = (message.isRightAligned || factory.isSentByCurrentUser(message: message)) ? available : available - avatarSize
         return totalWidth
     }
+  
+    private var longPressContentWidth: CGFloat {
+        let padding: CGFloat = messageListConfig.messagePaddings.horizontal
+        let minimumWidth: CGFloat = 240
+        let available = max(minimumWidth, (width ?? 0) - (spacerWidth * (4/6))) - 2 * padding
+        let avatarSize: CGFloat = CGSize.messageAvatarSize.width + padding
+        let totalWidth = (message.isRightAligned || factory.isSentByCurrentUser(message: message)) ? available : available - avatarSize
+        return totalWidth
+    }
+
 
     private var spacerWidth: CGFloat {
         messageListConfig.messageDisplayOptions.spacerWidth(width ?? 0)
@@ -416,7 +426,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                 MessageDisplayInfo(
                     message: message,
                     frame: frame,
-                    contentWidth: contentWidth,
+                    contentWidth: longPressContentWidth,
                     isFirst: showsAllInfo,
                     showsMessageActions: showsMessageActions,
                     showsBottomContainer: showsBottomContainer
