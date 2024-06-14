@@ -97,11 +97,16 @@ public struct GiphyAttachmentView<Factory: ViewFactory>: View {
     }
 }
 
-struct LazyGiphyView: View {
-    let source: URL
-    let width: CGFloat
+public struct LazyGiphyView: View {
+  
+    public init(source: URL, width: CGFloat) {
+      self.source = source
+      self.width = width
+    }
+    public let source: URL
+    public let width: CGFloat
 
-    var body: some View {
+    public var body: some View {
         LazyImage(imageURL: source) { state in
             if let imageContainer = state.imageContainer {
                 NukeImage(imageContainer)
