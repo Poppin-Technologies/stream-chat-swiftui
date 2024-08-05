@@ -115,7 +115,6 @@ public struct LazyGiphyView: View {
             } else {
                 ZStack {
                     Color(.secondarySystemBackground)
-                    ProgressView()
                 }
             }
         }
