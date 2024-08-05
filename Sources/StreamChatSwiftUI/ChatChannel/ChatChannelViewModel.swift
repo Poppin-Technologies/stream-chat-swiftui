@@ -68,6 +68,7 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
                 groupMessages()
             }
             setupDateMessages()
+          self.objectWillChange.send()
         }
     }
 
@@ -412,6 +413,7 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
             if animationState == .animated {
                 withAnimation {
                     self.messages = messages
+                    objectWillChange.send()
                 }
             } else if animationState == .notAnimated {
                 self.messages = messages

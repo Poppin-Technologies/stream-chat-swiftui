@@ -4,6 +4,7 @@
 
 import StreamChat
 import SwiftUI
+import ShinySwiftUI
 
 /// View for the chat channel.
 public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {

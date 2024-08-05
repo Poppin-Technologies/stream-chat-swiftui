@@ -137,7 +137,7 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                     }
 
                     LazyVStack(spacing: 0) {
-                        ForEach(messages, id: \.messageId) { message in
+                      ForEach(viewModel.messages, id: \.messageId) { message in
                             var index: Int? = messageListDateUtils.indexForMessageDate(message: message, in: messages)
                             let messageDate: Date? = messageListDateUtils.showMessageDate(for: index, in: messages)
                             let showUnreadSeparator = message.id == newMessagesStartId
@@ -163,7 +163,7 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                             )
                             .onAppear {
                               if index == nil {
-                                index = messageListDateUtils.index(for: message, in: messages)
+                                index = messageListDateUtils.index(for: message, in: viewModel.messages)
                               }
                               if let index = index {
                                 onMessageAppear(index, scrollDirection)
@@ -328,6 +328,10 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                 )
             }
         }
+        .onChange(of: messages.count) { m in
+          print(messages.first?.text)
+        }
+
         .onReceive(keyboardDidChangePublisher) { visible in
             if currentDateString != nil {
                 pendingKeyboardUpdate = visible

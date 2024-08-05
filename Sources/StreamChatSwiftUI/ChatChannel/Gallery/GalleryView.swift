@@ -48,20 +48,26 @@ public struct GalleryView: View {
                         ZoomableScrollView {
                             VStack {
                                 Spacer()
-                                LazyLoadingImage(
-                                    source: url,
-                                    width: reader.size.width,
-                                    height: reader.size.height,
-                                    resize: true,
-                                    shouldSetFrame: false,
-                                    onImageLoaded: { image in
-                                        loadedImages[index] = image
-                                    }
-                                )
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: reader.size.width)
+                                LazyGiphyView(source: url, width: reader.size.width)
+                                  .aspectRatio(contentMode: .fit)
+                                  .frame(width: reader.size.width)
                                 Spacer()
                             }
+                            .background (
+                              LazyLoadingImage(
+                                  source: url,
+                                  width: reader.size.width,
+                                  height: reader.size.height,
+                                  resize: true,
+                                  shouldSetFrame: false,
+                                  onImageLoaded: { image in
+                                      loadedImages[index] = image
+                                  }
+                              )
+                              .aspectRatio(contentMode: .fit)
+                              .frame(width: reader.size.width)
+                              .opacity(0.015)
+                            )
                         }
                         .tag(index)
                     }
