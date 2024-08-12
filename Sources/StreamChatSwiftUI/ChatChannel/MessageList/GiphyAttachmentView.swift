@@ -99,28 +99,29 @@ public struct GiphyAttachmentView<Factory: ViewFactory>: View {
 
 public struct LazyGiphyView: View {
   
-    public init(source: URL, width: CGFloat) {
-      self.source = source
-      self.width = width
+  public init(source: URL, width: CGFloat, loadingBG: Color = Color(.secondarySystemBackground)) {
+    self.source = source
+    self.width = width
+    self.loadingBG = loadingBG
+  }
+  
+  public let source: URL
+  public let width: CGFloat
+  public let loadingBG: Color
+  
+  public var body: some View {
+    LazyImage(imageURL: source) { state in
+      if let imageContainer = state.imageContainer {
+        NukeImage(imageContainer)
+      } else if state.error != nil {
+        loadingBG
+      } else {
+        loadingBG
+      }
     }
-    public let source: URL
-    public let width: CGFloat
-
-    public var body: some View {
-        LazyImage(imageURL: source) { state in
-            if let imageContainer = state.imageContainer {
-                NukeImage(imageContainer)
-            } else if state.error != nil {
-                Color(.secondarySystemBackground)
-            } else {
-                ZStack {
-                    Color(.secondarySystemBackground)
-                }
-            }
-        }
-        .onDisappear(.cancel)
-        .processors([ImageProcessors.Resize(width: width)])
-        .priority(.high)
-        .aspectRatio(contentMode: .fit)
-    }
+    .onDisappear(.cancel)
+    .processors([ImageProcessors.Resize(width: width)])
+    .priority(.high)
+    .aspectRatio(contentMode: .fit)
+  }
 }
