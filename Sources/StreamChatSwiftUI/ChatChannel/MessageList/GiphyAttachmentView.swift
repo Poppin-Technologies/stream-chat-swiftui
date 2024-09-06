@@ -99,20 +99,22 @@ public struct GiphyAttachmentView<Factory: ViewFactory>: View {
 
 public struct LazyGiphyView: View {
   
-  public init(source: URL, width: CGFloat, loadingBG: Color = Color(.secondarySystemBackground)) {
+  public init(source: URL, width: CGFloat, loadingBG: Color = Color(.secondarySystemBackground), fill: Bool = false) {
     self.source = source
     self.width = width
     self.loadingBG = loadingBG
+    self.resizeMode = fill ? nil : .aspectFit
   }
   
   public let source: URL
   public let width: CGFloat
   public let loadingBG: Color
+  private let resizeMode: ImageResizingMode?
   
   public var body: some View {
     LazyImage(imageURL: source) { state in
       if let imageContainer = state.imageContainer {
-        NukeImage(imageContainer)
+        NukeImage(imageContainer, resizingMode: resizeMode)
       } else if state.error != nil {
         loadingBG
       } else {
@@ -120,7 +122,7 @@ public struct LazyGiphyView: View {
       }
     }
     .onDisappear(.cancel)
-    .processors([ImageProcessors.Resize(width: width)])
+    .processors([ImageProcessors.Resize(width: width), ImageProcessors.RoundedCorners(radius: 8.0)])
     .priority(.high)
     .aspectRatio(contentMode: .fit)
   }

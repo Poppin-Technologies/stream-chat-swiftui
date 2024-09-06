@@ -55,9 +55,10 @@ struct NukeImage: UIViewRepresentable {
         self.init(ImageContainer(image: image))
     }
 
-    init(_ imageContainer: ImageContainer, onCreated: ((ImageView) -> Void)? = nil) {
+  init(_ imageContainer: ImageContainer, resizingMode: ImageResizingMode? = .aspectFit, onCreated: ((ImageView) -> Void)? = nil) {
         self.imageContainer = imageContainer
         self.onCreated = onCreated
+      self.resizingMode = resizingMode
     }
 
     func makeUIView(context: Context) -> ImageView {
