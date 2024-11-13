@@ -51,7 +51,8 @@ public func DefaultChatChannelNamer(
             if prefixedMemberNames.isEmpty {
                 // This channel only has current user as member
                 if let currentUser = channel.lastActiveMembers.first(where: { $0.id == currentUserId }) {
-                    channelName = nameOrId(currentUser.name, currentUser.id)
+                    let displayName = currentUser.extraData["displayName"]?.stringValue
+                    channelName = nameOrId(displayName ?? currentUser.name, currentUser.id)
                 } else {
                     return nil
                 }
