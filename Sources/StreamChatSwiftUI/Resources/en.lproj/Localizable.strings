@@ -86,7 +86,7 @@
 "composer.quoted.giphy" = "Giphy";
 
 "composer.commands.giphy" = "Giphy";
-"composer.commands.mute" = "Mute";
+"composer.commands.mute" = "Mute Notifications";
 "composer.commands.unmute" = "Unmute";
 "composer.commands.format.text" = "text";
 "composer.commands.format.username" = "@username";
