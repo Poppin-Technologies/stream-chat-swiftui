@@ -45,7 +45,7 @@ public func DefaultChatChannelNamer(
         } else if channel.isDirectMessageChannel {
             // If this is a channel generated as DM
             // we generate the name from users
-            let memberNames = channel.lastActiveMembers.filter { $0.id != currentUserId }.compactMap(\.name).sorted()
+          let memberNames = channel.lastActiveMembers.filter { $0.id != currentUserId }.compactMap({ $0.extraData["displayName"]?.stringValue ?? $0.name }).sorted()
             let prefixedMemberNames = memberNames.prefix(maxMemberNames)
             let channelName: String
             if prefixedMemberNames.isEmpty {
