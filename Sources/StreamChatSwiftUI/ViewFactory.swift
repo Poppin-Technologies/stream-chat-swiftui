@@ -39,6 +39,8 @@ public protocol ViewFactory: AnyObject {
     func makeMessageText(
       message: ChatMessage
     ) -> AnyView
+  
+    func makeMessageComposerTopBar(viewmodel: ChatChannelViewModel) -> AnyView
 
     associatedtype ChannelListItemType: View
     /// Creates the channel list item.

@@ -973,6 +973,10 @@ extension ViewFactory {
     public func isAnonModeOn(channel: ChatChannel) -> Bool {
       return false
     }
+  
+    public func makeMessageComposerTopBar(viewmodel: ChatChannelViewModel) -> AnyView {
+      .init(EmptyView())
+    }
 }
 
 /// Default class conforming to `ViewFactory`, used throughout the SDK.
