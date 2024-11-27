@@ -48,6 +48,7 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
   }
   
   @StateObject var viewModel: MessageComposerViewModel
+  @EnvironmentObject var vm: ChatChannelViewModel
   
   var onMessageSent: () -> Void
   
@@ -56,187 +57,189 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
   }
   public var body: some View {
     VStack(spacing: 0) {
-      if !canSendMessage {
-        Text("Only attendees can send messages")
-          .font(.caption)
-          .foregroundColor(Color(colors.textLowEmphasis))
-          .frame(maxWidth: .infinity)
-          .padding(.top, 16)
-      } else {
-        if quotedMessage != nil {
-          factory.makeQuotedMessageHeaderView(
-            quotedMessage: $quotedMessage
-          )
-          .transition(.identity)
-        } else if editedMessage != nil {
-          factory.makeEditedMessageHeaderView(
-            editedMessage: $editedMessage
-          )
-          .transition(.identity)
-        }
-        
-        HStack(alignment: .bottom) {
-          factory.makeLeadingComposerView(
-            state: $viewModel.pickerTypeState,
-            channelConfig: channelConfig
-          )
-          .padding(.trailing, -3)
+      factory.makeMessageComposerTopBar(viewmodel: vm, composerViewModel: viewModel)
+      VStack(spacing: 0) {
+        if !canSendMessage {
+          Text("Only attendees can send messages")
+            .font(.caption)
+            .foregroundColor(Color(colors.textLowEmphasis))
+            .frame(maxWidth: .infinity)
+            .padding(.top, 16)
+        } else {
+          if quotedMessage != nil {
+            factory.makeQuotedMessageHeaderView(
+              quotedMessage: $quotedMessage
+            )
+            .transition(.identity)
+          } else if editedMessage != nil {
+            factory.makeEditedMessageHeaderView(
+              editedMessage: $editedMessage
+            )
+            .transition(.identity)
+          }
           
-          factory.makeComposerInputView(
-            text: $viewModel.text,
-            selectedRangeLocation: $viewModel.selectedRangeLocation,
-            command: $viewModel.composerCommand,
-            addedAssets: viewModel.addedAssets,
-            addedFileURLs: viewModel.addedFileURLs,
-            addedCustomAttachments: viewModel.addedCustomAttachments,
-            quotedMessage: $quotedMessage,
-            maxMessageLength: channelConfig?.maxMessageLength,
-            cooldownDuration: viewModel.cooldownDuration,
-            onCustomAttachmentTap: viewModel.customAttachmentTapped(_:),
-            shouldScroll: viewModel.inputComposerShouldScroll,
-            removeAttachmentWithId: viewModel.removeAttachment(with:)
+          HStack(alignment: .bottom) {
+            factory.makeLeadingComposerView(
+              state: $viewModel.pickerTypeState,
+              channelConfig: channelConfig
+            )
+            .padding(.trailing, -3)
+            
+            factory.makeComposerInputView(
+              text: $viewModel.text,
+              selectedRangeLocation: $viewModel.selectedRangeLocation,
+              command: $viewModel.composerCommand,
+              addedAssets: viewModel.addedAssets,
+              addedFileURLs: viewModel.addedFileURLs,
+              addedCustomAttachments: viewModel.addedCustomAttachments,
+              quotedMessage: $quotedMessage,
+              maxMessageLength: channelConfig?.maxMessageLength,
+              cooldownDuration: viewModel.cooldownDuration,
+              onCustomAttachmentTap: viewModel.customAttachmentTapped(_:),
+              shouldScroll: viewModel.inputComposerShouldScroll,
+              removeAttachmentWithId: viewModel.removeAttachment(with:)
+            )
+            .alert(isPresented: $viewModel.attachmentSizeExceeded) {
+              Alert(
+                title: Text(L10n.Attachment.MaxSize.title),
+                message: Text(L10n.Attachment.MaxSize.message),
+                dismissButton: .cancel(Text(L10n.Alert.Actions.ok))
+              )
+            }
+            .opacity(viewModel.dragStarted ? 0 : 1.0)
+            .animation(.easeInOut, value: viewModel.dragStarted)
+            
+            factory.makeTrailingComposerView(
+              enabled: viewModel.sendButtonEnabled,
+              cooldownDuration: viewModel.cooldownDuration
+            ) {
+              viewModel.sendMessage(
+                quotedMessage: quotedMessage,
+                editedMessage: editedMessage
+              ) {
+                quotedMessage = nil
+                editedMessage = nil
+                onMessageSent()
+              }
+            }
+            .environmentObject(viewModel)
+            .alert(isPresented: $viewModel.errorShown) {
+              Alert.defaultErrorAlert
+            }
+          }
+          .padding(.top, composerHeight > 60 ? 6 : 3)
+          .padding(.horizontal, 8)
+          .padding(.bottom, keyboardShown ? 12 : 0)
+          .opacity(viewModel.recordingState.showsComposer ? 1 : 0)
+          .overlay(
+            ZStack {
+              if viewModel.dragStarted || viewModel.recordingState == .locked || viewModel.recordingState == .stopped {
+                factory.makeComposerRecordingLockedView(viewModel: viewModel, namespace: name)
+                  .frame(height: viewModel.recordingState == .locked ? recordingViewHeight : 60)
+                  .animation(.spring(response: 0.3, dampingFraction: 1.2), value: viewModel.recordingState)
+                  .transition(.opacity.animation(.easeInOut(duration: 0.5)))
+              } else if viewModel.recordingState == .showingTip {
+                factory.makeComposerRecordingTipView()
+                  .offset(y: -composerHeight + 12)
+              } else {
+                EmptyView()
+              }
+            }
           )
-          .alert(isPresented: $viewModel.attachmentSizeExceeded) {
-            Alert(
-              title: Text(L10n.Attachment.MaxSize.title),
-              message: Text(L10n.Attachment.MaxSize.message),
-              dismissButton: .cancel(Text(L10n.Alert.Actions.ok))
+          .frame(height: viewModel.recordingState.showsComposer ? nil : recordingViewHeight)
+          if viewModel.sendInChannelShown {
+            factory.makeSendInChannelView(
+              showReplyInChannel: $viewModel.showReplyInChannel,
+              isDirectMessage: viewModel.isDirectChannel
             )
           }
-          .opacity(viewModel.dragStarted ? 0 : 1.0)
-          .animation(.easeInOut, value: viewModel.dragStarted)
           
-          factory.makeTrailingComposerView(
-            enabled: viewModel.sendButtonEnabled,
-            cooldownDuration: viewModel.cooldownDuration
-          ) {
-            viewModel.sendMessage(
-              quotedMessage: quotedMessage,
-              editedMessage: editedMessage
-            ) {
-              quotedMessage = nil
-              editedMessage = nil
-              onMessageSent()
-            }
-          }
-          .environmentObject(viewModel)
-          .alert(isPresented: $viewModel.errorShown) {
-            Alert.defaultErrorAlert
-          }
-        }
-        .padding(.top, composerHeight > 60 ? 6 : 3)
-        .padding(.horizontal, 8)
-        .padding(.bottom, keyboardShown ? 12 : 0)
-        .opacity(viewModel.recordingState.showsComposer ? 1 : 0)
-        .overlay(
-          ZStack {
-            if viewModel.dragStarted || viewModel.recordingState == .locked || viewModel.recordingState == .stopped {
-              factory.makeComposerRecordingLockedView(viewModel: viewModel, namespace: name)
-                .frame(height: viewModel.recordingState == .locked ? recordingViewHeight : 60)
-                .animation(.spring(response: 0.3, dampingFraction: 1.2), value: viewModel.recordingState)
-                .transition(.opacity.animation(.easeInOut(duration: 0.5)))
-            } else if viewModel.recordingState == .showingTip {
-              factory.makeComposerRecordingTipView()
-                .offset(y: -composerHeight + 12)
-            } else {
-              EmptyView()
-            }
-          }
-        )
-        .frame(height: viewModel.recordingState.showsComposer ? nil : recordingViewHeight)
-        if viewModel.sendInChannelShown {
-          factory.makeSendInChannelView(
-            showReplyInChannel: $viewModel.showReplyInChannel,
-            isDirectMessage: viewModel.isDirectChannel
+          factory.makeAttachmentPickerView(
+            attachmentPickerState: $viewModel.pickerState,
+            filePickerShown: $viewModel.filePickerShown,
+            cameraPickerShown: $viewModel.cameraPickerShown,
+            addedFileURLs: $viewModel.addedFileURLs,
+            onPickerStateChange: viewModel.change(pickerState:),
+            photoLibraryAssets: viewModel.imageAssets,
+            onAssetTap: viewModel.imageTapped(_:),
+            onCustomAttachmentTap: viewModel.customAttachmentTapped(_:),
+            isAssetSelected: viewModel.isImageSelected(with:),
+            addedCustomAttachments: viewModel.addedCustomAttachments,
+            cameraImageAdded: viewModel.cameraImageAdded(_:),
+            askForAssetsAccessPermissions: viewModel.askForPhotosPermission,
+            isDisplayed: viewModel.overlayShown,
+            height: viewModel.overlayShown ? popupSize : 0,
+            popupHeight: popupSize
           )
         }
-        
-        factory.makeAttachmentPickerView(
-          attachmentPickerState: $viewModel.pickerState,
-          filePickerShown: $viewModel.filePickerShown,
-          cameraPickerShown: $viewModel.cameraPickerShown,
-          addedFileURLs: $viewModel.addedFileURLs,
-          onPickerStateChange: viewModel.change(pickerState:),
-          photoLibraryAssets: viewModel.imageAssets,
-          onAssetTap: viewModel.imageTapped(_:),
-          onCustomAttachmentTap: viewModel.customAttachmentTapped(_:),
-          isAssetSelected: viewModel.isImageSelected(with:),
-          addedCustomAttachments: viewModel.addedCustomAttachments,
-          cameraImageAdded: viewModel.cameraImageAdded(_:),
-          askForAssetsAccessPermissions: viewModel.askForPhotosPermission,
-          isDisplayed: viewModel.overlayShown,
-          height: viewModel.overlayShown ? popupSize : 0,
-          popupHeight: popupSize
-        )
       }
-    }
-    .environmentObject(viewModel)
-    .background(
-      GeometryReader { proxy in
-        let frame = proxy.frame(in: .local)
-        let height = frame.height
-        Color.clear.preference(key: HeightPreferenceKey.self, value: height)
+      .environmentObject(viewModel)
+      .background(
+        GeometryReader { proxy in
+          let frame = proxy.frame(in: .local)
+          let height = frame.height
+          Color.clear.preference(key: HeightPreferenceKey.self, value: height)
+        }
+      )
+      .onPreferenceChange(HeightPreferenceKey.self) { value in
+        if let value = value, value != composerHeight {
+          self.composerHeight = value
+        }
       }
-    )
-    .onPreferenceChange(HeightPreferenceKey.self) { value in
-      if let value = value, value != composerHeight {
-        self.composerHeight = value
-      }
-    }
-    .onReceive(keyboardWillChangePublisher) { visible in
-      if visible && !keyboardShown {
-        if viewModel.composerCommand == nil && !editedMessageWillShow {
-          withAnimation(.slickEaseInOut(duration: 0.02)) {
-            viewModel.pickerTypeState = .expanded(.none)
+      .onReceive(keyboardWillChangePublisher) { visible in
+        if visible && !keyboardShown {
+          if viewModel.composerCommand == nil && !editedMessageWillShow {
+            withAnimation(.slickEaseInOut(duration: 0.02)) {
+              viewModel.pickerTypeState = .expanded(.none)
+            }
           }
         }
+        keyboardShown = visible
+        editedMessageWillShow = false
       }
-      keyboardShown = visible
-      editedMessageWillShow = false
-    }
-    .onReceive(
-      NotificationCenter.default.publisher(
-        for: NSNotification.Name(rawValue: Constants.photoPickerDropDown),
-        object: nil
-      )
-    ) { _ in
-      withAnimation(.spring(response: 0.3, dampingFraction: 1.2)) {
-        viewModel.pickerTypeState = .expanded(.none)
-      }
-    }
-    .onReceive(keyboardHeight) { height in
-      if height > 0 && height != popupSize {
-        self.popupSize = height - bottomSafeArea
-      }
-    }
-    .overlay(
-      viewModel.showCommandsOverlay ?
-      factory.makeCommandsContainerView(
-        suggestions: viewModel.suggestions,
-        handleCommand: { commandInfo in
-          viewModel.handleCommand(
-            for: $viewModel.text,
-            selectedRangeLocation: $viewModel.selectedRangeLocation,
-            command: $viewModel.composerCommand,
-            extraData: commandInfo
-          )
+      .onReceive(
+        NotificationCenter.default.publisher(
+          for: NSNotification.Name(rawValue: Constants.photoPickerDropDown),
+          object: nil
+        )
+      ) { _ in
+        withAnimation(.spring(response: 0.3, dampingFraction: 1.2)) {
+          viewModel.pickerTypeState = .expanded(.none)
         }
-      )
-      .offset(y: -composerHeight)
-      .animation(nil) : nil,
-      alignment: .bottom
-    )
-    .modifier(factory.makeComposerViewModifier())
-    .background(VisualEffectView().ignoresSafeArea(.all).opacity(0.5).offset(y: 4))
-    .onChange(of: editedMessage) { _ in
-      viewModel.text = editedMessage?.text ?? ""
-      if editedMessage != nil {
-        becomeFirstResponder()
-        editedMessageWillShow = true
-        viewModel.selectedRangeLocation = editedMessage?.text.count ?? 0
       }
-    }
-    .onChange(of: viewModel.composerCommand == nil) { c in
+      .onReceive(keyboardHeight) { height in
+        if height > 0 && height != popupSize {
+          self.popupSize = height - bottomSafeArea
+        }
+      }
+      .overlay(
+        viewModel.showCommandsOverlay ?
+        factory.makeCommandsContainerView(
+          suggestions: viewModel.suggestions,
+          handleCommand: { commandInfo in
+            viewModel.handleCommand(
+              for: $viewModel.text,
+              selectedRangeLocation: $viewModel.selectedRangeLocation,
+              command: $viewModel.composerCommand,
+              extraData: commandInfo
+            )
+          }
+        )
+        .offset(y: -composerHeight)
+        .animation(nil) : nil,
+        alignment: .bottom
+      )
+      .modifier(factory.makeComposerViewModifier())
+      .background(VisualEffectView().ignoresSafeArea(.all).opacity(0.5).offset(y: 4))
+      .onChange(of: editedMessage) { _ in
+        viewModel.text = editedMessage?.text ?? ""
+        if editedMessage != nil {
+          becomeFirstResponder()
+          editedMessageWillShow = true
+          viewModel.selectedRangeLocation = editedMessage?.text.count ?? 0
+        }
+      }
+      .onChange(of: viewModel.composerCommand == nil) { c in
         if viewModel.composerCommand?.id == "/giphy" {
           if !c {
             becomeFirstResponder()
@@ -244,10 +247,11 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
             resignFirstResponder()
           }
         }
+      }
+      .accessibilityElement(children: .contain)
+      .padding(.bottom, -4)
     }
-    .accessibilityElement(children: .contain)
-    .padding(.bottom, -4)
-}
+  }
 }
 
 /// View for the composer's input (text and media).

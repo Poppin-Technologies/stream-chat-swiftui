@@ -115,7 +115,6 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
                         }
                         .animation(nil)
 
-                    factory.makeMessageComposerTopBar(viewmodel: viewModel)
                     factory.makeMessageComposerViewType(
                         with: viewModel.channelController,
                         messageController: viewModel.messageController,

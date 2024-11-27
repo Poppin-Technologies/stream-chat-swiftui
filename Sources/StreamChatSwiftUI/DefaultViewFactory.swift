@@ -974,7 +974,7 @@ extension ViewFactory {
       return false
     }
   
-    public func makeMessageComposerTopBar(viewmodel: ChatChannelViewModel) -> AnyView {
+  public func makeMessageComposerTopBar(viewmodel: ChatChannelViewModel, composerViewModel: MessageComposerViewModel) -> AnyView {
       .init(EmptyView())
     }
 }
