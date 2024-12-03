@@ -129,7 +129,7 @@ public struct ImageAttachmentContentView: View {
             galleryShown = true
         } label: {
             LazyLoadingImage(
-                source: imageAttachment.imageURL,
+                source: MediaAttachment(url: imageAttachment.imageURL, type: .image),
                 width: itemWidth,
                 height: itemWidth
             )

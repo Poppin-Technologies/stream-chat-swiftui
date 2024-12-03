@@ -38,6 +38,7 @@ public struct TrailingComposerView: View {
     }
 }
 
+/// The button responsible to start voice recording.
 public struct VoiceRecordingButton: View {
     @Injected(\.colors) var colors
     @Injected(\.utils) var utils

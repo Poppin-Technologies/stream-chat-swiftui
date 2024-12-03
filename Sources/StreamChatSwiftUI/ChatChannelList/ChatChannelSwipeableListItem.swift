@@ -41,6 +41,8 @@ public struct ChatChannelSwipeableListItem<Factory: ViewFactory, ChannelListItem
     private var trailingRightButtonTapped: (ChatChannel) -> Void
     private var trailingLeftButtonTapped: (ChatChannel) -> Void
     private var leadingButtonTapped: (ChatChannel) -> Void
+    
+    @State private var verticalScrolling = false
 
     public init(
         factory: Factory,
@@ -76,7 +78,7 @@ public struct ChatChannelSwipeableListItem<Factory: ViewFactory, ChannelListItem
                 .offset(x: self.offsetX)
                 .simultaneousGesture(
                     DragGesture(
-                        minimumDistance: 10,
+                        minimumDistance: 20,
                         coordinateSpace: .local
                     )
                     .updating($offset) { (value, gestureState, _) in
@@ -85,7 +87,11 @@ public struct ChatChannelSwipeableListItem<Factory: ViewFactory, ChannelListItem
                             width: value.location.x - value.startLocation.x,
                             height: value.location.y - value.startLocation.y
                         )
-
+                        
+                        if abs(value.translation.height) > abs(value.translation.width) && !verticalScrolling {
+                            verticalScrolling = true
+                        }
+                                            
                         if diff == .zero {
                             gestureState = .zero
                         } else {
@@ -98,7 +104,8 @@ public struct ChatChannelSwipeableListItem<Factory: ViewFactory, ChannelListItem
             if offset == .zero {
                 // gesture ended or cancelled
                 dragEnded()
-            } else {
+                verticalScrolling = false
+            } else if !verticalScrolling {
                 dragChanged(to: offset.width)
             }
         })
@@ -107,7 +114,6 @@ public struct ChatChannelSwipeableListItem<Factory: ViewFactory, ChannelListItem
                 setOffsetX(value: 0)
             }
         })
-        .id("\(channel.id)-swipeable")
         .accessibilityIdentifier("ChatChannelSwipeableListItem")
     }
 
@@ -123,7 +129,19 @@ public struct ChatChannelSwipeableListItem<Factory: ViewFactory, ChannelListItem
     }
 
     private var showTrailingSwipeActions: Bool {
-        !(trailingSwipeActions is EmptyView)
+        #if DEBUG
+        let view = factory.makeTrailingSwipeActionsView(
+            channel: channel,
+            offsetX: offsetX,
+            buttonWidth: buttonWidth,
+            swipedChannelId: $swipedChannelId,
+            leftButtonTapped: trailingLeftButtonTapped,
+            rightButtonTapped: trailingRightButtonTapped
+        )
+        return !(view is EmptyView)
+        #else
+        return !(trailingSwipeActions is EmptyView)
+        #endif
     }
 
     private var leadingSwipeActions: some View {
@@ -137,7 +155,18 @@ public struct ChatChannelSwipeableListItem<Factory: ViewFactory, ChannelListItem
     }
 
     private var showLeadingSwipeActions: Bool {
-        !(leadingSwipeActions is EmptyView)
+        #if DEBUG
+        let view = factory.makeLeadingSwipeActionsView(
+            channel: channel,
+            offsetX: offsetX,
+            buttonWidth: buttonWidth,
+            swipedChannelId: $swipedChannelId,
+            buttonTapped: leadingButtonTapped
+        )
+        return !(view is EmptyView)
+        #else
+        return !(leadingSwipeActions is EmptyView)
+        #endif
     }
 
     private func dragChanged(to value: CGFloat) {
@@ -175,15 +204,23 @@ public struct ChatChannelSwipeableListItem<Factory: ViewFactory, ChannelListItem
             self.offsetX = value
         }
         if offsetX == 0 {
-            openSideLock = nil
-            swipedChannelId = nil
+            if openSideLock != nil {
+                openSideLock = nil
+            }
+            if swipedChannelId != nil {
+                swipedChannelId = nil
+            }
         }
     }
 
     private func dragEnded() {
         if offsetX == 0 {
-            swipedChannelId = nil
-            openSideLock = nil
+            if swipedChannelId != nil {
+                swipedChannelId = nil
+            }
+            if openSideLock != nil {
+                openSideLock = nil
+            }
         } else if offsetX > 0 && showLeadingSwipeActions {
             if offsetX.magnitude < openTriggerValue ||
                 offsetX < menuWidth * 0.8 {

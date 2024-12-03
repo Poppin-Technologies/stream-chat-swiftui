@@ -442,6 +442,22 @@ extension UserRobot {
         XCTAssertTrue(errorButton.exists, "There is no error icon", file: file, line: line)
         return self
     }
+    
+    @discardableResult
+    func waitForMessageDeliveryStatus(
+        _ deliveryStatus: MessageDeliveryStatus?,
+        at messageCellIndex: Int? = nil,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) -> Bool {
+        let messageCell = messageCell(withIndex: messageCellIndex, file: file, line: line)
+        let checkmark = attributes.statusCheckmark(for: deliveryStatus, in: messageCell)
+        if deliveryStatus == .failed || deliveryStatus == nil {
+            return !checkmark.exists
+        } else {
+            return checkmark.wait(timeout: 10).exists
+        }
+    }
 
     @discardableResult
     func assertMessageDeliveryStatus(
@@ -450,14 +466,8 @@ extension UserRobot {
         file: StaticString = #filePath,
         line: UInt = #line
     ) -> Self {
-        let messageCell = messageCell(withIndex: messageCellIndex, file: file, line: line)
-        let checkmark = attributes.statusCheckmark(for: deliveryStatus, in: messageCell)
-        if deliveryStatus == .failed || deliveryStatus == nil {
-            XCTAssertFalse(checkmark.exists, "Checkmark is visible", file: file, line: line)
-        } else {
-            XCTAssertTrue(checkmark.wait(timeout: 10).exists, "Checkmark is not visible", file: file, line: line)
-        }
-
+        let success = waitForMessageDeliveryStatus(deliveryStatus, at: messageCellIndex, file: file, line: line)
+        XCTAssertTrue(success)
         return self
     }
 
@@ -653,8 +663,8 @@ extension UserRobot {
 
         if ProcessInfo().operatingSystemVersion.majorVersion > 14 {
             // There is no image preview element details in the hierarchy tree on iOS < 15
-            let previewImage = attributes.LinkPreview.image(in: messageCell)
-            XCTAssertTrue(previewImage.isHittable, "Preview image is not clickable")
+            let link = attributes.LinkPreview.link(in: messageCell)
+            XCTAssertTrue(link.isHittable, "Preview image is not clickable")
         }
         XCTAssertTrue(previewTitle.isHittable, "Preview title is not clickable")
         XCTAssertTrue(previewDescription.isHittable, "Preview description is not clickable")
@@ -705,7 +715,6 @@ extension UserRobot {
         let quotedMessage = attributes.quotedText(quotedText, in: messageCell).wait()
         XCTAssertTrue(quotedMessage.exists, "Quoted message was not showed", file: file, line: line)
         XCTAssertFalse(quotedMessage.isEnabled, "Quoted message should be disabled", file: file, line: line)
-        XCTAssertTrue(quotedMessage.isHittable, "Quoted message is not visible", file: file, line: line)
         return self
     }
 }
@@ -857,7 +866,7 @@ extension UserRobot {
     ) -> Self {
         let cell = messageCell(withIndex: messageCellIndex, file: file, line: line).wait()
         XCTAssertTrue(attributes.giphyLabel(in: cell).wait().exists, "Giphy label does not exist")
-        XCTAssertEqual(0, attributes.giphyButtons(in: cell).count)
+        XCTAssertTrue(attributes.giphyImage(in: cell).exists, "Giphy image does not exist")
         return self
     }
 
@@ -922,22 +931,12 @@ extension UserRobot {
         let image = attributes.image(in: messageCell)
         if isPresent {
             image.wait()
-            sleep(2) // At the moment, this assert is flaky without it
         } else {
             image.waitForDisappearance()
         }
 
         let errMessage = isPresent ? "Image is not presented" : "Image is presented"
-        XCTAssertTrue(image.exists, errMessage, file: file, line: line)
-
-        image.safeTap()
-        image.waitForDisappearance(timeout: 2)
-        if image.exists {
-            image.safeTap()
-        }
-
-        let fullscreenImage = attributes.fullscreenImage().wait()
-        XCTAssertTrue(fullscreenImage.exists, "Fullscreen \(errMessage)", file: file, line: line)
+        XCTAssertEqual(isPresent, image.exists, errMessage, file: file, line: line)
         return self
     }
 

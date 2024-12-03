@@ -68,27 +68,89 @@ public struct AttachmentPickerView<Factory: ViewFactory>: View {
   
   @State private var barOffset: CGFloat = .zero
 
-  public var body: some View {
-    VStack(spacing: 0) {
-      HStack {
-        Spacer()
-        Rectangle()
-          .frame(height: 6)
-          .frame(width: 60)
-          .background(barOffset < -75 ? Color.pink : Color.white)
-          .opacity(abs(barOffset) > 75 ? 1.0 : 0.2)
-          .opacity(0.7)
-          .cornerRadius(16)
-          .padding(.vertical, 7)
-        Spacer()
-      }
-      .padding(.top, 6)
-      .padding(.bottom, 6)
-      .background(Color.init(red: 0.07, green: 0.07, blue: 0.07))
-      .animation(.easeInOut(duration: 0.1), value: barOffset)
-      .gesture(DragGesture().onChanged({ gesture in
-        if abs(barOffset) <= 75, abs(gesture.translation.height) > 75 {
-          UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+    public var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+              Spacer()
+              Rectangle()
+                .frame(height: 6)
+                .frame(width: 60)
+                .background(barOffset < -75 ? Color.pink : Color.white)
+                .opacity(abs(barOffset) > 75 ? 1.0 : 0.2)
+                .opacity(0.7)
+                .cornerRadius(16)
+                .padding(.vertical, 7)
+              Spacer()
+            }
+            .padding(.top, 6)
+            .padding(.bottom, 6)
+            .background(Color.init(red: 0.07, green: 0.07, blue: 0.07))
+            .animation(.easeInOut(duration: 0.1), value: barOffset)
+            .gesture(DragGesture().onChanged({ gesture in
+              if abs(barOffset) <= 75, abs(gesture.translation.height) > 75 {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+              }
+              barOffset = gesture.translation.height
+            }).onEnded({ gesture in
+              if (gesture.translation.height) > 75 {
+                withAnimation(.interpolatingSpring(stiffness: 170, damping: 25)) {
+                  viewmodel.pickerTypeState = .expanded(.none)
+                }
+              }
+              if (gesture.translation.height) < -75 {
+                displayingImagePicker = true
+              }
+              barOffset = 0
+            }))
+            .sheet(isPresented: $displayingImagePicker) {
+              ImagePickerView(sourceType: .photoLibrary, onAssetPicked: onAssetTap)
+                .ignoresSafeArea(.all)
+            }
+            viewFactory.makeAttachmentSourcePickerView(
+                selected: selectedPickerState,
+                onPickerStateChange: onPickerStateChange
+            )
+            .environmentObject(viewModel)
+
+            if selectedPickerState == .photos {
+                if let assets = photoLibraryAssets {
+                    let collection = PHFetchResultCollection(fetchResult: assets)
+                    if !collection.isEmpty {
+                        viewFactory.makePhotoAttachmentPickerView(
+                            assets: collection,
+                            onAssetTap: onAssetTap,
+                            isAssetSelected: isAssetSelected
+                        )
+                        .edgesIgnoringSafeArea(.bottom)
+                    } else {
+                        viewFactory.makeAssetsAccessPermissionView()
+                    }
+                } else {
+                    LoadingView()
+                }
+
+            } else if selectedPickerState == .files {
+                viewFactory.makeFilePickerView(
+                    filePickerShown: $filePickerShown,
+                    addedFileURLs: $addedFileURLs
+                )
+            } else if selectedPickerState == .camera {
+                viewFactory.makeCameraPickerView(
+                    selected: $selectedPickerState,
+                    cameraPickerShown: $cameraPickerShown,
+                    cameraImageAdded: cameraImageAdded
+                )
+            } else if selectedPickerState == .polls {
+                viewFactory.makeComposerPollView(
+                    channelController: viewModel.channelController,
+                    messageController: viewModel.messageController
+                )
+            } else if selectedPickerState == .custom {
+                viewFactory.makeCustomAttachmentView(
+                    addedCustomAttachments: addedCustomAttachments,
+                    onCustomAttachmentTap: onCustomAttachmentTap
+                )
+            }
         }
         barOffset = gesture.translation.height
       }).onEnded({ gesture in
@@ -136,7 +198,8 @@ public struct AttachmentPickerView<Factory: ViewFactory>: View {
 
 /// View for picking the source of the attachment (photo, files or camera).
 public struct AttachmentSourcePickerView: View {
-
+    @EnvironmentObject var viewModel: MessageComposerViewModel
+    
     @Injected(\.colors) private var colors
     @Injected(\.images) private var images
 
@@ -177,6 +240,16 @@ public struct AttachmentSourcePickerView: View {
                 onTap: onTap
             )
             .accessibilityIdentifier("attachmentPickerCamera")
+            
+            if viewModel.channelController.channel?.config.pollsEnabled == true && viewModel.messageController == nil {
+                AttachmentPickerButton(
+                    icon: images.attachmentPickerPolls,
+                    pickerType: .polls,
+                    isSelected: selected == .polls,
+                    onTap: onTap
+                )
+                .accessibilityIdentifier("attachmentPickerPolls")
+            }
 
             Spacer()
         }

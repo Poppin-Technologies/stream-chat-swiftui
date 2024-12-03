@@ -16,10 +16,30 @@ public struct ChatChannelListView<Factory: ViewFactory>: View {
 
     private let viewFactory: Factory
     private let title: String
-    private var onItemTap: (ChatChannel) -> Void
+    private let customOnItemTap: ((ChatChannel) -> Void)?
     private var embedInNavigationView: Bool
     private var handleTabBarVisibility: Bool
 
+    /// Creates a channel list view.
+    ///
+    /// - Parameters:
+    ///   - viewFactory: The view factory used for creating views used by the channel list.
+    ///   - viewModel: The view model instance providing the data. Default view model is created if nil.
+    ///   - channelListController: The channel list controller managing the list of channels used as a data souce for the view model. Default controller is created if nil.
+    ///   - title: A title used as the navigation bar title.
+    ///   - onItemTap: A closure for handling a tap on the channel item. Default closure updates the ``ChatChannelListViewModel/selectedChannel`` property in the view model.
+    ///   - selectedChannelId: The id of a channel to be opened after the initial channel list load.
+    ///   - handleTabBarVisibility: True, if TabBar visibility should be automatically updated.
+    ///   - embedInNavigationView: True, if the channel list view should be embedded in a navigation stack.
+    ///   - searchType: The type of data the channel list should perform a search. By default it searches messages.
+    ///
+    /// Changing the instance of the passed in `viewModel` or `channelListController` does not have an effect without reloading the channel list view by assigning a custom identity. The custom identity should be refreshed when either of the passed in instances have been recreated.
+    /// ```swift
+    /// ChatChannelListView(
+    ///   viewModel: viewModel
+    /// )
+    /// .id(myCustomViewIdentity)
+    /// ```
     public init(
         viewFactory: Factory = DefaultViewFactory.shared,
         viewModel: ChatChannelListViewModel? = nil,
@@ -28,69 +48,58 @@ public struct ChatChannelListView<Factory: ViewFactory>: View {
         onItemTap: ((ChatChannel) -> Void)? = nil,
         selectedChannelId: String? = nil,
         handleTabBarVisibility: Bool = true,
-        embedInNavigationView: Bool = true
+        embedInNavigationView: Bool = true,
+        searchType: ChannelListSearchType = .messages
     ) {
-        let channelListVM = viewModel ?? ViewModelsFactory.makeChannelListViewModel(
-            channelListController: channelListController,
-            selectedChannelId: selectedChannelId
-        )
         _viewModel = StateObject(
-            wrappedValue: channelListVM
+            wrappedValue: viewModel ?? ViewModelsFactory.makeChannelListViewModel(
+                channelListController: channelListController,
+                selectedChannelId: selectedChannelId,
+                searchType: searchType
+            )
         )
         self.viewFactory = viewFactory
         self.title = title
         self.handleTabBarVisibility = handleTabBarVisibility
         self.embedInNavigationView = embedInNavigationView
-        if let onItemTap = onItemTap {
-            self.onItemTap = onItemTap
-        } else {
-            self.onItemTap = { channel in
-                channelListVM.selectedChannel = channel.channelSelectionInfo
-            }
+        customOnItemTap = onItemTap
+    }
+    
+    var onItemTap: (ChatChannel) -> Void {
+        if let customOnItemTap {
+            return customOnItemTap
+        }
+        return { [weak viewModel] channel in
+            viewModel?.selectedChannel = channel.channelSelectionInfo
         }
     }
 
     public var body: some View {
-        container()
-            .overlay(viewModel.customAlertShown ? customViewOverlay() : nil)
-            .accentColor(colors.tintColor)
-            .if(isIphone || !utils.messageListConfig.iPadSplitViewEnabled, transform: { view in
-                view.navigationViewStyle(.stack)
-            })
-            .background(
-                isIphone && handleTabBarVisibility ?
-                    Color.clear.background(
-                        TabBarAccessor { tabBar in
-                            self.tabBar = tabBar
-                        }
-                    )
-                    .allowsHitTesting(false)
-                    : nil
-            )
-            .onReceive(viewModel.$hideTabBar) { newValue in
-                if isIphone && handleTabBarVisibility {
-                    self.setupTabBarAppeareance()
-                    self.tabBar?.isHidden = newValue
-                }
-            }
-            .accessibilityIdentifier("ChatChannelListView")
-    }
-
-    @ViewBuilder
-    private func container() -> some View {
-        if embedInNavigationView == true {
-            if #available(iOS 16, *), isIphone {
-                NavigationStack {
-                    content()
-                }
-            } else {
-                NavigationView {
-                    content()
-                }
-            }
-        } else {
+        NavigationContainerView(embedInNavigationView: embedInNavigationView) {
             content()
         }
+        .overlay(viewModel.customAlertShown ? customViewOverlay() : nil)
+        .accentColor(colors.tintColor)
+        .if(isIphone || !utils.messageListConfig.iPadSplitViewEnabled, transform: { view in
+            view.navigationViewStyle(.stack)
+        })
+        .background(
+            isIphone && handleTabBarVisibility ?
+                Color.clear.background(
+                    TabBarAccessor { tabBar in
+                        self.tabBar = tabBar
+                    }
+                )
+                .allowsHitTesting(false)
+                : nil
+        )
+        .onReceive(viewModel.$hideTabBar) { newValue in
+            if isIphone && handleTabBarVisibility {
+                self.setupTabBarAppeareance()
+                self.tabBar?.isHidden = newValue
+            }
+        }
+        .accessibilityIdentifier("ChatChannelListView")
     }
 
     @ViewBuilder
@@ -182,7 +191,7 @@ public struct ChatChannelListContentView<Factory: ViewFactory>: View {
 
     private var viewFactory: Factory
     @ObservedObject private var viewModel: ChatChannelListViewModel
-    @ObservedObject private var channelHeaderLoader = InjectedValues[\.utils].channelHeaderLoader
+    private var channelHeaderLoader: ChannelHeaderLoader { InjectedValues[\.utils].channelHeaderLoader }
     private var onItemTap: (ChatChannel) -> Void
 
     public init(
@@ -240,9 +249,7 @@ public struct ChatChannelListContentView<Factory: ViewFactory>: View {
                     leadingSwipeButtonTapped: { _ in /* No leading button by default. */ }
                 )
                 .onAppear {
-                    if horizontalSizeClass == .regular {
-                        viewModel.preselectChannelIfNeeded()
-                    }
+                    viewModel.preselectChannelIfNeeded()
                 }
             }
 

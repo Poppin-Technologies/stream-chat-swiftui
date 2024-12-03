@@ -11,10 +11,9 @@ import UIKit
 public class MessageCachingUtils {
 
     private var messageAuthorMapping = [String: String]()
-    public var messageAuthors = [String: UserDisplayInfo]()
-    public var messageAttachments = [String: Bool]()
-    public var checkedMessageIds = Set<String>()
-    public var quotedMessageMapping = [String: ChatMessage]()
+    private var messageAuthors = [String: UserDisplayInfo]()
+    private var checkedMessageIds = Set<String>()
+    private var quotedMessageMapping = [String: ChatMessage]()
 
     var scrollOffset: CGFloat = 0
     var messageThreadShown = false {
@@ -64,6 +63,10 @@ public class MessageCachingUtils {
     }
 
     public func quotedMessage(for message: ChatMessage) -> ChatMessage? {
+        if StreamRuntimeCheck._isDatabaseObserverItemReusingEnabled {
+            return message.quotedMessage
+        }
+        
         if checkedMessageIds.contains(message.id) {
             return nil
         }
@@ -97,7 +100,6 @@ public class MessageCachingUtils {
         messageThreadShown = false
         messageAuthorMapping = [String: String]()
         messageAuthors = [String: UserDisplayInfo]()
-        messageAttachments = [String: Bool]()
         checkedMessageIds = Set<String>()
         quotedMessageMapping = [String: ChatMessage]()
     }
@@ -105,6 +107,16 @@ public class MessageCachingUtils {
     // MARK: - private
 
     private func userDisplayInfo(for message: ChatMessage) -> UserDisplayInfo? {
+        if StreamRuntimeCheck._isDatabaseObserverItemReusingEnabled {
+            let user = message.author
+            return UserDisplayInfo(
+                id: user.id,
+                name: user.name ?? user.id,
+                imageURL: user.imageURL,
+                role: user.userRole
+            )
+        }
+        
         if let userId = messageAuthorMapping[message.id],
            let userDisplayInfo = messageAuthors[userId] {
             return userDisplayInfo
@@ -125,12 +137,6 @@ public class MessageCachingUtils {
         messageAuthors[user.id] = userDisplayInfo
 
         return userDisplayInfo
-    }
-
-    private func checkAttachments(for message: ChatMessage) -> Bool {
-        let hasAttachments = !message.attachmentCounts.isEmpty
-        messageAttachments[message.id] = hasAttachments
-        return hasAttachments
     }
 }
 

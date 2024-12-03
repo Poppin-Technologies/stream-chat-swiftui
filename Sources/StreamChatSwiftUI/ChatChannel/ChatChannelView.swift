@@ -81,6 +81,7 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
                     } else {
                         ZStack {
                             factory.makeEmptyMessagesView(for: channel, colors: colors)
+                                .dismissKeyboardOnTap(enabled: keyboardShown)
                             if viewModel.shouldShowTypingIndicator {
                                 factory.makeTypingIndicatorBottomView(
                                     channel: channel,
@@ -177,6 +178,11 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
         .onReceive(keyboardWillChangePublisher, perform: { visible in
             keyboardShown = visible
         })
+        .onReceive(NotificationCenter.default.publisher(
+            for: NSNotification.Name(dismissChannel)
+        ), perform: { _ in
+            presentationMode.wrappedValue.dismiss()
+        })
         .onAppear {
             viewModel.onViewAppear()
             if utils.messageListConfig.becomesFirstResponderOnOpen {
@@ -205,6 +211,7 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
         )
         .padding(.bottom, keyboardShown || !tabBarAvailable || generatingSnapshot ? 0 : bottomPadding)
         .ignoresSafeArea(.container, edges: tabBarAvailable ? .bottom : [])
+        .alertBanner(isPresented: $viewModel.showAlertBanner)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("ChatChannelView")
         .environmentObject(viewModel)

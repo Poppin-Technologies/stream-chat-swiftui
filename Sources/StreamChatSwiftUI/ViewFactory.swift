@@ -79,6 +79,16 @@ public protocol ViewFactory: AnyObject {
     /// - Returns: view shown as a background of the channel list.
     func makeChannelListBackground(colors: ColorPalette) -> ChannelListBackground
 
+    associatedtype ChannelListItemBackground: View
+    /// Creates the background for the channel list item.
+    /// - Parameter channel: The channel which the item view belongs to.
+    /// - Parameter isSelected: Whether the current item is selected or not.
+    /// - Returns: The view shown as a background of the channel list item.
+    func makeChannelListItemBackground(
+        channel: ChatChannel,
+        isSelected: Bool
+    ) -> ChannelListItemBackground
+
     associatedtype ChannelListDividerItem: View
     /// Creates the channel list divider item.
     func makeChannelListDividerItem() -> ChannelListDividerItem
@@ -548,6 +558,21 @@ public protocol ViewFactory: AnyObject {
         message: ChatMessage,
         replyCount: Int
     ) -> MessageRepliesViewType
+    
+    associatedtype MessageRepliesShownInChannelViewType: View
+    /// Creates the message replies view for a reply that is also shown in a channel.
+    /// - Parameters:
+    ///  - channel: the channel where the message is sent.
+    ///  - message: the message that's being replied to.
+    ///  - parentMessage: the parent message.
+    ///  - replyCount: the current number of replies.
+    /// - Returns: view displayed in the message replies view slot.
+    func makeMessageRepliesShownInChannelView(
+        channel: ChatChannel,
+        message: ChatMessage,
+        parentMessage: ChatMessage,
+        replyCount: Int
+    ) -> MessageRepliesShownInChannelViewType
 
     associatedtype MessageComposerViewType: View
     /// Creates the message composer view.
@@ -975,4 +1000,100 @@ public protocol ViewFactory: AnyObject {
         onJumpToMessage: @escaping () -> Void,
         onClose: @escaping () -> Void
     ) -> JumpToUnreadButtonType
+
+    associatedtype ComposerPollViewType: View
+    /// Creates a composer poll view.
+    /// - Returns: view shown in the composer poll slot.
+    func makeComposerPollView(
+        channelController: ChatChannelController,
+        messageController: ChatMessageController?
+    ) -> ComposerPollViewType
+
+    associatedtype PollViewType: View
+    /// Creates a poll view.
+    /// - Parameters:
+    ///  - message: the chat message containing the poll.
+    ///  - poll: the poll to be displayed.
+    ///  - isFirst: a boolean indicating if this is the first poll in the series.
+    /// - Returns: view shown in the poll slot.
+    func makePollView(
+        message: ChatMessage,
+        poll: Poll,
+        isFirst: Bool
+    ) -> PollViewType
+
+    // MARK: - Threads
+
+    associatedtype ThreadDestination: View
+    /// Returns a function that creates the thread destination.
+    func makeThreadDestination() -> (ChatThread) -> ThreadDestination
+
+    associatedtype ThreadListItemType: View
+    /// Creates the thread list item.
+    /// - Parameters:
+    ///  - thread: The thread being displayed.
+    ///  - threadDestination: A closure that creates the thread destination.
+    ///  - selectedThread: The binding of the currently selected thread.
+    func makeThreadListItem(
+        thread: ChatThread,
+        threadDestination: @escaping (ChatThread) -> ThreadDestination,
+        selectedThread: Binding<ThreadSelectionInfo?>
+    ) -> ThreadListItemType
+
+    associatedtype NoThreads: View
+    /// Creates the view that is displayed when there are no threads available.
+    func makeNoThreadsView() -> NoThreads
+
+    associatedtype ThreadListErrorBannerView: View
+    /// Creates the error view that is displayed at the bottom of the thread list.
+    /// - Parameter onRefreshAction: The refresh action, to reload the threads.
+    /// - Returns: Returns the error view shown as a banner at the bottom of the thread list.
+    func makeThreadsListErrorBannerView(onRefreshAction: @escaping () -> Void) -> ThreadListErrorBannerView
+
+    associatedtype ThreadListLoadingView: View
+    /// Creates a loading view for the thread list.
+    func makeThreadListLoadingView() -> ThreadListLoadingView
+
+    associatedtype ThreadListContainerModifier: ViewModifier
+    /// Creates a modifier that wraps the thread list. It can be used to handle additional state changes.
+    /// - Parameter viewModel: The view model that manages the state of the thread list.
+    func makeThreadListContainerViewModifier(viewModel: ChatThreadListViewModel) -> ThreadListContainerModifier
+
+    associatedtype ThreadListHeaderViewModifier: ViewModifier
+    /// Creates the thread list navigation header view modifier.
+    ///  - Parameter title: the title displayed in the header.
+    func makeThreadListHeaderViewModifier(title: String) -> ThreadListHeaderViewModifier
+
+    associatedtype ThreadListHeaderView: View
+    /// Creates the header view for the thread list.
+    ///
+    /// By default it shows a loading spinner if it is loading the initial threads,
+    /// or shows a banner notifying that there are new threads to be fetched.
+    func makeThreadListHeaderView(viewModel: ChatThreadListViewModel) -> ThreadListHeaderView
+
+    associatedtype ThreadListFooterView: View
+    /// Creates the footer view for the thread list.
+    ///
+    /// By default shows a loading spinner when loading more threads.
+    func makeThreadListFooterView(viewModel: ChatThreadListViewModel) -> ThreadListFooterView
+
+    associatedtype ThreadListBackground: View
+    /// Creates the background for the thread list.
+    /// - Parameter colors: The colors palette used in the SDK.
+    /// - Returns: The view shown as a background of the thread list.
+    func makeThreadListBackground(colors: ColorPalette) -> ThreadListBackground
+
+    associatedtype ThreadListItemBackground: View
+    /// Creates the background for the thread list item.
+    /// - Parameter thread: The thread which the item view belongs to.
+    /// - Parameter isSelected: Whether the current item is selected or not.
+    /// - Returns: The view shown as a background of the thread list item.
+    func makeThreadListItemBackground(
+        thread: ChatThread,
+        isSelected: Bool
+    ) -> ThreadListItemBackground
+
+    associatedtype ThreadListDividerItem: View
+    /// Creates the thread list divider item.
+    func makeThreadListDividerItem() -> ThreadListDividerItem
 }

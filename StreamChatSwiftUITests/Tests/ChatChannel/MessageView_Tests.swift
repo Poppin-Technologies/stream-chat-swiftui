@@ -160,6 +160,35 @@ class MessageView_Tests: StreamChatTestCase {
         // Then
         assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
     }
+    
+    func test_messageViewImage_snapshot3ImagesAndVideo() {
+        // Given
+        let imageMessage = ChatMessage.mock(
+            id: .unique,
+            cid: .unique,
+            text: "test message",
+            author: .mock(id: .unique),
+            attachments: [
+                ChatChannelTestHelpers.imageAttachments[0],
+                ChatChannelTestHelpers.imageAttachments[0],
+                ChatChannelTestHelpers.imageAttachments[0],
+                ChatChannelTestHelpers.videoAttachments[0]
+            ]
+        )
+
+        // When
+        let view = MessageView(
+            factory: DefaultViewFactory.shared,
+            message: imageMessage,
+            contentWidth: defaultScreenSize.width,
+            isFirst: true,
+            scrolledId: .constant(nil)
+        )
+        .applyDefaultSize()
+
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
 
     func test_messageViewImage_snapshotQuoted() {
         // Given
@@ -359,6 +388,33 @@ class MessageView_Tests: StreamChatTestCase {
         assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
     }
 
+    func test_linkAttachmentView_shouldNotRenderLinkPreviewWithOtherAttachments() {
+        // Given
+        let messageWithLinkAndImages = ChatMessage.mock(
+            id: .unique,
+            cid: .unique,
+            text: "https://getstream.io",
+            author: .mock(id: .unique),
+            attachments: [
+                ChatChannelTestHelpers.imageAttachments[0],
+                ChatChannelTestHelpers.videoAttachments[0]
+            ]
+        )
+
+        // When
+        let view = MessageView(
+            factory: DefaultViewFactory.shared,
+            message: messageWithLinkAndImages,
+            contentWidth: defaultScreenSize.width,
+            isFirst: true,
+            scrolledId: .constant(nil)
+        )
+        .applyDefaultSize()
+
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+
     func test_deletedMessageView_snapshot() {
         // Given
         let message = ChatMessage.mock(
@@ -415,6 +471,30 @@ class MessageView_Tests: StreamChatTestCase {
             channel: channel,
             message: message,
             replyCount: 3
+        )
+        .frame(width: 300, height: 60)
+
+        // Then
+        assertSnapshot(matching: view, as: .image(perceptualPrecision: precision))
+    }
+    
+    func test_messageRepliesViewShownInChannel_snapshot() {
+        // Given
+        let channel = ChatChannel.mockDMChannel()
+        let message = ChatMessage.mock(
+            id: .unique,
+            cid: channel.cid,
+            text: "Message with replies",
+            author: .mock(id: .unique)
+        )
+
+        // When
+        let view = MessageRepliesView(
+            factory: DefaultViewFactory.shared,
+            channel: channel,
+            message: message,
+            replyCount: 3,
+            showReplyCount: false
         )
         .frame(width: 300, height: 60)
 

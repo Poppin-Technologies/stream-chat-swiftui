@@ -205,14 +205,28 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                     .accessibilityIdentifier("MessageView")
                   }
 
-                    if message.replyCount > 0 && !isInThread {
-                        factory.makeMessageRepliesView(
-                            channel: channel,
-                            message: message,
-                            replyCount: message.replyCount
-                        )
-                        .accessibilityElement(children: .contain)
-                        .accessibility(identifier: "MessageRepliesView")
+                    if !isInThread {
+                        if message.replyCount > 0 {
+                            factory.makeMessageRepliesView(
+                                channel: channel,
+                                message: message,
+                                replyCount: message.replyCount
+                            )
+                            .accessibilityElement(children: .contain)
+                            .accessibility(identifier: "MessageRepliesView")
+                        } else if message.showReplyInChannel,
+                                  let parentId = message.parentMessageId,
+                                  let controller = utils.channelControllerFactory.currentChannelController,
+                                  let parentMessage = controller.dataStore.message(id: parentId) {
+                            factory.makeMessageRepliesShownInChannelView(
+                                channel: channel,
+                                message: message,
+                                parentMessage: parentMessage,
+                                replyCount: parentMessage.replyCount
+                            )
+                            .accessibilityElement(children: .contain)
+                            .accessibility(identifier: "MessageRepliesView")
+                        }
                     }
                   if message.showReplyInChannel, !isInThread, let quotedMessage = viewmodel.messages.first(where: { message2 in
                     if message2.isRootOfThread {
@@ -401,9 +415,8 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
         showsMessageActions: Bool,
         showsBottomContainer: Bool = true
     ) {
-        computeFrame = true
+        computeFrame.toggle()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            computeFrame = false
             triggerHapticFeedback(style: .medium)
             onLongPress(
                 MessageDisplayInfo(

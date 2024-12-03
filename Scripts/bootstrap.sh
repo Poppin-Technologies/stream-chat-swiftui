@@ -37,11 +37,15 @@ ln -sf ../../hooks/pre-commit.sh .git/hooks/pre-commit
 chmod +x .git/hooks/pre-commit
 chmod +x ./hooks/git-format-staged
 
-puts "Install brew dependencies"
-brew bundle -d
+if [ "${SKIP_BREW_BOOTSTRAP:-}" != true ]; then
+  puts "Install brew dependencies"
+  brew bundle -d
+fi
 
-puts "Bootstrap Mint dependencies"
-mint bootstrap --link
+if [ "${SKIP_MINT_BOOTSTRAP:-}" != true ]; then
+  puts "Bootstrap Mint dependencies"
+  mint bootstrap --link
+fi
 
 if [[ ${INSTALL_ALLURE-default} == true ]]; then
   puts "Install allurectl"

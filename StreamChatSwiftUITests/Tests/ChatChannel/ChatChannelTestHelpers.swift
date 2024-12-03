@@ -4,6 +4,7 @@
 
 @testable import StreamChat
 @testable import StreamChatSwiftUI
+@testable import StreamChatTestTools
 import XCTest
 
 class ChatChannelTestHelpers {
@@ -15,7 +16,11 @@ class ChatChannelTestHelpers {
         lastActiveWatchers: [ChatUser] = []
     ) -> ChatChannelController_Mock {
         let config = ChannelConfig(commands: [Command(name: "giphy", description: "", set: "", args: "")])
-        let channel = chatChannel ?? ChatChannel.mockDMChannel(config: config, lastActiveWatchers: lastActiveWatchers)
+        let channel = chatChannel ?? ChatChannel.mockDMChannel(
+            config: config,
+            ownCapabilities: [.uploadFile],
+            lastActiveWatchers: lastActiveWatchers
+        )
         let channelQuery = ChannelQuery(cid: channel.cid)
         let channelListQuery = ChannelListQuery(filter: .containMembers(userIds: [chatClient.currentUserId ?? .unique]))
         let channelController = ChatChannelController_Mock.mock(
@@ -56,6 +61,7 @@ class ChatChannelTestHelpers {
                     imageRemoteURL: testURL,
                     extraData: [:]
                 ),
+                downloadingState: nil,
                 uploadingState: uploadingState
             )
             .asAnyAttachment
@@ -80,6 +86,7 @@ class ChatChannelTestHelpers {
                     previewURL: testURL,
                     actions: []
                 ),
+                downloadingState: nil,
                 uploadingState: uploadingState
             )
             .asAnyAttachment
@@ -105,6 +112,7 @@ class ChatChannelTestHelpers {
                     file: attachmentFile,
                     extraData: nil
                 ),
+                downloadingState: nil,
                 uploadingState: uploadingState
             )
             .asAnyAttachment
@@ -130,6 +138,7 @@ class ChatChannelTestHelpers {
                 file: attachmentFile,
                 extraData: nil
             ),
+            downloadingState: nil,
             uploadingState: uploadingState
         )
 
@@ -155,6 +164,7 @@ class ChatChannelTestHelpers {
                     assetURL: testURL,
                     previewURL: testURL
                 ),
+                downloadingState: nil,
                 uploadingState: uploadingState
             )
             .asAnyAttachment
@@ -181,6 +191,7 @@ class ChatChannelTestHelpers {
                     file: attachmentFile,
                     extraData: nil
                 ),
+                downloadingState: nil,
                 uploadingState: uploadingState
             )
             .asAnyAttachment
@@ -202,6 +213,7 @@ class ChatChannelTestHelpers {
             id: .unique,
             type: .voiceRecording,
             payload: payload,
+            downloadingState: nil,
             uploadingState: nil
         ).asAnyAttachment
         

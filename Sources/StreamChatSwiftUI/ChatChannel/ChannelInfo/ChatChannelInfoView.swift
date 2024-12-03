@@ -84,10 +84,9 @@ public struct ChatChannelInfoView: View, KeyboardReadable {
                                 message: Text(message),
                                 primaryButton: .destructive(Text(buttonTitle)) {
                                     viewModel.leaveConversationTapped {
+                                        presentationMode.wrappedValue.dismiss()
                                         if shownFromMessageList {
                                             notifyChannelDismiss()
-                                        } else {
-                                            presentationMode.wrappedValue.dismiss()
                                         }
                                     }
                                 },
@@ -138,7 +137,7 @@ public struct ChatChannelInfoView: View, KeyboardReadable {
             }
 
             ToolbarItem(placement: .navigationBarTrailing) {
-                viewModel.channel.isDirectMessageChannel ? nil :
+                if viewModel.shouldShowAddUserButton {
                     Button {
                         viewModel.addUsersShown = true
                     } label: {
@@ -149,14 +148,13 @@ public struct ChatChannelInfoView: View, KeyboardReadable {
                             .background(colors.tintColor)
                             .clipShape(Circle())
                     }
+                }
             }
         }
         .onReceive(keyboardWillChangePublisher) { visible in
             viewModel.keyboardShown = visible
         }
-        .modifier(
-            HideKeyboardOnTapGesture(shouldAdd: viewModel.keyboardShown)
-        )
+        .dismissKeyboardOnTap(enabled: viewModel.keyboardShown)
         .background(Color(colors.background).edgesIgnoringSafeArea(.bottom))
     }
 }

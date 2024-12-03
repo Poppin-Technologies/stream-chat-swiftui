@@ -7,7 +7,7 @@ import StreamChat
 import SwiftUI
 
 /// View model for the `MediaAttachmentsView`.
-public class MediaAttachmentsViewModel: ObservableObject {
+public class MediaAttachmentsViewModel: ObservableObject, ChatMessageSearchControllerDelegate {
 
     @Published public var mediaItems = [MediaItem]()
     @Published public var loading = false
@@ -27,6 +27,7 @@ public class MediaAttachmentsViewModel: ObservableObject {
     public init(channel: ChatChannel) {
         self.channel = channel
         messageSearchController = chatClient.messageSearchController()
+        messageSearchController.delegate = self
         loadMessages()
     }
 
@@ -52,6 +53,12 @@ public class MediaAttachmentsViewModel: ObservableObject {
                 self.loadingNextMessages = false
             }
         }
+    }
+    
+    // MARK: - ChatMessageSearchControllerDelegate
+    
+    func controller(_ controller: ChatMessageSearchController, didChangeMessages changes: [ListChange<ChatMessage>]) {
+        updateAttachments()
     }
 
     private func loadMessages() {

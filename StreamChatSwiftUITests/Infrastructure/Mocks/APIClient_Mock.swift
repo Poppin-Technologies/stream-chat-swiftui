@@ -9,7 +9,7 @@ import XCTest
 
 /// Mock implementation of APIClient allowing easy control and simulation of responses.
 class APIClientMock: APIClient, StreamChatTestTools.Spy {
-    var recordedFunctions: [String] = []
+    var spyState: SpyState = .init()
 
     /// The last endpoint `request` function was called with.
     @Atomic var request_endpoint: AnyEndpoint?
@@ -63,6 +63,7 @@ class APIClientMock: APIClient, StreamChatTestTools.Spy {
             sessionConfiguration: sessionConfiguration,
             requestEncoder: requestEncoder,
             requestDecoder: requestDecoder,
+            attachmentDownloader: StreamAttachmentDownloader(sessionConfiguration: sessionConfiguration),
             attachmentUploader: attachmentUploader
         )
     }

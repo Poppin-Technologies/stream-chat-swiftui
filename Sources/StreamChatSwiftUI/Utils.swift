@@ -8,12 +8,16 @@ import StreamChat
 /// Class providing implementations of several utilities used in the SDK.
 /// The default implementations can be replaced in the init method, or directly via the variables.
 public class Utils {
+    // TODO: Make it public in future versions.
+    internal var messagePreviewFormatter = MessagePreviewFormatter()
+
     public var dateFormatter: DateFormatter
     public var videoPreviewLoader: VideoPreviewLoader
     public var imageLoader: ImageLoading
     public var imageCDN: ImageCDN
     public var imageProcessor: ImageProcessor
     public var imageMerger: ImageMerging
+    public var fileCDN: FileCDN
     public var channelNamer: ChatChannelNamer
     public var chatUserNamer: ChatUserNamer
     public var channelAvatarsMerger: ChannelAvatarsMerging
@@ -22,6 +26,7 @@ public class Utils {
     public var commandsConfig: CommandsConfig
     public var messageListConfig: MessageListConfig
     public var composerConfig: ComposerConfig
+    public var pollsConfig: PollsConfig
     public var shouldSyncChannelControllerOnAppear: (ChatChannelController) -> Bool
     public var snapshotCreator: SnapshotCreator
     public var messageIdBuilder: MessageIdBuilder
@@ -62,6 +67,7 @@ public class Utils {
     
     internal var _audioPlayer: AudioPlaying?
     internal var _audioRecorder: AudioRecording?
+    internal var pollsDateFormatter = PollsDateFormatter()
 
     public init(
         dateFormatter: DateFormatter = .makeDefault(),
@@ -70,12 +76,14 @@ public class Utils {
         imageCDN: ImageCDN = StreamImageCDN(),
         imageProcessor: ImageProcessor = NukeImageProcessor(),
         imageMerger: ImageMerging = DefaultImageMerger(),
+        fileCDN: FileCDN = DefaultFileCDN(),
         channelAvatarsMerger: ChannelAvatarsMerging = ChannelAvatarsMerger(),
         messageTypeResolver: MessageTypeResolving = MessageTypeResolver(),
         messageActionResolver: MessageActionsResolving = MessageActionsResolver(),
         commandsConfig: CommandsConfig = DefaultCommandsConfig(),
         messageListConfig: MessageListConfig = MessageListConfig(),
         composerConfig: ComposerConfig = ComposerConfig(),
+        pollsConfig: PollsConfig = PollsConfig(),
         channelNamer: @escaping ChatChannelNamer = DefaultChatChannelNamer(),
         chatUserNamer: ChatUserNamer = DefaultChatUserNamer(),
         snapshotCreator: SnapshotCreator = DefaultSnapshotCreator(),
@@ -92,6 +100,7 @@ public class Utils {
         self.imageCDN = imageCDN
         self.imageProcessor = imageProcessor
         self.imageMerger = imageMerger
+        self.fileCDN = fileCDN
         self.channelNamer = channelNamer
         self.chatUserNamer = chatUserNamer
         self.channelAvatarsMerger = channelAvatarsMerger
@@ -107,6 +116,7 @@ public class Utils {
         self.channelHeaderLoader = channelHeaderLoader
         self.videoDurationFormatter = videoDurationFormatter
         self.audioRecordingNameFormatter = audioRecordingNameFormatter
+        self.pollsConfig = pollsConfig
         messageListDateUtils = MessageListDateUtils(messageListConfig: messageListConfig)
     }
     

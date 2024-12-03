@@ -21,12 +21,23 @@ public struct MessageRepliesView<Factory: ViewFactory>: View {
     var channel: ChatChannel
     var message: ChatMessage
     var replyCount: Int
+    var isRightAligned: Bool
+    var showReplyCount: Bool
 
-    public init(factory: Factory, channel: ChatChannel, message: ChatMessage, replyCount: Int) {
+    public init(
+        factory: Factory,
+        channel: ChatChannel,
+        message: ChatMessage,
+        replyCount: Int,
+        showReplyCount: Bool = true,
+        isRightAligned: Bool? = nil
+    ) {
         self.factory = factory
         self.channel = channel
         self.message = message
         self.replyCount = replyCount
+        self.isRightAligned = isRightAligned ?? message.isRightAligned
+        self.showReplyCount = showReplyCount
     }
 
     public var body: some View {
@@ -42,30 +53,62 @@ public struct MessageRepliesView<Factory: ViewFactory>: View {
             )
         } label: {
             HStack {
-                if !utils.isSentByCurrentUser(message) {
+                if !isRightAligned {
                     MessageAvatarView(
                         avatarURL: message.threadParticipants.first?.imageURL,
                         size: .init(width: 16, height: 16)
                     )
                 }
-                Text("\(replyCount) \(repliesText)")
+                Text(title)
                     .font(fonts.footnoteBold)
-                if utils.isSentByCurrentUser(message) {
+                if isRightAligned {
                     MessageAvatarView(
                         avatarURL: message.threadParticipants.first?.imageURL,
                         size: .init(width: 16, height: 16)
                     )
                 }
             }
-            .padding(.vertical, 3)
-            .padding(.horizontal, 5)
-            .background(
-              Color.black.opacity(0.3)
+            .padding(.horizontal, 16)
+            .overlay(
+                Path { path in
+                    let corner: CGFloat = 16
+                    let height: CGFloat = 2 * corner
+                    let startX: CGFloat = 0
+                    let endX = startX + corner
+
+                    path.move(to: CGPoint(x: startX, y: 0))
+                    path.addLine(to: CGPoint(x: startX, y: height - corner))
+                    path.addQuadCurve(
+                        to: CGPoint(x: endX, y: height),
+                        control: CGPoint(x: startX, y: height)
+                    )
+                }
+                .stroke(
+                    Color(colors.innerBorder),
+                    style: StrokeStyle(
+                        lineWidth: 1.0,
+                        lineCap: .round,
+                        lineJoin: .round
+                    )
+                )
+                .offset(y: -24)
+                .rotation3DEffect(
+                    .degrees(isRightAligned ? 180 : 0),
+                    axis: (x: 0, y: 1, z: 0)
+                )
             )
             .clipShape(Capsule())
             .padding(.horizontal, 5)
             .foregroundColor(colors.tintColor)
             .offset(y: -3)
+        }
+    }
+    
+    var title: String {
+        if showReplyCount {
+            return "\(replyCount) \(repliesText)"
+        } else {
+            return L10n.Message.Threads.reply
         }
     }
 

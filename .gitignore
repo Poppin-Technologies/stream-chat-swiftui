@@ -1,6 +1,9 @@
 # OS X
 .DS_Store
 
+# Environment Variables
+.env
+
 # Xcode
 #
 # gitignore contributors: remember to update Global/Xcode.gitignore, Objective-C.gitignore & Swift.gitignore
@@ -51,12 +54,6 @@ playground.xcworkspace
 # https://guides.cocoapods.org/using/using-cocoapods.html#should-i-check-the-pods-directory-into-source-control
 Pods/
 
-# Carthage
-#
-# Add this line if you want to avoid checking in source code from Carthage dependencies.
-Carthage/
-!Sample/Carthage/
-
 # Ignore Products folder
 Products/
 
@@ -67,20 +64,20 @@ Products/
 # For more information about the recommended setup visit:
 # https://docs.fastlane.tools/best-practices/source-control/#source-control
 
+!fastlane/.env
 fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots
 fastlane/test_output
 fastlane/allurectl
 fastlane/xcresults
+**/metrics/
 fastlane/recordings
 StreamChatCore.framework.coverage.txt
 StreamChatCoreTests.xctest.coverage.txt
 vendor/bundle/
 .bundle/
 .swiftpm
-Example/Carthage/.env
-Example/Carthage/fastlane/report.xml
 Sample/Cocoapods/Podfile.lock
 docusaurus/.env
 reports/
@@ -91,3 +88,10 @@ derived_data/
 spm_cache/
 .buildcache
 buildcache
+App Thinning Size Report.txt
+app-thinning.plist
+*.dmg
+
+# VSCode
+.vscode
+buildServer.json

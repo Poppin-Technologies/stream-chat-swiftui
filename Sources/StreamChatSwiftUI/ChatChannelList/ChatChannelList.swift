@@ -108,6 +108,7 @@ public struct ChannelList<Factory: ViewFactory>: View {
 
 /// LazyVStack displaying list of channels.
 public struct ChannelsLazyVStack<Factory: ViewFactory>: View {
+    @Injected(\.colors) private var colors
 
     private var factory: Factory
     var channels: LazyCachedMapCollection<ChatChannel>
@@ -170,6 +171,10 @@ public struct ChannelsLazyVStack<Factory: ViewFactory>: View {
                     trailingSwipeLeftButtonTapped: trailingSwipeLeftButtonTapped,
                     leadingSwipeButtonTapped: leadingSwipeButtonTapped
                 )
+                .background(factory.makeChannelListItemBackground(
+                    channel: channel,
+                    isSelected: selectedChannel?.channel.id == channel.id
+                ))
                 .onAppear {
                     if let index = channels.firstIndex(where: { chatChannel in
                         chatChannel.id == channel.id
@@ -189,29 +194,7 @@ public struct ChannelsLazyVStack<Factory: ViewFactory>: View {
 
 /// Determines the uniqueness of the channel list item.
 extension ChatChannel: Identifiable {
-    private var mutedString: String {
-        isMuted ? "muted" : "unmuted"
-    }
-
     public var id: String {
-        "\(cid.id)-\(lastMessageAt ?? createdAt)-\(lastActiveMembersCount)-\(mutedString)-\(typingUsersString)-\(readUsersId)-\(unreadCount.messages)"
-    }
-
-    private var readUsersId: String {
-        "\(readUsers(currentUserId: nil, message: latestMessages.first).count)"
-    }
-
-    private var lastActiveMembersCount: Int {
-        lastActiveMembers.filter { member in
-            member.isOnline
-        }
-        .count
-    }
-
-    private var typingUsersString: String {
-        currentlyTypingUsers.map { user in
-            user.id
-        }
-        .joined(separator: "-")
+        cid.rawValue
     }
 }

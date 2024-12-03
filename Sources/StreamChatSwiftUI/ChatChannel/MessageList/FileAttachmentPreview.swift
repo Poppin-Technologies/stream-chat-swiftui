@@ -10,9 +10,15 @@ public struct FileAttachmentPreview: View {
 
     @Injected(\.fonts) private var fonts
     @Injected(\.images) private var images
+    @Injected(\.utils) private var utils
+
+    private var fileCDN: FileCDN {
+        utils.fileCDN
+    }
 
     public var url: URL
 
+    @State private var adjustedUrl: URL?
     @State private var isLoading = false
     @State private var title: String?
     @State private var error: Error?
@@ -29,15 +35,28 @@ public struct FileAttachmentPreview: View {
                         .font(fonts.body)
                         .padding()
                 } else {
-                    WebView(
-                        url: url,
-                        isLoading: $isLoading,
-                        title: $title,
-                        error: $error
-                    )
+
+                    if let adjustedUrl = adjustedUrl {
+                        WebView(
+                            url: adjustedUrl,
+                            isLoading: $isLoading,
+                            title: $title,
+                            error: $error
+                        )
+                    }
 
                     if isLoading {
                         ProgressView()
+                    }
+                }
+            }
+            .onAppear {
+                fileCDN.adjustedURL(for: url) { result in
+                    switch result {
+                    case let .success(url):
+                        self.adjustedUrl = url
+                    case let .failure(error):
+                        self.error = error
                     }
                 }
             }

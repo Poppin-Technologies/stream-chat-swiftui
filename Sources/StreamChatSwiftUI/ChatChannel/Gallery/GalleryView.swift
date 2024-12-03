@@ -2,6 +2,7 @@
 // Copyright © 2024 Stream.io Inc. All rights reserved.
 //
 
+import AVKit
 import StreamChat
 import SwiftUI
 
@@ -14,7 +15,7 @@ public struct GalleryView: View {
     @Injected(\.fonts) private var fonts
     @Injected(\.images) private var images
 
-    var imageAttachments: [ChatMessageImageAttachment]
+    var mediaAttachments: [MediaAttachment]
     var author: ChatUser
     @Binding var isShown: Bool
     @State private var selected: Int
@@ -27,7 +28,34 @@ public struct GalleryView: View {
         isShown: Binding<Bool>,
         selected: Int
     ) {
-        self.imageAttachments = imageAttachments
+        let mediaAttachments = imageAttachments.map { attachment in
+            let url: URL
+            if let state = attachment.uploadingState {
+                url = state.localFileURL
+            } else {
+                url = attachment.imageURL
+            }
+            return MediaAttachment(
+                url: url,
+                type: .image,
+                uploadingState: attachment.uploadingState
+            )
+        }
+        self.init(
+            mediaAttachments: mediaAttachments,
+            author: author,
+            isShown: isShown,
+            selected: selected
+        )
+    }
+    
+    init(
+        mediaAttachments: [MediaAttachment],
+        author: ChatUser,
+        isShown: Binding<Bool>,
+        selected: Int
+    ) {
+        self.mediaAttachments = mediaAttachments
         self.author = author
         _isShown = isShown
         _selected = State(initialValue: selected)
@@ -43,15 +71,32 @@ public struct GalleryView: View {
                 )
 
                 TabView(selection: $selected) {
-                    ForEach(0..<sources.count, id: \.self) { index in
-                        let url = sources[index]
-                        ZoomableScrollView {
-                            VStack {
-                                Spacer()
-                                LazyGiphyView(source: url, width: reader.size.width)
-                                  .aspectRatio(contentMode: .fit)
-                                  .frame(width: reader.size.width)
-                                Spacer()
+                    ForEach(0..<mediaAttachments.count, id: \.self) { index in
+                        ZStack {
+                            let source = mediaAttachments[index]
+                            if source.type == .image {
+                                ZoomableScrollView {
+                                    VStack {
+                                        Spacer()
+                                        LazyLoadingImage(
+                                            source: source,
+                                            width: reader.size.width,
+                                            height: reader.size.height,
+                                            resize: true,
+                                            shouldSetFrame: false,
+                                            onImageLoaded: { image in
+                                                loadedImages[index] = image
+                                            }
+                                        )
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: reader.size.width)
+                                        Spacer()
+                                    }
+                                }
+                                .tag(index)
+                            } else {
+                                StreamVideoPlayer(url: source.url)
+                                    .tag(index)
                             }
                             .background (
                               LazyLoadingImage(
@@ -69,7 +114,6 @@ public struct GalleryView: View {
                               .opacity(0.015)
                             )
                         }
-                        .tag(index)
                     }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
@@ -88,7 +132,7 @@ public struct GalleryView: View {
 
                     Spacer()
 
-                    Text("\(selected + 1) of \(sources.count)")
+                    Text("\(selected + 1) of \(mediaAttachments.count)")
                         .font(fonts.bodyBold)
 
                     Spacer()
@@ -107,7 +151,7 @@ public struct GalleryView: View {
             }
             .sheet(isPresented: $gridShown) {
                 GridPhotosView(
-                    imageURLs: sources,
+                    imageURLs: mediaAttachments.filter { $0.type == .image }.map(\.url),
                     isShown: $gridShown
                 )
             }
@@ -121,10 +165,43 @@ public struct GalleryView: View {
             return []
         }
     }
+}
 
-    private var sources: [URL] {
-        imageAttachments.map { attachment in
-            attachment.imageURL
+struct StreamVideoPlayer: View {
+
+    @Injected(\.utils) private var utils
+
+    private var fileCDN: FileCDN {
+        utils.fileCDN
+    }
+
+    let url: URL
+
+    @State var avPlayer: AVPlayer?
+    @State var error: Error?
+
+    init(url: URL) {
+        self.url = url
+    }
+    
+    var body: some View {
+        VStack {
+            if let avPlayer {
+                VideoPlayer(player: avPlayer)
+                    .clipped()
+            }
+        }
+        .onAppear {
+            fileCDN.adjustedURL(for: url) { result in
+                switch result {
+                case let .success(url):
+                    self.avPlayer = AVPlayer(url: url)
+                    try? AVAudioSession.sharedInstance().setCategory(.playback, options: [])
+                    self.avPlayer?.play()
+                case let .failure(error):
+                    self.error = error
+                }
+            }
         }
     }
 }

@@ -26,6 +26,10 @@ class MessageListPage {
     static var list: XCUIElement {
         app.scrollViews.matching(NSPredicate(format: "identifier LIKE 'MessageListView' or identifier LIKE 'MessageListScrollView'")).firstMatch
     }
+    
+    static var listEmpty: XCUIElement {
+        app.otherElements.matching(identifier: "EmptyMessagesView").firstMatch
+    }
 
     static var typingIndicator: XCUIElement {
         app.staticTexts["TypingIndicatorBottomView"].firstMatch
@@ -184,9 +188,17 @@ class MessageListPage {
         static func giphyCancelButton(in messageCell: XCUIElement) -> XCUIElement {
             attachmentActionButton(in: messageCell, label: "Cancel")
         }
+        
+        static func giphyImage(in messageCell: XCUIElement) -> XCUIElement {
+            messageCell.otherElements["GiphyAttachmentView"].images.firstMatch
+        }
 
         static func giphyLabel(in messageCell: XCUIElement) -> XCUIElement {
             messageCell.staticTexts["GiphyAttachmentView"]
+        }
+        
+        static func actionButtons() -> XCUIElementQuery {
+            app.buttons.matching(NSPredicate(format: "identifier LIKE 'GiphyAttachmentView'"))
         }
 
         private static func attachmentActionButton(in messageCell: XCUIElement, label: String) -> XCUIElement {

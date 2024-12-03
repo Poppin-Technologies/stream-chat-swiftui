@@ -54,8 +54,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
          streamChat = StreamChat(chatClient: chatClient, utils: utils)
          */
         
-        StreamRuntimeCheck._isBackgroundMappingEnabled = true
-
         #if RELEASE
         // We're tracking Crash Reports / Issues from the Demo App to keep improving the SDK
         SentrySDK.start { options in
@@ -65,7 +63,13 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         #endif
 
         let utils = Utils(
-            messageListConfig: MessageListConfig(dateIndicatorPlacement: .messageList),
+            messageListConfig: MessageListConfig(
+                dateIndicatorPlacement: .messageList,
+                userBlockingEnabled: true,
+                skipEditedMessageLabel: { message in
+                    message.extraData["ai_generated"]?.boolValue == true
+                }
+            ),
             composerConfig: ComposerConfig(isVoiceRecordingEnabled: true)
         )
         streamChat = StreamChat(chatClient: chatClient, utils: utils)

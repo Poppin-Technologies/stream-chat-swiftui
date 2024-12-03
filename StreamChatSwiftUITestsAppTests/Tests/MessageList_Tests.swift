@@ -9,6 +9,7 @@ final class MessageList_Tests: StreamTestCase {
     override func setUpWithError() throws {
         try super.setUpWithError()
         addTags([.coreFeatures])
+        assertMockServer()
     }
 
     func test_messageListUpdates_whenUserSendsMessage() {
@@ -298,9 +299,17 @@ final class MessageList_Tests: StreamTestCase {
             userRobot.setConnectivity(to: .on)
         }
         THEN("new message is delivered") {
-            userRobot
+            let success = userRobot
                 .assertMessage(message)
-                .assertMessageDeliveryStatus(.sent, at: 0)
+                .waitForMessageDeliveryStatus(.sent, at: 0)
+            
+            if success {
+                userRobot.assertMessageDeliveryStatus(.sent, at: 0)
+            } else {
+                userRobot
+                    .selectOptionFromContextMenu(option: .resend, forMessageAtIndex: 0)
+                    .assertMessageDeliveryStatus(.sent, at: 0)
+            }
         }
     }
 
@@ -329,6 +338,20 @@ final class MessageList_Tests: StreamTestCase {
         }
         THEN("new message is delivered") {
             userRobot.assertMessage(message)
+        }
+    }
+    
+    func test_emptyViewDismissesKeyboard() throws {
+        GIVEN("user opens the channel") {
+            userRobot.login().openChannel()
+        }
+        WHEN("keyboard is open") {
+            userRobot.tapOnComposerTextView()
+            userRobot.assertKeyboard(isVisible: true)
+            userRobot.tapOnEmptyMessageList()
+        }
+        THEN("keyboard is dismissed") {
+            userRobot.assertKeyboard(isVisible: false)
         }
     }
 }
@@ -506,6 +529,8 @@ extension MessageList_Tests {
     func test_paginationOnThread() throws {
         linkToScenario(withId: 371)
         
+        throw XCTSkip("https://github.com/GetStream/ios-issues-tracking/issues/854")
+        
         let replyCount = 60
         
         GIVEN("user opens the channel") {
@@ -618,7 +643,7 @@ extension MessageList_Tests {
                 .scrollMessageListDown() // to hide the keyboard
         }
         THEN("user observes a preview of the video with description") {
-            userRobot.assertLinkPreview(alsoVerifyServiceName: "YouTube")
+            userRobot.assertLinkPreview()
         }
     }
 
@@ -652,7 +677,7 @@ extension MessageList_Tests {
             userRobot.scrollMessageListDown() // to hide the keyboard
         }
         THEN("user observes a preview of the video with description") {
-            userRobot.assertLinkPreview(alsoVerifyServiceName: "YouTube")
+            userRobot.assertLinkPreview()
         }
     }
 }

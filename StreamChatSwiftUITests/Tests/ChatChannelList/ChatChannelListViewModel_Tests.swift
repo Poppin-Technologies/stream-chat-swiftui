@@ -4,6 +4,7 @@
 
 @testable import StreamChat
 @testable import StreamChatSwiftUI
+@testable import StreamChatTestTools
 import XCTest
 
 class ChatChannelListViewModel_Tests: StreamChatTestCase {
@@ -270,6 +271,95 @@ class ChatChannelListViewModel_Tests: StreamChatTestCase {
         // Then
         XCTAssert(viewModel.hideTabBar == true)
     }
+    
+    func test_channelListVM_deeplinkToExistingChannel() throws {
+        // Given
+        let channels = (0..<3).map { ChatChannel.mock(cid: ChannelId(type: .messaging, id: "\($0)")) }
+        let channelListController = makeChannelListController(channels: channels)
+        let selectedId = channels[1].cid
+        let viewModel = ChatChannelListViewModel(
+            channelListController: channelListController,
+            selectedChannelId: selectedId.rawValue
+        )
+        
+        // Then
+        let expectation = XCTestExpectation(description: "SelectedChannel")
+        let cancellable = viewModel.$selectedChannel
+            .filter { $0?.channel.cid == selectedId }
+            .sink { _ in
+                expectation.fulfill()
+            }
+        // Resume synchronize()
+        chatClient.mockAPIClient.test_simulateResponse(.success(ChannelListPayload(channels: [])))
+        wait(for: [expectation], timeout: defaultTimeout)
+        cancellable.cancel()
+    }
+    
+    func test_channelListVM_deeplinkToIncomingChannel() {
+        // Given
+        let channels = (0..<3).map { ChatChannel.mock(cid: ChannelId(type: .messaging, id: "\($0)")) }
+        let channelListController = makeChannelListController(channels: channels)
+        let selectedId = ChannelId(type: .messaging, id: "3")
+        let viewModel = ChatChannelListViewModel(
+            channelListController: channelListController,
+            selectedChannelId: selectedId.rawValue
+        )
+        
+        // When
+        let expectation = XCTestExpectation(description: "SelectedChannel")
+        let cancellable = viewModel.$selectedChannel
+            .filter { $0?.channel.cid == selectedId }
+            .sink { _ in
+                expectation.fulfill()
+            }
+        let insertedChannel = ChatChannel.mock(cid: selectedId)
+        channelListController.simulate(
+            channels: channels + [insertedChannel],
+            changes: [.insert(insertedChannel, index: IndexPath(item: 0, section: 0))]
+        )
+        // Resume synchronize()
+        chatClient.mockAPIClient.test_simulateResponse(.success(ChannelListPayload(channels: [])))
+        
+        // Then
+        wait(for: [expectation], timeout: defaultTimeout)
+        cancellable.cancel()
+    }
+
+    // MARK: - Search
+
+    func test_loadAdditionalSearchResults_whenSearchTypeIsChannels_shouldLoadNextChannels() {
+        let searchChannelListController = makeChannelListController()
+        let viewModel = makeDefaultChannelListVM(searchType: .channels)
+        viewModel.channelListSearchController = searchChannelListController
+        
+        viewModel.loadAdditionalSearchResults(index: 1)
+
+        XCTAssertEqual(searchChannelListController.loadNextChannelsCallCount, 1)
+    }
+
+    func test_loadAdditionalSearchResults_whenSearchTypeIsMessages_shouldLoadNextMessages() {
+        let messageSearchController = ChatMessageSearchController_Mock.mock()
+        let viewModel = makeDefaultChannelListVM(searchType: .messages)
+        viewModel.messageSearchController = messageSearchController
+
+        viewModel.loadAdditionalSearchResults(index: 1)
+
+        XCTAssertEqual(messageSearchController.loadNextMessagesCallCount, 1)
+    }
+
+    func test_searchText_whenChanged_whenSearchTypeIsChannels_shouldPerformChannelSearch() {
+        let viewModel = makeDefaultChannelListVM(searchType: .channels)
+        viewModel.searchText = "Hey"
+        XCTAssertNotNil(viewModel.channelListSearchController)
+        XCTAssertNil(viewModel.messageSearchController)
+    }
+
+    func test_searchText_whenChanged_whenSearchTypeIsMessages_shouldPerformMessageSearch() {
+        let viewModel = makeDefaultChannelListVM(searchType: .messages)
+        viewModel.searchText = "Hey"
+        XCTAssertNil(viewModel.channelListSearchController)
+        XCTAssertNotNil(viewModel.messageSearchController)
+    }
 
     // MARK: - private
 
@@ -289,14 +379,15 @@ class ChatChannelListViewModel_Tests: StreamChatTestCase {
     }
 
     private func makeDefaultChannelListVM(
-        channels: [ChatChannel] = []
+        channels: [ChatChannel] = [],
+        searchType: ChannelListSearchType = .messages
     ) -> ChatChannelListViewModel {
         let channelListController = makeChannelListController(channels: channels)
         let viewModel = ChatChannelListViewModel(
             channelListController: channelListController,
-            selectedChannelId: nil
+            selectedChannelId: nil,
+            searchType: searchType
         )
-
         return viewModel
     }
 }

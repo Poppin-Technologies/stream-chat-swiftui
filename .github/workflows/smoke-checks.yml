@@ -19,7 +19,9 @@ concurrency:
 
 env:
   HOMEBREW_NO_INSTALL_CLEANUP: 1 # Disable cleanup for homebrew, we don't need it on CI
-  IOS_SIMULATOR_DEVICE: "iPhone 15 Pro (17.2)"
+  IOS_SIMULATOR_DEVICE: "iPhone 15 Pro (17.4)"
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_PR_NUM: ${{ github.event.pull_request.number }}
 
 jobs:
   build-test-app-and-frameworks:
@@ -33,7 +35,9 @@ jobs:
     - name: Build
       run: bundle exec fastlane build_test_app_and_frameworks
       timeout-minutes: 60
-    - uses: actions/upload-artifact@v3
+      env:
+        XCODE_VERSION: "15.2" # Should match the minimum version in dependent jobs
+    - uses: actions/upload-artifact@v4
       if: success()
       with:
         name: cache-derived-data
@@ -42,13 +46,58 @@ jobs:
           derived_data/Build/**/*.xctestrun
           derived_data/Build/**/*.framework
 
+  automated-code-review:
+    name: Automated Code Review
+    runs-on: macos-13
+    env:
+      XCODE_VERSION: "15.0.1"
+    if: ${{ github.event_name != 'push' && github.event.inputs.snapshots != 'true' }}
+    steps:
+    - uses: actions/checkout@v4.1.1
+    - uses: ./.github/actions/bootstrap
+    - name: Run Danger
+      run: bundle exec danger
+    - name: Run Fastlane Linting
+      run: bundle exec fastlane rubocop
+    - name: Run SwiftFormat Linting
+      run: ./Scripts/run-linter.sh
+    - name: Run Podspec Linting
+      if: startsWith(github.event.pull_request.head.ref, 'release/')
+      run: bundle exec fastlane pod_lint
+
+  build-xcode15:
+    name: Build SDKs (Xcode 15.0)
+    runs-on: macos-13
+    if: ${{ github.event_name != 'push' && github.event.inputs.snapshots != 'true' }}
+    env:
+      XCODE_VERSION: "15.0.1"
+    steps:
+    - name: Connect Bot
+      uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: ${{ secrets.BOT_SSH_PRIVATE_KEY }}
+    - uses: actions/checkout@v3.1.0
+    - uses: ./.github/actions/ruby-cache
+    - name: List Xcode versions
+      run: mdfind "kMDItemCFBundleIdentifier = 'com.apple.dt.Xcode'"
+      timeout-minutes: 25
+    - name: Build SwiftUI
+      run: bundle exec fastlane test_ui device:"iPhone 15" build_for_testing:true
+      timeout-minutes: 25
+    - name: Build XCFrameworks
+      run: bundle exec fastlane build_xcframeworks
+      timeout-minutes: 25
+      env:
+        MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+        APPSTORE_API_KEY: ${{ secrets.APPSTORE_API_KEY }}
+
   test-ui-debug:
     name: Test SwiftUI (Debug)
     runs-on: macos-14
     needs: build-test-app-and-frameworks
     steps:
     - uses: actions/checkout@v4.1.1
-    - uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v4
       with:
         name: cache-derived-data
         path: derived_data/Build/
@@ -61,19 +110,12 @@ jobs:
       timeout-minutes: 60
       env:
         GITHUB_TOKEN: ${{ secrets.CI_BOT_GITHUB_TOKEN }} # to open a PR
-        GITHUB_PR_NUM: ${{ github.event.number }}
-    - name: Get branch name
-      id: get_branch_name
-      run: echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
     - name: Run Sonar analysis
       if: ${{ github.event.inputs.snapshots != 'true' }}
       run: bundle exec fastlane sonar_upload
       env:
-        BRANCH_NAME: ${{ steps.get_branch_name.outputs.branch }}
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        PR_NUMBER: ${{ github.event.number }}
     - uses: 8398a7/action-slack@v3
       with:
         status: ${{ job.status }}
@@ -88,13 +130,37 @@ jobs:
       if: failure()
       run: |
         brew install chargepoint/xcparse/xcparse
+        xcparse logs fastlane/test_output/StreamChatSwiftUI.xcresult fastlane/test_output/logs/
         xcparse screenshots fastlane/test_output/StreamChatSwiftUI.xcresult fastlane/test_output/snapshots --test
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       if: failure()
       with:
-        name: Test Data
+        name: Test Data UI
         path: |
+          fastlane/recordings
+          fastlane/sinatra_log.txt
           fastlane/test_output/snapshots
+          fastlane/test_output/logs/*/Diagnostics/**/*.txt
+          fastlane/test_output/logs/*/Diagnostics/simctl_diagnostics/DiagnosticReports/*
+
+  allure_testops_launch:
+    name: Launch Allure TestOps
+    runs-on: macos-13
+    if: ${{ github.event_name != 'push' && github.event.inputs.snapshots != 'true' }}
+    needs: build-test-app-and-frameworks
+    outputs:
+      launch_id: ${{ steps.get_launch_id.outputs.launch_id }}
+    steps:
+    - uses: actions/checkout@v4.1.1
+    - uses: ./.github/actions/ruby-cache
+    - name: Launch Allure TestOps
+      run: bundle exec fastlane allure_launch
+      env:
+        ALLURE_TOKEN: ${{ secrets.ALLURE_TOKEN }}
+        GITHUB_EVENT: ${{ toJson(github.event) }}
+    - id: get_launch_id
+      run: echo "launch_id=${{env.LAUNCH_ID}}" >> $GITHUB_OUTPUT
+      if: env.LAUNCH_ID != ''
 
   test-e2e-debug:
     name: Test E2E UI (Debug)
@@ -111,7 +177,7 @@ jobs:
       fail-fast: false
     steps:
     - uses: actions/checkout@v4.1.1
-    - uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v4
       with:
         name: cache-derived-data
         path: derived_data/Build/
@@ -119,17 +185,19 @@ jobs:
       env:
         INSTALL_ALLURE: true
         INSTALL_YEETD: true
+        SKIP_MINT_BOOTSTRAP: true
+        SKIP_BREW_BOOTSTRAP: true
     - name: Run UI Tests (Debug)
       run: bundle exec fastlane test_e2e_mock device:"${{ env.IOS_SIMULATOR_DEVICE }}" batch:'${{ matrix.batch }}' test_without_building:true
+      timeout-minutes: 100
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        GITHUB_PR_NUM: ${{ github.event.number }}
+        XCODE_VERSION: "15.2" # the most stable pair of Xcode
+        IOS_SIMULATOR_DEVICE: "iPhone 15 Pro (17.2)" # and iOS
         MATRIX_SIZE: ${{ strategy.job-total }}
     - name: Allure TestOps Upload
       if: env.LAUNCH_ID != '' && (success() || failure())
       run: bundle exec fastlane allure_upload launch_id:$LAUNCH_ID
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         ALLURE_TOKEN: ${{ secrets.ALLURE_TOKEN }}
     - name: Allure TestOps Launch Removal
       if: env.LAUNCH_ID != '' && cancelled()
@@ -141,33 +209,16 @@ jobs:
       run: |
         brew install chargepoint/xcparse/xcparse
         xcparse logs fastlane/test_output/StreamChatSwiftUITestsApp.xcresult fastlane/test_output/logs/
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       if: failure()
       with:
-        name: Test Data
+        name: Test Data E2E ${{ matrix.batch }}
         path: |
           fastlane/recordings
           fastlane/sinatra_log.txt
-          fastlane/test_output/logs/*/Diagnostics/StreamChatSwiftUITestsAppUITests-*/*/*.txt
-
-  allure_testops_launch:
-    name: Launch Allure TestOps
-    runs-on: macos-13
-    if: ${{ github.event_name != 'push' && github.event.inputs.snapshots != 'true' }}
-    outputs:
-      launch_id: ${{ steps.get_launch_id.outputs.launch_id }}
-    steps:
-    - uses: actions/checkout@v4.1.1
-    - uses: ./.github/actions/ruby-cache
-    - name: Launch Allure TestOps
-      run: bundle exec fastlane allure_launch
-      env:
-        ALLURE_TOKEN: ${{ secrets.ALLURE_TOKEN }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        GITHUB_EVENT: ${{ toJson(github.event) }}
-    - id: get_launch_id
-      run: echo "launch_id=${{env.LAUNCH_ID}}" >> $GITHUB_OUTPUT
-      if: env.LAUNCH_ID != ''
+          fastlane/test_output/report.junit
+          fastlane/test_output/logs/*/Diagnostics/**/*.txt
+          fastlane/test_output/logs/*/Diagnostics/simctl_diagnostics/DiagnosticReports/*
 
   build-apps:
     name: Build Demo App
@@ -176,7 +227,7 @@ jobs:
     if: ${{ github.event_name != 'push' && github.event.inputs.snapshots != 'true' }}
     steps:
     - uses: actions/checkout@v4.1.1
-    - uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v4
       with:
         name: cache-derived-data
         path: derived_data/Build/
@@ -184,49 +235,3 @@ jobs:
     - uses: ./.github/actions/xcode-cache
     - name: Build Demo App
       run: bundle exec fastlane build_demo
-
-  build-xcode15:
-    name: Build SDKs (Xcode 15.0)
-    runs-on: macos-13
-    if: ${{ github.event_name != 'push' && github.event.inputs.snapshots != 'true' }}
-    env:
-      XCODE_VERSION: "15.0.1"
-    steps:
-    - uses: actions/checkout@v3.1.0
-    - uses: ./.github/actions/ruby-cache
-    - name: List Xcode versions xcversion sees
-      run: mdfind "kMDItemCFBundleIdentifier = 'com.apple.dt.Xcode'"
-      timeout-minutes: 25
-    - name: Build SwiftUI
-      run: bundle exec fastlane test_ui device:"iPhone 15" build_for_testing:true
-      timeout-minutes: 25
-    - name: Install Bot SSH Key
-      uses: webfactory/ssh-agent@v0.7.0
-      with:
-        ssh-private-key: ${{ secrets.BOT_SSH_PRIVATE_KEY }}
-    - name: Build XCFrameworks
-      run: bundle exec fastlane build_xcframeworks
-      timeout-minutes: 25
-      env:
-        MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-        APPSTORE_API_KEY: ${{ secrets.APPSTORE_API_KEY }}
-
-  automated-code-review:
-    name: Automated Code Review
-    runs-on: macos-12
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      GITHUB_PR_NUM: ${{ github.event.number }}
-      XCODE_VERSION: "14.0.1"
-    if: ${{ github.event_name != 'push' && github.event.inputs.snapshots != 'true' }}
-    steps:
-    - uses: actions/checkout@v4.1.1
-    - uses: ./.github/actions/bootstrap
-    - name: Run Danger
-      run: bundle exec danger
-    - name: Run Fastlane Linting
-      run: bundle exec fastlane rubocop
-    - name: Run SwiftFormat Linting
-      run: ./Scripts/run-linter.sh
-    - name: Run Podspec Linting
-      run: bundle exec fastlane pod_lint

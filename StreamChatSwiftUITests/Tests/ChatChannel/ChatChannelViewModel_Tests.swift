@@ -4,11 +4,32 @@
 
 @testable import StreamChat
 @testable import StreamChatSwiftUI
+@testable import StreamChatTestTools
 import SwiftUI
 import XCTest
 
 class ChatChannelViewModel_Tests: StreamChatTestCase {
-
+    func test_chatChannelVM_channelIsUpdated() {
+        // Given
+        let cid = ChannelId.unique
+        let initialChannel = ChatChannel.mock(cid: cid)
+        let channelController = makeChannelController()
+        channelController.channel_mock = initialChannel
+        let viewModel = ChatChannelViewModel(channelController: channelController)
+        XCTAssertEqual(initialChannel, viewModel.channel)
+        
+        // When
+        let updatedChannel = ChatChannel.mock(cid: cid)
+        channelController.channel_mock = updatedChannel
+        channelController.delegate?.channelController(
+            channelController,
+            didUpdateChannel: .update(updatedChannel)
+        )
+        
+        // Then
+        XCTAssertEqual(updatedChannel, viewModel.channel)
+    }
+    
     func test_chatChannelVM_messagesLoaded() {
         // Given
         let channelController = makeChannelController()
@@ -85,7 +106,7 @@ class ChatChannelViewModel_Tests: StreamChatTestCase {
 
         // Then
         let dateString = viewModel.currentDateString
-        XCTAssert(dateString == expectedDate)
+        XCTAssertEqual(dateString, expectedDate)
     }
 
     func test_chatChannelVM_showReactionsOverlay() {
@@ -468,6 +489,30 @@ class ChatChannelViewModel_Tests: StreamChatTestCase {
     
         // Then
         XCTAssert(shouldJump == false)
+    }
+    
+    func test_chatChannelVM_crashWhenIndexAccess() {
+        // Given
+        let message1 = ChatMessage.mock()
+        let message2 = ChatMessage.mock()
+        let message3 = ChatMessage.mock()
+        let channelController = makeChannelController(messages: [message1, message2])
+        let viewModel = ChatChannelViewModel(channelController: channelController)
+        let newMessages = LazyCachedMapCollection(elements: [message1, message2, message3])
+        
+        // When
+        viewModel.dataSource(
+            channelDataSource: ChatChannelDataSource(controller: channelController),
+            didUpdateMessages: newMessages,
+            changes: [
+                .insert(message3, index: IndexPath(row: 2, section: 0)),
+                .update(message3, index: IndexPath(row: 2, section: 0)),
+                .update(message3, index: IndexPath(row: 3, section: 0)) // intentionally invalid path
+            ]
+        )
+        
+        // Then
+        XCTAssertEqual(3, viewModel.messages.count)
     }
 
     // MARK: - private

@@ -5,6 +5,7 @@
 @testable import SnapshotTesting
 @testable import StreamChat
 @testable import StreamChatSwiftUI
+@testable import StreamChatTestTools
 import StreamSwiftTestHelpers
 import SwiftUI
 import XCTest
@@ -24,6 +25,12 @@ class ChatChannelViewDateOverlay_Tests: StreamChatTestCase {
             messageListConfig: MessageListConfig(dateIndicatorPlacement: .messageList)
         )
         streamChat = StreamChat(chatClient: chatClient, utils: utils)
+        DelayedRenderingViewModifier.isEnabled = false
+    }
+    
+    override func tearDown() {
+        super.tearDown()
+        DelayedRenderingViewModifier.isEnabled = true
     }
 
     func test_chatChannelView_snapshot() {

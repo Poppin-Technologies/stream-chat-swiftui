@@ -46,7 +46,7 @@ public struct ChatChannelListItem: View {
         } label: {
             HStack {
                 ChannelAvatarView(
-                    avatar: avatar,
+                    channel: channel,
                     showOnlineIndicator: onlineIndicatorShown
                 )
 
@@ -129,24 +129,45 @@ public struct ChatChannelListItem: View {
 
 /// View for the avatar used in channels (includes online indicator overlay).
 public struct ChannelAvatarView: View {
+    @Injected(\.utils) private var utils
+    let avatar: UIImage?
+    let showOnlineIndicator: Bool
+    let size: CGSize
 
-    var avatar: UIImage
-    var showOnlineIndicator: Bool
-    var size: CGSize = .defaultAvatarSize
+    @State private var channelAvatar = UIImage()
+    let channel: ChatChannel?
 
+    @available(
+        *,
+        deprecated,
+        renamed: "init(channel:showOnlineIndicator:size:)",
+        message: "Use automatically refreshing avatar initializer."
+    )
     public init(
         avatar: UIImage,
         showOnlineIndicator: Bool,
         size: CGSize = .defaultAvatarSize
     ) {
         self.avatar = avatar
+        channel = nil
+        self.showOnlineIndicator = showOnlineIndicator
+        self.size = size
+    }
+    
+    public init(
+        channel: ChatChannel,
+        showOnlineIndicator: Bool,
+        size: CGSize = .defaultAvatarSize
+    ) {
+        avatar = nil
+        self.channel = channel
         self.showOnlineIndicator = showOnlineIndicator
         self.size = size
     }
 
     public var body: some View {
         LazyView(
-            AvatarView(avatar: avatar, size: size)
+            AvatarView(avatar: image, size: size)
                 .overlay(
                     showOnlineIndicator ?
                         TopRightView {
@@ -155,8 +176,25 @@ public struct ChannelAvatarView: View {
                         .offset(x: 3, y: -1)
                         : nil
                 )
+                .onLoad {
+                    reloadAvatar()
+                }
+                .onReceive(channelHeaderLoader.channelAvatarChanged(channel?.cid)) { _ in
+                    reloadAvatar()
+                }
         )
         .accessibilityIdentifier("ChannelAvatarView")
+    }
+    
+    private var channelHeaderLoader: ChannelHeaderLoader { utils.channelHeaderLoader }
+    
+    private var image: UIImage {
+        avatar ?? channelAvatar
+    }
+    
+    private func reloadAvatar() {
+        guard let channel else { return }
+        channelAvatar = utils.channelHeaderLoader.image(for: channel)
     }
 }
 
@@ -230,14 +268,18 @@ public struct InjectedChannelInfo {
 }
 
 extension ChatChannel {
-  
-  public var lastMessageText: String? {
-    if let latestMessage = latestMessages.first {
-      return "\(latestMessage.author.name ?? latestMessage.author.id): \(textContent(for: latestMessage))"
-    } else {
-      return nil
-    }
-  }
+
+public var previewMessageText: String? {
+    guard let previewMessage else { return nil }
+    let messageFormatter = InjectedValues[\.utils].messagePreviewFormatter
+    return messageFormatter.format(previewMessage)
+}
+
+public var lastMessageText: String? {
+    guard let latestMessage = latestMessages.first else { return nil }
+    let messageFormatter = InjectedValues[\.utils].messagePreviewFormatter
+    return messageFormatter.format(latestMessage)
+}
   public var lastMessageAdjustedText: String? {
     if let latestMessage = latestMessages.first {
       return textContent(for: latestMessage)
@@ -264,8 +306,8 @@ extension ChatChannel {
             return L10n.Channel.Item.muted
         } else if shouldShowTypingIndicator {
             return typingIndicatorString(currentUserId: InjectedValues[\.chatClient].currentUserId)
-        } else if let lastMessageText = lastMessageText {
-            return lastMessageText
+        } else if let previewMessageText {
+            return previewMessageText
         } else {
             return L10n.Channel.Item.emptyMessages
         }
@@ -276,50 +318,6 @@ extension ChatChannel {
             return InjectedValues[\.utils].dateFormatter.string(from: lastMessageAt)
         } else {
             return ""
-        }
-    }
-    
-    private func textContent(for previewMessage: ChatMessage) -> String {
-        if let attachmentPreviewText = attachmentPreviewText(for: previewMessage) {
-            return attachmentPreviewText
-        }
-        if let textContent = previewMessage.textContent, !textContent.isEmpty {
-            return textContent
-        }
-        return previewMessage.adjustedText
-    }
-    
-    /// The message preview text in case it contains attachments.
-    /// - Parameter previewMessage: The preview message of the channel.
-    /// - Returns: A string representing the message preview text.
-    private func attachmentPreviewText(for previewMessage: ChatMessage) -> String? {
-        guard let attachment = previewMessage.allAttachments.first, !previewMessage.isDeleted else {
-            return nil
-        }
-        let text = previewMessage.textContent ?? previewMessage.text
-        switch attachment.type {
-        case .audio:
-            let defaultAudioText = L10n.Channel.Item.audio
-            return "🎧 \(text.isEmpty ? defaultAudioText : text)"
-        case .file:
-            guard let fileAttachment = previewMessage.fileAttachments.first else {
-                return nil
-            }
-            let title = fileAttachment.payload.title
-            return "📄 \(title ?? text)"
-        case .image:
-            let defaultPhotoText = L10n.Channel.Item.photo
-            return "📷 \(text.isEmpty ? defaultPhotoText : text)"
-        case .video:
-            let defaultVideoText = L10n.Channel.Item.video
-            return "📹 \(text.isEmpty ? defaultVideoText : text)"
-        case .giphy:
-            return "GIF"
-        case .voiceRecording:
-            let defaultVoiceMessageText = L10n.Channel.Item.voiceMessage
-            return "🎧 \(text.isEmpty ? defaultVoiceMessageText : text)"
-        default:
-            return nil
         }
     }
 }

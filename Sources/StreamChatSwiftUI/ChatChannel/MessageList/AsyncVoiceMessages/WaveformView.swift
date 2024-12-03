@@ -13,8 +13,8 @@ open class WaveformView: UIView {
     @Injected(\.images) var images
     @Injected(\.colors) var colors
     
-    var onSliderChanged: ((TimeInterval) -> Void)?
-    var onSliderTapped: (() -> Void)?
+    open var onSliderChanged: ((TimeInterval) -> Void)?
+    open var onSliderTapped: (() -> Void)?
     
     public struct Content: Equatable {
         /// When set to `true` the waveform will be updating with the data live (scrolling to the trailing side
@@ -55,7 +55,7 @@ open class WaveformView: UIView {
         }
     }
 
-    var content: Content = .initial {
+    open var content: Content = .initial {
         didSet { updateContent() }
     }
     
@@ -75,10 +75,10 @@ open class WaveformView: UIView {
 
     // MARK: - UI Components
 
-    open private(set) lazy var audioVisualizationView: AudioVisualizationView = .init()
+    open lazy var audioVisualizationView: AudioVisualizationView = .init()
         .withoutAutoresizingMaskConstraints
 
-    open private(set) lazy var slider: UISlider = .init()
+    open lazy var slider: UISlider = .init()
         .withoutAutoresizingMaskConstraints
 
     // MARK: - UI Lifecycle

@@ -760,6 +760,22 @@ class ViewFactory_Tests: StreamChatTestCase {
         // Then
         XCTAssert(view is MessageRepliesView<DefaultViewFactory>)
     }
+    
+    func test_viewFactory_makeMessageRepliesShownInChannelView() {
+        // Given
+        let viewFactory = DefaultViewFactory.shared
+
+        // When
+        let view = viewFactory.makeMessageRepliesShownInChannelView(
+            channel: ChatChannel.mockDMChannel(),
+            message: message,
+            parentMessage: message,
+            replyCount: 2
+        )
+
+        // Then
+        XCTAssert(view is MessageRepliesView<DefaultViewFactory>)
+    }
 
     func test_viewFactory_makeTypingIndicatorBottomView() {
         // Given
@@ -845,9 +861,10 @@ class ViewFactory_Tests: StreamChatTestCase {
             onTap: {},
             onLongPress: {}
         )
-        
+        let name = String(describing: type(of: view))
+
         // Then
-        XCTAssert(view is BottomReactionsView)
+        XCTAssert(name.contains("BottomReactionsView"))
     }
     
     func test_viewFactory_makeCustomAttachmentQuotedView() {
@@ -911,6 +928,31 @@ class ViewFactory_Tests: StreamChatTestCase {
         
         // Then
         XCTAssert(view is LoadingView)
+    }
+    
+    func test_viewFactory_makeComposerPollView() {
+        // Given
+        let viewFactory = DefaultViewFactory.shared
+        
+        // When
+        let view = viewFactory.makeComposerPollView(
+            channelController: .init(channelQuery: .init(cid: .unique), channelListQuery: nil, client: chatClient),
+            messageController: nil
+        )
+        
+        // Then
+        XCTAssert(view is ComposerPollView)
+    }
+    
+    func test_viewFactory_makePollView() {
+        // Given
+        let viewFactory = DefaultViewFactory.shared
+        
+        // When
+        let view = viewFactory.makePollView(message: .mock(), poll: Poll.mock(), isFirst: true)
+        
+        // Then
+        XCTAssert(view is PollAttachmentView<DefaultViewFactory>)
     }
 }
 

@@ -63,14 +63,50 @@ class MessageActions_Tests: StreamChatTestCase {
         )
 
         // Then
+        XCTAssert(messageActions.count == 6)
+        XCTAssert(messageActions[0].title == "Reply")
+        XCTAssert(messageActions[1].title == "Thread Reply")
+        XCTAssert(messageActions[2].title == "Pin to conversation")
+        XCTAssert(messageActions[3].title == "Copy Message")
+        XCTAssert(messageActions[4].title == "Mark Unread")
+        XCTAssert(messageActions[5].title == "Mute User")
+    }
+    
+    func test_messageActions_otherUserDefaultBlockingEnabled() {
+        // Given
+        streamChat = StreamChat(
+            chatClient: chatClient,
+            utils: .init(messageListConfig: .init(userBlockingEnabled: true))
+        )
+        let channel = ChatChannel.mockDMChannel()
+        let message = ChatMessage.mock(
+            id: .unique,
+            cid: channel.cid,
+            text: "Test",
+            author: .mock(id: .unique),
+            isSentByCurrentUser: false
+        )
+        let factory = DefaultViewFactory.shared
+
+        // When
+        let messageActions = MessageAction.defaultActions(
+            factory: factory,
+            for: message,
+            channel: channel,
+            chatClient: chatClient,
+            onFinish: { _ in },
+            onError: { _ in }
+        )
+
+        // Then
         XCTAssert(messageActions.count == 7)
         XCTAssert(messageActions[0].title == "Reply")
         XCTAssert(messageActions[1].title == "Thread Reply")
         XCTAssert(messageActions[2].title == "Pin to conversation")
         XCTAssert(messageActions[3].title == "Copy Message")
         XCTAssert(messageActions[4].title == "Mark Unread")
-        XCTAssert(messageActions[5].title == "Flag Message")
-        XCTAssert(messageActions[6].title == "Mute User")
+        XCTAssert(messageActions[5].title == "Mute User")
+        XCTAssert(messageActions[6].title == "Block User")
     }
 
     func test_messageActions_currentUserPinned() {
@@ -181,7 +217,12 @@ class MessageActions_Tests: StreamChatTestCase {
         let channel = ChatChannel.mockDMChannel()
         let moderationDetails = MessageModerationDetails(
             originalText: "Some text",
-            action: .bounce
+            action: .bounce,
+            textHarms: nil,
+            imageHarms: nil,
+            blocklistMatched: nil,
+            semanticFilterMatched: nil,
+            platformCircumvented: nil
         )
         let message = ChatMessage.mock(
             id: .unique,

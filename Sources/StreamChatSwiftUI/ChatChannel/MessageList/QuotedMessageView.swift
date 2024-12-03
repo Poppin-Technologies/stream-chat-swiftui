@@ -95,7 +95,7 @@ public struct QuotedMessageView<Factory: ViewFactory>: View {
                         VoiceRecordingPreview(voiceAttachment: quotedMessage.voiceRecordingAttachments[0].payload)
                     } else if !quotedMessage.imageAttachments.isEmpty {
                         LazyLoadingImage(
-                            source: quotedMessage.imageAttachments[0].imageURL,
+                            source: MediaAttachment(url: quotedMessage.imageAttachments[0].imageURL, type: .image),
                             width: attachmentWidth,
                             height: attachmentWidth,
                             resize: false
@@ -129,6 +129,8 @@ public struct QuotedMessageView<Factory: ViewFactory>: View {
                 .aspectRatio(1, contentMode: .fill)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .allowsHitTesting(false)
+            } else if let poll = quotedMessage.poll, !quotedMessage.isDeleted {
+                Text("📊 \(poll.name)")
             }
 
             Text(textForMessage)
@@ -142,7 +144,9 @@ public struct QuotedMessageView<Factory: ViewFactory>: View {
             }
         }
         .id(quotedMessage.messageId)
-        .padding(hasVoiceAttachments ? [.leading, .top, .bottom] : .all, 8)
+        .padding(
+            hasVoiceAttachments ? [.leading, .top, .bottom] : .all, utils.messageListConfig.messagePaddings.quotedViewPadding
+        )
         .modifier(
             factory.makeMessageViewModifier(
                 for: MessageModifierInfo(

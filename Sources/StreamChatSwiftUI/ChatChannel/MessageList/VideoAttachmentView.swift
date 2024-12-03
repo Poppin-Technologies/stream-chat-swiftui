@@ -170,11 +170,7 @@ public struct VideoAttachmentContentView: View {
 
                 if width > 64 && attachment.uploadingState == nil {
                     VStack {
-                        Image(uiImage: images.playFilled)
-                            .customizable()
-                            .frame(width: 24)
-                            .foregroundColor(.white)
-                            .modifier(ShadowModifier())
+                        VideoPlayIcon()
                     }
                     .frame(width: width, height: width * ratio)
                     .contentShape(Rectangle())
@@ -211,5 +207,19 @@ public struct VideoAttachmentContentView: View {
                 }
             }
         }
+    }
+}
+
+struct VideoPlayIcon: View {
+    @Injected(\.images) var images
+    
+    var width: CGFloat = 24
+    
+    var body: some View {
+        Image(uiImage: images.playFilled)
+            .customizable()
+            .frame(width: width)
+            .foregroundColor(.white)
+            .modifier(ShadowModifier())
     }
 }

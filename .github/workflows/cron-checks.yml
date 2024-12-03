@@ -2,8 +2,8 @@ name: Cron Checks
 
 on:
   schedule:
-    # Runs "At 02:00 every night"
-    - cron: '0 2 * * *'
+    # Runs "At 02:00 every night except weekends"
+    - cron: '0 2 * * 1-5'
 
   workflow_dispatch:
 
@@ -13,11 +13,12 @@ concurrency:
 
 env:
   HOMEBREW_NO_INSTALL_CLEANUP: 1 # Disable cleanup for homebrew, we don't need it on CI
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   build-test-app-and-frameworks:
     name: Build Test App and Frameworks
-    runs-on: macos-13
+    runs-on: macos-14
     steps:
     - uses: actions/checkout@v4.1.1
     - uses: ./.github/actions/ruby-cache
@@ -25,9 +26,7 @@ jobs:
     - name: Build
       run: bundle exec fastlane build_test_app_and_frameworks
       timeout-minutes: 60
-      env:
-        XCODE_VERSION: "14.3.1"
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       if: success()
       with:
         name: cache-derived-data
@@ -42,26 +41,25 @@ jobs:
     strategy:
       matrix:
         include:
-          - ios: 17.2
-            xcode: 15.2
+          - ios: 17.4
+            xcode: 15.4
             os: macos-14
-            device: "iPhone 15 Pro"
+            device: "iPhone 14 Pro"
             setup_runtime: false
           - ios: 16.4
-            xcode: 14.3.1
+            xcode: 15.3
             os: macos-14
-            device: "iPhone 14 Pro Max"
-            setup_runtime: false
+            device: "iPhone 14 Pro"
+            setup_runtime: true
       fail-fast: false
     runs-on: ${{ matrix.os }}
     env:
       GITHUB_EVENT: ${{ toJson(github.event) }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       ALLURE_TOKEN: ${{ secrets.ALLURE_TOKEN }}
       XCODE_VERSION: ${{ matrix.xcode }}
     steps:
     - uses: actions/checkout@v4.1.1
-    - uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v4
       with:
         name: cache-derived-data
         path: derived_data/Build/
@@ -69,16 +67,14 @@ jobs:
       env:
         INSTALL_ALLURE: true
         INSTALL_YEETD: true
-    - name: Cache iOS Simulator Runtime
-      uses: actions/cache@v3
-      id: runtime-cache
-      with:
-        path: ~/Library/Caches/XcodeInstall/
-        key: runtime-ios-${{ matrix.ios }}
-        restore-keys: runtime-ios-${{ matrix.ios }}
-    - name: Setup iOS ${{ matrix.ios }} Runtime
+        SKIP_MINT_BOOTSTRAP: true
+        SKIP_BREW_BOOTSTRAP: true
+    - uses: ./.github/actions/setup-ios-runtime
       if: ${{ matrix.setup_runtime }}
-      run: bundle exec fastlane install_sim ios:"${{ matrix.ios }}"
+      timeout-minutes: 60
+      with:
+        version: ${{ matrix.ios }}
+        device: ${{ matrix.device }}
     - name: Launch Allure TestOps
       run: bundle exec fastlane allure_launch cron:true
     - name: Run UI Tests (Debug)
@@ -105,26 +101,26 @@ jobs:
       run: |
         brew install chargepoint/xcparse/xcparse
         xcparse logs fastlane/test_output/StreamChatSwiftUITestsApp.xcresult fastlane/test_output/logs/
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       if: failure()
       with:
-        name: Test Data
+        name: Test Data E2E (iOS ${{ matrix.ios }})
         path: |
           fastlane/recordings
           fastlane/sinatra_log.txt
-          fastlane/test_output/logs/*/Diagnostics/StreamChatSwiftUITestsAppUITests-*/*/*.txt
+          fastlane/test_output/report.junit
+          fastlane/test_output/logs/*/Diagnostics/**/*.txt
+          fastlane/test_output/logs/*/Diagnostics/simctl_diagnostics/DiagnosticReports/*
 
   build-apps:
     name: Build Demo App
     strategy:
       matrix:
         include:
-          - xcode: 15.2
+          - xcode: 15.4
             os: macos-14
-          - xcode: 14.3.1
+          - xcode: 15.0.1
             os: macos-14
-          - xcode: 14.2
-            os: macos-12
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
@@ -153,18 +149,18 @@ jobs:
     env:
       XCODE_VERSION: "15.0.1"
     steps:
+    - name: Connect Bot
+      uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: ${{ secrets.BOT_SSH_PRIVATE_KEY }}
     - uses: actions/checkout@v3.1.0
     - uses: ./.github/actions/ruby-cache
-    - name: List Xcode versions xcversion sees
+    - name: List Xcode versions
       run: mdfind "kMDItemCFBundleIdentifier = 'com.apple.dt.Xcode'"
       timeout-minutes: 25
     - name: Build SwiftUI
       run: bundle exec fastlane test_ui device:"iPhone 15" build_for_testing:true
       timeout-minutes: 25
-    - name: Install Bot SSH Key
-      uses: webfactory/ssh-agent@v0.7.0
-      with:
-        ssh-private-key: ${{ secrets.BOT_SSH_PRIVATE_KEY }}
     - name: Build XCFrameworks
       run: bundle exec fastlane build_xcframeworks
       timeout-minutes: 25
@@ -174,9 +170,9 @@ jobs:
 
   automated-code-review:
     name: Automated Code Review
-    runs-on: macos-12
+    runs-on: macos-13
     env:
-      XCODE_VERSION: "14.0.1"
+      XCODE_VERSION: "15.0.1"
     steps:
     - uses: actions/checkout@v4.1.1
     - uses: ./.github/actions/bootstrap

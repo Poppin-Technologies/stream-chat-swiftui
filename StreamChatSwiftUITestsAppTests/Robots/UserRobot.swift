@@ -29,33 +29,34 @@ final class UserRobot: Robot {
         ChannelListPage.userAvatar.safeTap()
         return self
     }
-
+    
     @discardableResult
-    func openChannel(channelCellIndex: Int = 0) -> Self {
-        let minExpectedCount = channelCellIndex + 1
-        let cells = ChannelListPage.cells.waitCount(minExpectedCount)
+    func waitForChannelListToLoad() -> Self {
+        let timeout = 15.0
+        let cells = ChannelListPage.cells.waitCount(1, timeout: timeout)
 
         // TODO: CIS-1737
         if !cells.firstMatch.exists {
             for _ in 0...10 {
-                server.stop()
                 app.terminate()
-                _ = server.start(port: in_port_t(MockServerConfiguration.port))
+                server.stop()
+                _ = server.start(port: UInt16(MockServerConfiguration.port))
                 sleep(1)
                 app.launch()
                 login()
-                cells.waitCount(minExpectedCount)
+                cells.waitCount(1, timeout: timeout)
                 if cells.firstMatch.exists { break }
             }
         }
 
-        XCTAssertGreaterThanOrEqual(
-            cells.count,
-            minExpectedCount,
-            "Channel cell is not found at index #\(channelCellIndex)"
-        )
-
-        cells.allElementsBoundByIndex[channelCellIndex].safeTap()
+        XCTAssertGreaterThanOrEqual(cells.count, 1, "Channel list has not been loaded")
+        return self
+    }
+    
+    @discardableResult
+    func openChannel(channelCellIndex: Int = 0) -> Self {
+        waitForChannelListToLoad()
+        ChannelListPage.cells.allElementsBoundByIndex[channelCellIndex].waitForHitPoint().safeTap()
         return self
     }
 }
@@ -235,6 +236,12 @@ extension UserRobot {
     }
 
     @discardableResult
+    func tapOnComposerTextView() -> Self {
+        MessageListPage.Composer.textView.wait().safeTap()
+        return self
+    }
+    
+    @discardableResult
     func tapOnMessage(at messageCellIndex: Int? = 0) -> Self {
         let messageCell = messageCell(withIndex: messageCellIndex)
         return tapOnMessage(messageCell)
@@ -249,6 +256,12 @@ extension UserRobot {
     @discardableResult
     func tapOnMessageList() -> Self {
         MessageListPage.list.safeTap()
+        return self
+    }
+    
+    @discardableResult
+    func tapOnEmptyMessageList() -> Self {
+        MessageListPage.listEmpty.safeTap()
         return self
     }
 
@@ -349,6 +362,7 @@ extension UserRobot {
             typeText("/giphy")
             sendMessage(text, waitForAppearance: false)
         }
+        MessageListPage.Attributes.actionButtons().firstMatch.wait()
         if send { tapOnSendGiphyButton() }
         return self
     }

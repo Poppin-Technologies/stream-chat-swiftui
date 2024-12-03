@@ -7,7 +7,7 @@ require 'xcodeproj'
 import 'Sonarfile'
 import 'Allurefile'
 
-xcode_version = ENV['XCODE_VERSION'] || '15.2'
+xcode_version = ENV['XCODE_VERSION'] || '15.4'
 xcode_project = 'StreamChatSwiftUI.xcodeproj'
 sdk_names = ['StreamChatSwiftUI']
 github_repo = ENV['GITHUB_REPOSITORY'] || 'GetStream/stream-chat-swiftui'
@@ -15,14 +15,14 @@ derived_data_path = 'derived_data'
 source_packages_path = 'spm_cache'
 buildcache_xcargs = 'CC=clang CPLUSPLUS=clang++ LD=clang LDPLUSPLUS=clang++'
 is_localhost = !is_ci
+project_package_resolved = "#{xcode_project}/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+swift_environment_path = File.absolute_path('../Sources/StreamChatSwiftUI/Generated/SystemEnvironment+Version.swift')
 @force_check = false
-develop_branch = 'main'
 
 before_all do |lane|
   if is_ci
     setup_ci
-    ENV['FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT'] = '180'
-    ENV['FASTLANE_XCODEBUILD_SETTINGS_RETRIES'] = '10'
+    setup_git_config
     xcversion(version: xcode_version) unless [:publish_release, :allure_launch, :allure_upload, :copyright, :pod_lint].include?(lane)
   end
 end
@@ -33,7 +33,7 @@ end
 
 lane :build_xcframeworks do
   match_me
-  output_directory = "#{Dir.pwd}/../Products"
+  output_directory = File.absolute_path("#{Dir.pwd}/../Products")
   team_id = File.read('Matchfile').match(/team_id\("(.*)"\)/)[1]
   codesign = ["codesign --timestamp -v --sign 'Apple Distribution: Stream.io Inc (#{team_id})'"]
   sdk_names.each do |sdk|
@@ -49,14 +49,25 @@ lane :build_xcframeworks do
     sh('../Scripts/removeUnneededSymbols.sh', sdk, output_directory)
     codesign << lane_context[SharedValues::XCFRAMEWORK_OUTPUT_PATH]
   end
+
+  remove_stream_chat_module_shadow(output_directory: output_directory)
   sh(codesign.join(' ')) # We need to sign all frameworks at once
+end
+
+# Swift emits an invalid module interface when a public type has the same name as a module, see https://github.com/swiftlang/swift/issues/56573
+private_lane :remove_stream_chat_module_shadow do |options|
+  Dir.glob("#{options[:output_directory]}/**/*.swiftinterface") do |file|
+    if File.file?(file)
+      UI.important("Removing the StreamChat module's shadow at: #{file}...")
+      File.write(file, File.read(file).gsub('StreamChat.', ''))
+    end
+  end
 end
 
 desc 'Release a new version'
 lane :release do |options|
   previous_version_number = last_git_tag
   artifacts_path = File.absolute_path('../StreamChatSwiftUIArtifacts.json')
-  swift_environment_path = File.absolute_path('../Sources/StreamChatSwiftUI/Generated/SystemEnvironment+Version.swift')
   extra_changes = lambda do |release_version|
     # Set the framework version on the artifacts
     artifacts = JSON.parse(File.read(artifacts_path))
@@ -64,8 +75,11 @@ lane :release do |options|
     File.write(artifacts_path, JSON.dump(artifacts))
 
     # Set the framework version in SystemEnvironment+Version.swift
-    new_content = File.read(swift_environment_path).gsub!(previous_version_number, release_version)
+    new_content = File.read(swift_environment_path).gsub!(previous_version_number, release_version).gsub!('-SNAPSHOT', '')
     File.open(swift_environment_path, 'w') { |f| f.puts(new_content) }
+
+    # Update sdk sizes
+    Dir.chdir('fastlane') { update_img_shields_sdk_sizes }
   end
 
   pod_lint
@@ -80,41 +94,48 @@ lane :release do |options|
   )
 end
 
+lane :merge_release do |options|
+  merge_release_to_main(author: options[:author])
+  sh('gh workflow run release-publish.yml --ref main')
+end
+
+lane :merge_main do
+  merge_main_to_develop
+  current_version = get_sdk_version_from_environment
+  add_snapshot_to_current_version(file_path: swift_environment_path)
+  ensure_git_branch(branch: 'develop')
+  sh("git add #{swift_environment_path}")
+  sh("git commit -m 'Add snapshot postfix to v#{current_version}'")
+  sh('git push')
+end
+
 desc "Publish a new release to GitHub and CocoaPods"
 lane :publish_release do |options|
-  xcversion(version: '15.0.1')
+  release_version = get_sdk_version_from_environment
+  UI.user_error!("Release #{release_version} has already been published.") if git_tag_exists(tag: release_version, remote: true)
+  UI.user_error!('Release version cannot be empty') if release_version.to_s.empty?
+  ensure_git_branch(branch: 'main')
 
+  xcversion(version: '15.0.1')
   clean_products
   build_xcframeworks
   compress_frameworks
   clean_products
 
   publish_ios_sdk(
-    version: options[:version],
+    skip_git_status_check: false,
+    version: release_version,
     sdk_names: sdk_names,
     podspec_names: ['StreamChatSwiftUI', 'StreamChatSwiftUI-XCFramework'],
     github_repo: github_repo,
     upload_assets: ['Products/StreamChatSwiftUI.zip']
   )
 
-  update_spm(version: options[:version])
+  update_spm(version: release_version)
 end
 
-lane :merge_release_to_main do
-  ensure_git_status_clean
-  sh('git checkout main')
-  sh('git pull')
-
-  # Grep all remote release branches and ensure there's only one
-  release_branches = sh(command: 'git branch -a', log: false).delete(' ').split("\n").grep(%r(origin/.*release/))
-  UI.user_error!("Expected 1 release branch, found #{release_branches.size}") if release_branches.size != 1
-
-  # Merge release branch to main. For more info, read: https://notion.so/iOS-Branching-Strategy-37c10127dc26493e937769d44b1d6d9a
-  sh("git merge #{release_branches.first} --ff-only")
-  UI.user_error!('Not pushing changes') unless prompt(text: 'Will push changes. All looking good?', boolean: true)
-  sh('git push')
-  UI.important('Please, wait for the `Publish new release` workflow to pass on GitHub Actions: ' \
-               "https://github.com/#{github_repo}/actions/workflows/publish-release.yml")
+lane :get_sdk_version_from_environment do
+  File.read(swift_environment_path).match(/String\s+=\s+"([\d.]+).*"/)[1]
 end
 
 private_lane :appstore_api_key do
@@ -127,7 +148,18 @@ private_lane :appstore_api_key do
 end
 
 lane :pod_lint do
-  pod_lib_lint(podspec: 'StreamChatSwiftUI.podspec', allow_warnings: true)
+  lint_required = true
+  Dir.chdir('..') do
+    sh("xcodebuild -resolvePackageDependencies -clonedSourcePackagesDirPath #{source_packages_path}")
+    dependencies = JSON.parse(File.read(project_package_resolved))
+    lint_required = dependencies['pins'].none? { |dependency| dependency['identity'] == 'stream-chat-swift' && dependency['state']['branch'] }
+  end
+
+  if lint_required
+    pod_lib_lint(podspec: 'StreamChatSwiftUI.podspec', allow_warnings: true)
+  else
+    UI.important('Pod linting skipped: stream-chat-swift targets a development branch')
+  end
 end
 
 desc "If `readonly: true` (by default), installs all Certs and Profiles necessary for development and ad-hoc.\nIf `readonly: false`, recreates all Profiles necessary for development and ad-hoc, updates them locally and remotely."
@@ -137,6 +169,19 @@ lane :match_me do |options|
     app_identifier: ['io.getstream.iOS.DemoAppSwiftUI'],
     readonly: options[:readonly],
     register_device: options[:register_device]
+  )
+end
+
+desc 'Builds the latest version of Demo app and uploads it to TestFlight'
+lane :swiftui_testflight_build do
+  match_me
+  testflight_build(
+    api_key: appstore_api_key,
+    xcode_project: xcode_project,
+    sdk_target: 'StreamChatSwiftUI',
+    app_target: 'DemoAppSwiftUI',
+    app_identifier: 'io.getstream.iOS.DemoAppSwiftUI',
+    app_version: File.read(swift_environment_path).match(/String\s+=\s+"([\d.]+)"/)[1]
   )
 end
 
@@ -171,10 +216,12 @@ lane :test_ui do |options|
     next if png_files.empty?
 
     # Discard all files apart from the snapshots
-    png_files.each { |png| sh("git add #{png}") || true }
-    sh('git restore .')
+    Dir.chdir('..') do
+      png_files.each { |png| sh("git add #{png}") || true }
+      sh('git restore .')
+    end
 
-    create_pr(
+    pr_create(
       title: '[CI] Snapshots',
       base_branch: current_branch,
       head_branch: "#{current_branch}-snapshots"
@@ -224,13 +271,13 @@ lane :test_e2e_mock do |options|
     xcargs: buildcache_xcargs,
     devices: options[:device],
     prelaunch_simulator: is_ci,
-    number_of_retries: 3 # TODO: CIS-1737
+    number_of_retries: 3
   }
 
-  if is_localhost || options[:cron]
+  if is_localhost
     scan(scan_options)
   else
-    parallelize_tests_on_ci(scan: scan_options, batch: options[:batch])
+    parallelize_tests_on_ci(scan: scan_options, batch: options[:batch], cron: options[:cron])
   end
 end
 
@@ -238,13 +285,41 @@ private_lane :parallelize_tests_on_ci do |options|
   products_dir = File.expand_path("../#{derived_data_path}/Build/Products")
   xctestrun = Dir.glob(File.expand_path("#{products_dir}/*.xctestrun")).first
   tests = retrieve_xctest_names(xctestrun: xctestrun).values.flatten
-  slice_size = (tests.size / ENV['MATRIX_SIZE'].to_f).ceil
+  slice_size = options[:cron] ? tests.size : (tests.size / ENV['MATRIX_SIZE'].to_f).ceil
   only_testing = []
   tests.each_slice(slice_size) { |test| only_testing << test }
   only_testing_batch = only_testing[options[:batch].to_i]
 
-  UI.success("Tests in total: #{only_testing.flatten.size}. Running #{only_testing_batch.size} of them ⌛️")
-  scan(options[:scan].merge(only_testing: only_testing_batch))
+  begin
+    UI.success("Tests in total: #{only_testing.flatten.size}. Running #{only_testing_batch.size} of them ⌛️")
+    scan(options[:scan].merge(only_testing: only_testing_batch))
+  rescue StandardError
+    failed_tests = retreive_failed_tests
+    UI.important("Re-running #{failed_tests.size} failed tests ⌛️")
+    scan(options[:scan].merge(only_testing: failed_tests))
+  end
+end
+
+private_lane :retreive_failed_tests do
+  report_path = 'test_output/report.junit'
+  raise UI.user_error!('There is no junit report to parse') unless File.file?(report_path)
+
+  junit_report = Nokogiri::XML(File.read(report_path))
+  failed_tests = []
+  passed_tests = []
+  suite_name = junit_report.xpath('//testsuite').first['name'].split('.').first
+  junit_report.xpath('//testcase').each do |testcase|
+    class_name = testcase['classname'].split('.').last
+    test_name = testcase['name'].delete('()')
+
+    if testcase.at_xpath('failure')
+      failed_tests << "#{suite_name}/#{class_name}/#{test_name}"
+    else
+      passed_tests << "#{suite_name}/#{class_name}/#{test_name}"
+    end
+  end
+
+  (failed_tests - passed_tests).uniq
 end
 
 desc 'Builds Demo app'
@@ -359,18 +434,8 @@ lane :rubocop do
   sh('bundle exec rubocop')
 end
 
-lane :install_sim do |options|
-  xcode_install_cache_dir = File.expand_path('~/Library/Caches/XcodeInstall')
-  sim_dmg_path = Dir["#{xcode_install_cache_dir}/*.dmg"].first
-  sim_pkg_path = Dir["#{xcode_install_cache_dir}/*.pkg"].first
-  if is_localhost || sim_dmg_path.nil? || sim_pkg_path.nil?
-    sh("bundle exec xcversion simulators --install='iOS #{options[:ios]}'")
-  else
-    sh("hdiutil attach '#{sim_dmg_path}'")
-    sh("sudo installer -pkg '#{sim_pkg_path}' -target /")
-    mount_point = sh("hdiutil attach '#{sim_dmg_path}' | grep Volumes | cut -f 3").strip
-    sh("hdiutil detach '#{mount_point}'")
-  end
+lane :install_runtime do |options|
+  install_ios_runtime(version: options[:ios], custom_script: 'Scripts/install_ios_runtime.sh')
 end
 
 desc 'Remove UI Snapshots'
@@ -390,7 +455,9 @@ lane :sources_matrix do
     e2e: ['Sources', 'StreamChatSwiftUITestsAppTests', 'StreamChatSwiftUITestsApp'],
     ui: ['Sources', 'StreamChatSwiftUITests', xcode_project],
     sample_apps: ['Sources', 'DemoAppSwiftUI', xcode_project],
-    ruby: ['fastlane', 'Gemfile', 'Gemfile.lock']
+    ruby: ['fastlane', 'Gemfile', 'Gemfile.lock'],
+    size: ['Sources', xcode_project],
+    sonar: ['Sources']
   }
 end
 
@@ -398,58 +465,52 @@ lane :copyright do
   update_copyright(ignore: [derived_data_path, source_packages_path, 'vendor/'])
   next unless is_ci
 
-  create_pr(
+  pr_create(
     title: '[CI] Update Copyright',
     head_branch: "ci/update-copyright-#{Time.now.to_i}"
   )
 end
 
-private_lane :create_pr do |options|
-  options[:base_branch] ||= develop_branch
-  sh("git checkout -b #{options[:head_branch]}")
-  sh('git add -A')
-  sh("git commit -m '#{options[:title]}'")
-  push_to_git_remote(tags: false)
+lane :show_frameworks_sizes do |options|
+  next unless is_check_required(sources: sources_matrix[:size], force_check: @force_check)
 
-  create_pull_request(
-    api_token: ENV.fetch('GITHUB_TOKEN', nil),
-    repo: github_repo,
-    title: options[:title],
-    head: options[:head_branch],
-    base: options[:base_branch],
-    body: 'This PR was created automatically by CI.'
+  sizes = options[:sizes] || frameworks_sizes
+  show_sdk_size(branch_sizes: sizes, github_repo: github_repo)
+  update_img_shields_sdk_sizes(sizes: sizes, open_pr: options[:open_pr]) if options[:update_readme]
+end
+
+lane :update_img_shields_sdk_sizes do |options|
+  update_sdk_size_in_readme(
+    open_pr: options[:open_pr] || false,
+    readme_path: 'README.md',
+    sizes: options[:sizes] || frameworks_sizes
   )
 end
 
-private_lane :current_branch do
-  ENV['BRANCH_NAME'].to_s.empty? ? git_branch : ENV.fetch('BRANCH_NAME')
-end
+def frameworks_sizes
+  root_dir = 'Build/SDKSize'
+  archive_dir = "#{root_dir}/DemoApp.xcarchive"
 
-private_lane :git_status do |options|
-  UI.user_error!('Extension should be provided') unless options[:ext]
+  FileUtils.rm_rf("../#{root_dir}/")
 
-  untracked_files = sh('git status -s', log: false).split("\n").map(&:strip)
-  UI.important("Git Status: #{untracked_files}")
+  match_me
 
-  deleted_files = select_files_from(files: untracked_files, with_extension: options[:ext], that_start_with: 'D')
-  added_files = select_files_from(files: untracked_files, with_extension: options[:ext], that_start_with: ['A', '??'])
-  renamed_files = select_files_from(files: untracked_files, with_extension: options[:ext], that_start_with: 'R')
-  modified_files = select_files_from(files: untracked_files, with_extension: options[:ext], that_start_with: 'M')
+  gym(
+    scheme: 'DemoAppSwiftUI',
+    archive_path: archive_dir,
+    export_method: 'ad-hoc',
+    export_options: 'fastlane/sdk_size_export_options.plist'
+  )
 
-  renamed_files.each do |renamed_file|
-    content = renamed_file.split.drop(1).join.split('->').map(&:strip)
-    deleted_files << content.first
-    added_files << content.last
-  end
-  { a: added_files, d: deleted_files, m: modified_files }
-end
+  # Parse the thinned size of Assets.car from Packaging.log
+  assets_size_regex = %r{\b(\d+)\sbytes\sfor\s./Payload/DemoAppSwiftUI.app/Frameworks/StreamChatSwiftUI.framework/Assets.car\b}
+  packaging_log_content = File.read("#{Gym.cache[:temporary_output_path]}/Packaging.log")
+  match = packaging_log_content.match(assets_size_regex)
+  assets_thinned_size = match[1].to_i
 
-def select_files_from(files:, with_extension:, that_start_with:)
-  files.select do |f|
-    f.start_with?(*that_start_with)
-  end.map do |f|
-    f.split.drop(1).join(' ')
-  end.select do |f|
-    f.gsub(/['"]/, '').end_with?(with_extension)
-  end
+  frameworks_path = "../#{archive_dir}/Products/Applications/DemoAppSwiftUI.app/Frameworks"
+  stream_chat_swiftui_size = File.size("#{frameworks_path}/StreamChatSwiftUI.framework/StreamChatSwiftUI")
+  stream_chat_swiftui_size_kb = (stream_chat_swiftui_size + assets_thinned_size) / 1024.0
+
+  { StreamChatSwiftUI: stream_chat_swiftui_size_kb.round(0) }
 end

@@ -39,6 +39,8 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
     @State private var newMessagesStartId: String?
     @State private var offsetX: CGFloat = 0.0
     @GestureState private var offset: CGSize = .zero
+    @State private var unreadMessagesBannerShown = false
+    @State private var unreadButtonDismissed = false
 
     private var messageRenderingUtil = MessageRenderingUtil.shared
     private var skipRenderingMessageIds = [String]()
@@ -218,6 +220,7 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                         }
                         .id(listId)
                     }
+                    .delayedRendering()
                     .modifier(factory.makeMessageListModifier())
                     .modifier(ScrollTargetLayoutModifier(enabled: loadingNextMessages))
                 }
@@ -250,8 +253,8 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                             } else if diff < 0 && scrollDirection == .down {
                                 scrollDirection = .up
                             }
+                            utils.messageCachingUtils.scrollOffset = offsetValue
                         }
-                        utils.messageCachingUtils.scrollOffset = offsetValue
                         let scrollButtonShown = offsetValue < -20
                         if scrollButtonShown != showScrollToLatestButton {
                             showScrollToLatestButton = scrollButtonShown
@@ -350,6 +353,21 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
         .simultaneousGesture(TapGesture().onEnded({ _ in
           NotificationCenter.default.post(Notification(name: .init(rawValue: Constants.photoPickerDropDown)))
         }))
+        .overlay(
+            (channel.unreadCount.messages > 0 && !unreadMessagesBannerShown && !isMessageThread && !unreadButtonDismissed) ?
+                factory.makeJumpToUnreadButton(
+                    channel: channel,
+                    onJumpToMessage: {
+                        _ = onJumpToMessage?(firstUnreadMessageId ?? .unknownMessageId)
+                    },
+                    onClose: {
+                        chatClient.channelController(for: channel.cid).markRead()
+                        unreadButtonDismissed = true
+                    }
+                ) : nil
+        )
+        .modifier(factory.makeMessageListContainerModifier())
+        .dismissKeyboardOnTap(enabled: keyboardShown)
         .onDisappear {
             messageRenderingUtil.update(previousTopMessage: nil)
         }
@@ -637,7 +655,7 @@ struct TypingIndicatorBottomView: View {
             HStack {
                 TypingIndicatorView()
                 Text(typingIndicatorString)
-                    .font(.footnote)
+                    .font(fonts.footnote)
                     .foregroundColor(Color(colors.textLowEmphasis))
                 Spacer()
             }

@@ -10,6 +10,7 @@ public enum AttachmentPickerState {
     case files
     case photos
     case camera
+    case polls
     case custom
 }
 
@@ -84,4 +85,10 @@ public struct AddedVoiceRecording: Identifiable, Equatable {
     public let duration: TimeInterval
     /// The waveform of the recording.
     public let waveform: [Float]
+    
+    public init(url: URL, duration: TimeInterval, waveform: [Float]) {
+        self.url = url
+        self.duration = duration
+        self.waveform = waveform
+    }
 }
