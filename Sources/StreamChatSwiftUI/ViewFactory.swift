@@ -41,6 +41,7 @@ public protocol ViewFactory: AnyObject {
     ) -> AnyView
   
     func makeMessageComposerTopBar(viewmodel: ChatChannelViewModel, composerViewModel: MessageComposerViewModel) -> AnyView
+    func makeMessageTimestampView(date: Date) -> AnyView
 
     associatedtype ChannelListItemType: View
     /// Creates the channel list item.
@@ -316,6 +317,7 @@ public protocol ViewFactory: AnyObject {
         onLongPress: @escaping (MessageDisplayInfo) -> Void,
         isLast: Bool,
         isLastGroup: Bool,
+        bypassGrouping: Bool,
         optionalOffset: Binding<CGFloat>?
     ) -> MessageContainerViewType
 

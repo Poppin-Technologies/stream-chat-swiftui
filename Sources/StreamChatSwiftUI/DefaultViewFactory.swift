@@ -268,6 +268,10 @@ extension ViewFactory {
     ) -> some View {
         MessageAvatarView(avatarURL: userDisplayInfo.imageURL, size: size)
     }
+  
+    public func makeMessageTimestampView(date: Date) -> AnyView {
+      .init(EmptyView())
+    }
     
     public func makeChannelHeaderViewModifier(
         for channel: ChatChannel,
@@ -302,6 +306,7 @@ extension ViewFactory {
         onLongPress: @escaping (MessageDisplayInfo) -> Void,
         isLast: Bool,
         isLastGroup: Bool = false,
+        bypassGrouping: Bool = false,
         optionalOffset: Binding<CGFloat>? = nil
     ) -> some View {
         MessageContainerView(
@@ -313,6 +318,7 @@ extension ViewFactory {
             isInThread: isInThread,
             isLast: isLast,
             isLastGroup: isLastGroup,
+            bypassGrouping: bypassGrouping,
             scrolledId: scrolledId,
             quotedMessage: quotedMessage,
             onLongPress: onLongPress,

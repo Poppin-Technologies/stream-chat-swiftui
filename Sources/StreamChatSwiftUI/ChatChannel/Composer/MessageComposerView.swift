@@ -327,6 +327,23 @@ public struct ComposerInputView<Factory: ViewFactory>: View, KeyboardReadable {
     utils.composerConfig.inputPaddingsConfig
   }
   
+  var randomMessage: String {
+    var messages = [
+      "Song requests, rideshare, etc...",
+      "Write something funny...",
+      "Send a message..."
+    ]
+    
+    let today = Date()
+    
+    let calendar = Calendar.current
+    let dayOfYear = calendar.ordinality(of: .day, in: .year, for: today) ?? 1
+    
+    let randomIndex = dayOfYear % messages.count
+
+    return messages[randomIndex]
+  }
+  
   public var body: some View {
     VStack {
       if let quotedMessage = quotedMessage.wrappedValue {
@@ -396,11 +413,12 @@ public struct ComposerInputView<Factory: ViewFactory>: View, KeyboardReadable {
           text: $text,
           height: $textHeight,
           selectedRangeLocation: $selectedRangeLocation,
-          placeholder: isInCooldown ? L10n.Composer.Placeholder.slowMode : viewModel.composerCommand?.id == "/giphy" ? "Search a term" : "Send a message",
+          placeholder: isInCooldown ? L10n.Composer.Placeholder.slowMode : viewModel.composerCommand?.id == "/giphy" ? "Search a term" : randomMessage,
           editable: !isInCooldown,
           maxMessageLength: maxMessageLength,
           currentHeight: textFieldHeight
         )
+        .foregroundColor(Color(red: 0.57, green: 0.57, blue: 0.57))
         .accessibilityIdentifier("ComposerTextInputView")
         .accessibilityElement(children: .contain)
         .frame(height: textFieldHeight)
@@ -439,8 +457,8 @@ public struct ComposerInputView<Factory: ViewFactory>: View, KeyboardReadable {
   }
   
   private var composerInputBackground: Color {
-    var colors = colors
-    return Color(colors.composerInputBackground)
+    return Color(red: 0.13, green: 0.13, blue: 0.13)
+
   }
   
   private var highlightedBorder: UIColor {

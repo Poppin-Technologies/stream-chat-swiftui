@@ -29,7 +29,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
     @Binding var quotedMessage: ChatMessage?
     @Binding var optionalOffset: CGFloat
     var onLongPress: (MessageDisplayInfo) -> Void
-
+    var bypassGrouping: Bool = false
     @State private var frame: CGRect = .zero
     @State private var computeFrame = false
     @State private var offsetX: CGFloat = 0
@@ -48,6 +48,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
         isInThread: Bool,
         isLast: Bool,
         isLastGroup: Bool = false,
+        bypassGrouping: Bool = false,
         scrolledId: Binding<String?>,
         quotedMessage: Binding<ChatMessage?>,
         onLongPress: @escaping (MessageDisplayInfo) -> Void,
@@ -56,6 +57,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
         self.factory = factory
         self.channel = channel
         self.message = message
+        self.bypassGrouping = bypassGrouping
         self.width = width
         self.showsAllInfo = showsAllInfo
         self.isInThread = isInThread
@@ -93,7 +95,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                 if message.isRightAligned || factory.isSentByCurrentUser(message: message) {
                     MessageSpacer(spacerWidth: spacerWidth)
                 } else {
-                    if messageListConfig.messageDisplayOptions.showAvatars(for: channel) {
+                    if messageListConfig.messageDisplayOptions.showAvatars(for: channel) || bypassGrouping {
                         factory.makeMessageAvatarView(
                             for: utils.messageCachingUtils.authorInfo(from: message)
                         )

@@ -144,9 +144,7 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                             let showsLastInGroupInfo = showsLastInGroupInfo(for: message, channel: channel)
                           VStack(spacing: 4) {
                             if let m = viewModel.messageWithDates[message.id] {
-                              formatDate(date: m).font(.footnote)
-                                .padding(.vertical, 8)
-                                .foregroundColor(Color(colors.textLowEmphasis))
+                              factory.makeMessageTimestampView(date: m)
                             }
                             factory.makeMessageContainerView(
                               channel: channel,
