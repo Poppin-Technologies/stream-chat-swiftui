@@ -980,7 +980,11 @@ extension ViewFactory {
       return false
     }
   
-  public func makeMessageComposerTopBar(viewmodel: ChatChannelViewModel, composerViewModel: MessageComposerViewModel) -> AnyView {
+    public func makeMessageComposerTopBar(viewmodel: ChatChannelViewModel, composerViewModel: MessageComposerViewModel) -> AnyView {
+      .init(EmptyView())
+    }
+    
+    public func makeChannelHeader(channel: ChatChannel, viewmodel: ChatChannelViewModel) -> AnyView {
       .init(EmptyView())
     }
 }

@@ -44,8 +44,10 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
     }
 
     public var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             if let channel = viewModel.channel {
+                factory.makeChannelHeader(channel: channel, viewmodel: viewModel)
+                  .zIndex(99)
                 VStack(spacing: 0) {
                     factory.makeChannelTopBar(channel: channel)
                     if !viewModel.messages.isEmpty {
@@ -104,12 +106,6 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
                         .if(!viewModel.reactionsShown, transform: { view in
                             view.navigationBarHidden(false)
                         })
-                        .if(viewModel.channelHeaderType == .regular) { view in
-                          view.modifier(factory.makeChannelHeaderViewModifier(for: channel, viewmodel: viewModel))
-                        }
-                        .if(viewModel.channelHeaderType == .typingIndicator) { view in
-                          view.modifier(factory.makeChannelHeaderViewModifier(for: channel, viewmodel: viewModel))
-                        }
                         .if(viewModel.channelHeaderType == .messageThread) { view in
                             view.modifier(factory.makeMessageThreadHeaderViewModifier())
                         }
@@ -173,6 +169,7 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
                 factory.makeChannelLoadingView()
             }
         }
+        .edgesIgnoringSafeArea(.top)
         .navigationBarTitleDisplayMode(factory.navigationBarDisplayMode())
         .onReceive(keyboardWillChangePublisher, perform: { visible in
             keyboardShown = visible
@@ -186,6 +183,7 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
         .onDisappear {
             viewModel.onViewDissappear()
         }
+        .navigationBarHidden(true)
         .onChange(of: presentationMode.wrappedValue, perform: { newValue in
             if newValue.isPresented == false {
                 viewModel.onViewDissappear()

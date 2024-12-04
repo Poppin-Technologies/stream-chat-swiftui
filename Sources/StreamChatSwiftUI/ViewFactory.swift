@@ -29,6 +29,11 @@ public protocol ViewFactory: AnyObject {
     /// Creates the loading view.
     func makeLoadingView() -> LoadingContent
   
+    /// Creates a channel header.
+    func makeChannelHeader(
+      channel: ChatChannel,
+      viewmodel: ChatChannelViewModel
+    ) -> AnyView
   
     /// Makes topbar of channel!
     /// - parameter channel: the channel being displayed.
