@@ -57,7 +57,6 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
   }
   public var body: some View {
     VStack(spacing: 0) {
-      factory.makeMessageComposerTopBar(viewmodel: vm, composerViewModel: viewModel)
       VStack(spacing: 0) {
         if !canSendMessage {
           Text("Only attendees can send messages")
@@ -250,6 +249,17 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
       }
       .accessibilityElement(children: .contain)
       .padding(.bottom, -4)
+    }
+    .if(true) { view in
+      Group {
+        if #available(iOS 15.0, *) {
+          view
+            .overlay(alignment: .top) {
+              factory.makeMessageComposerTopBar(viewmodel: vm, composerViewModel: viewModel)
+                .offset(y: -22)
+            }
+        }
+      }
     }
   }
 }
