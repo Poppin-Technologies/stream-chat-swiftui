@@ -59,7 +59,7 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
     VStack(spacing: 0) {
       VStack(spacing: 0) {
         if !canSendMessage {
-          Text("Only attendees can send messages")
+          Text("Only hosts can post")
             .font(.caption)
             .foregroundColor(Color(colors.textLowEmphasis))
             .frame(maxWidth: .infinity)
