@@ -18,6 +18,9 @@ public struct ComposerConfig {
     public var adjustMessageOnSend: (String) -> (String)
     public var adjustMessageOnRead: (String) -> (String)
     public var attachmentPayloadConverter: (ChatMessage) -> [AnyAttachmentPayload]
+    /// Optional per-channel composer placeholder (Poppin addition).
+    /// When nil, the built-in rotating placeholder is used.
+    public var composerPlaceholder: ((ChatChannel?) -> String)?
 
     public init(
         isVoiceRecordingEnabled: Bool = false,
@@ -30,7 +33,8 @@ public struct ComposerConfig {
         adjustMessageOnSend: @escaping (String) -> (String) = { $0 },
         adjustMessageOnRead: @escaping (String) -> (String) = { $0 },
         attachmentPayloadConverter: @escaping (ChatMessage) -> [AnyAttachmentPayload]
-            = ComposerConfig.defaultAttachmentPayloadConverter
+            = ComposerConfig.defaultAttachmentPayloadConverter,
+        composerPlaceholder: ((ChatChannel?) -> String)? = nil
     ) {
         self.inputViewMinHeight = inputViewMinHeight
         self.inputViewMaxHeight = inputViewMaxHeight
@@ -42,6 +46,7 @@ public struct ComposerConfig {
         self.gallerySupportedTypes = gallerySupportedTypes
         self.inputPaddingsConfig = inputPaddingsConfig
         self.isVoiceRecordingEnabled = isVoiceRecordingEnabled
+        self.composerPlaceholder = composerPlaceholder
     }
     
     public static var defaultAttachmentPayloadConverter: (ChatMessage) -> [AnyAttachmentPayload] = { message in

@@ -60,10 +60,11 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
       VStack(spacing: 0) {
         if !canSendMessage {
           Text("Only hosts can post")
-            .font(.caption)
+            .font(.footnote)
             .foregroundColor(Color(colors.textLowEmphasis))
             .frame(maxWidth: .infinity)
-            .padding(.top, 16)
+            .padding(.top, 14)
+            .padding(.bottom, 6)
         } else {
           if quotedMessage != nil {
             factory.makeQuotedMessageHeaderView(
@@ -107,24 +108,29 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
             }
             .opacity(viewModel.dragStarted ? 0 : 1.0)
             .animation(.easeInOut, value: viewModel.dragStarted)
-            
-            factory.makeTrailingComposerView(
-              enabled: viewModel.sendButtonEnabled,
-              cooldownDuration: viewModel.cooldownDuration
-            ) {
-              viewModel.sendMessage(
-                quotedMessage: quotedMessage,
-                editedMessage: editedMessage
+            // Poppin: send/mic renders inside the input pill's trailing edge
+            // (the input reserves room via composerConfig.inputPaddingsConfig.trailing).
+            .overlay(
+              factory.makeTrailingComposerView(
+                enabled: viewModel.sendButtonEnabled,
+                cooldownDuration: viewModel.cooldownDuration
               ) {
-                quotedMessage = nil
-                editedMessage = nil
-                onMessageSent()
+                viewModel.sendMessage(
+                  quotedMessage: quotedMessage,
+                  editedMessage: editedMessage
+                ) {
+                  quotedMessage = nil
+                  editedMessage = nil
+                  onMessageSent()
+                }
               }
-            }
-            .environmentObject(viewModel)
-            .alert(isPresented: $viewModel.errorShown) {
-              Alert.defaultErrorAlert
-            }
+              .environmentObject(viewModel)
+              .alert(isPresented: $viewModel.errorShown) {
+                Alert.defaultErrorAlert
+              }
+              .padding(.trailing, 5),
+              alignment: .bottomTrailing
+            )
           }
           .padding(.top, composerHeight > 60 ? 6 : 3)
           .padding(.horizontal, 8)
@@ -229,7 +235,6 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
         alignment: .bottom
       )
       .modifier(factory.makeComposerViewModifier())
-      .background(VisualEffectView().ignoresSafeArea(.all).opacity(0.5).offset(y: 4))
       .onChange(of: editedMessage) { _ in
         viewModel.text = editedMessage?.text ?? ""
         if editedMessage != nil {
@@ -423,7 +428,7 @@ public struct ComposerInputView<Factory: ViewFactory>: View, KeyboardReadable {
           text: $text,
           height: $textHeight,
           selectedRangeLocation: $selectedRangeLocation,
-          placeholder: isInCooldown ? L10n.Composer.Placeholder.slowMode : viewModel.composerCommand?.id == "/giphy" ? "Search a term" : randomMessage,
+          placeholder: isInCooldown ? L10n.Composer.Placeholder.slowMode : viewModel.composerCommand?.id == "/giphy" ? "Search a term" : (utils.composerConfig.composerPlaceholder?(viewModel.channelController.channel) ?? randomMessage),
           editable: !isInCooldown,
           maxMessageLength: maxMessageLength,
           currentHeight: textFieldHeight
@@ -467,8 +472,7 @@ public struct ComposerInputView<Factory: ViewFactory>: View, KeyboardReadable {
   }
   
   private var composerInputBackground: Color {
-    return Color(red: 0.13, green: 0.13, blue: 0.13)
-
+    Color(colors.composerInputBackground)
   }
   
   private var highlightedBorder: UIColor {
