@@ -987,6 +987,10 @@ extension ViewFactory {
     public func makeChannelHeader(channel: ChatChannel, viewmodel: ChatChannelViewModel) -> AnyView {
       .init(EmptyView())
     }
+
+    public func makeChannelIntroView(channel: ChatChannel) -> AnyView {
+      .init(EmptyView())
+    }
 }
 
 /// Default class conforming to `ViewFactory`, used throughout the SDK.

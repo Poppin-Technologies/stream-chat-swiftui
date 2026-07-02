@@ -143,6 +143,9 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                             let showUnreadSeparator = message.id == newMessagesStartId
                             let showsLastInGroupInfo = showsLastInGroupInfo(for: message, channel: channel)
                           VStack(spacing: 4) {
+                            if !isMessageThread && message == messages.last {
+                              factory.makeChannelIntroView(channel: channel)
+                            }
                             if let m = viewModel.messageWithDates[message.id] {
                               factory.makeMessageTimestampView(date: m)
                             }

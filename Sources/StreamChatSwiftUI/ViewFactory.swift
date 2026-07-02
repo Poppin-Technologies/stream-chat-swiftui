@@ -48,6 +48,10 @@ public protocol ViewFactory: AnyObject {
     func makeMessageComposerTopBar(viewmodel: ChatChannelViewModel, composerViewModel: MessageComposerViewModel) -> AnyView
     func makeMessageTimestampView(date: Date) -> AnyView
 
+    /// Rendered above the oldest message in the channel message list (Poppin addition).
+    /// Not shown in threads.
+    func makeChannelIntroView(channel: ChatChannel) -> AnyView
+
     associatedtype ChannelListItemType: View
     /// Creates the channel list item.
     /// - Parameters:
