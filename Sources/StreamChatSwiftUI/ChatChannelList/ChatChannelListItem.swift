@@ -245,6 +245,16 @@ extension ChatChannel {
       return nil
     }
   }
+  /// Attachment-aware preview text for `previewMessage` — the most recent message
+  /// that is NOT deleted. `lastMessageAdjustedText` reads `latestMessages.first`,
+  /// which surfaces the "Message deleted" placeholder when the latest was deleted.
+  public var previewMessageAdjustedText: String? {
+    if let previewMessage = previewMessage {
+      return textContent(for: previewMessage)
+    } else {
+      return nil
+    }
+  }
 
     public var shouldShowTypingIndicator: Bool {
         !currentlyTypingUsersFiltered(
