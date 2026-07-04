@@ -17,14 +17,17 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/GetStream/stream-chat-swift.git", from: "4.52.0"),
+        .package(path: "../poppin-chat"),
         .package(url: "https://github.com/kean/Nuke.git", .exact("11.3.1")),
         .package(url: "https://github.com/Flowductive/shiny-swift-ui.git", from: "1.2.0")
     ],
     targets: [
         .target(
             name: "StreamChatSwiftUI",
-            dependencies: [.product(name: "StreamChat", package: "stream-chat-swift")],
+            dependencies: [
+                .product(name: "StreamChat", package: "poppin-chat"),
+                .product(name: "ShinySwiftUI", package: "shiny-swift-ui")
+            ],
             exclude: ["README.md", "Info.plist", "Generated/L10n_template.stencil"],
             resources: [.process("Resources")]
         )

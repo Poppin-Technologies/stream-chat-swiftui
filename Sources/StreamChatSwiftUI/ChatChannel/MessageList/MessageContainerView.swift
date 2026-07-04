@@ -124,43 +124,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                       .padding(.leading, 10)
                       .offset(y: topReactionsShown ? (message.text.count + 1) < (message.author.name?.count ?? 0) ? -16 : 0 : 0)
                     }
-                    MessageView(
-                      factory: factory,
-                      message: message,
-                      contentWidth: contentWidth,
-                      isFirst: showsAllInfo,
-                      scrolledId: $scrolledId
-                    )
-                    .overlay(
-                      offsetDateView
-                    )
-                    .overlay(
-                      ZStack {
-                        topReactionsShown ?
-                        factory.makeMessageReactionView(
-                          message: message,
-                          onTapGesture: {
-                            handleGestureForMessage(showsMessageActions: false)
-                          },
-                          onLongPressGesture: {
-                            handleGestureForMessage(showsMessageActions: false)
-                          }
-                        )
-                        : nil
-                        
-                        (message.localState == .sendingFailed || message.isBounced) ? SendFailureIndicator() : nil
-                      }
-                    )
-                    .background(
-                      GeometryReader { proxy in
-                        Rectangle().fill(Color.clear)
-                          .onChange(of: computeFrame, perform: { _ in
-                            DispatchQueue.main.async {
-                              frame = proxy.frame(in: .global)
-                            }
-                          })
-                      }
-                    )
+                    messageViewWithOverlays
                     .onTapGesture(count: 2) {
                       if messageListConfig.doubleTapOverlayEnabled {
                         handleGestureForMessage(showsMessageActions: true)
@@ -219,15 +183,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                         .accessibilityElement(children: .contain)
                         .accessibility(identifier: "MessageRepliesView")
                     }
-                  if message.showReplyInChannel, !isInThread, let quotedMessage = viewmodel.messages.first(where: { message2 in
-                    if message2.isRootOfThread {
-                      return message2.latestReplies.contains { m in
-                        m.id == message.id
-                      }
-                    } else {
-                      return false
-                    }
-                  }) {
+                  if message.showReplyInChannel, !isInThread, let quotedMessage = threadRootContainingReply {
                       MessageThreadReplyView(factory: factory, channel: channel, message: message, repliedMessage: quotedMessage)
                     }
                     
@@ -313,6 +269,73 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
         )
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("MessageContainerView")
+    }
+
+    // Extracted from `body`'s `.overlay(...)` chain: the compiler couldn't type-check the
+    // two stacked ternaries (each returning `nil` on one branch) inline within a reasonable
+    // time. Splitting into its own `@ViewBuilder` property is functionally identical, just
+    // faster for the type-checker to resolve.
+    @ViewBuilder
+    private var reactionAndFailureOverlay: some View {
+        ZStack {
+            if topReactionsShown {
+                factory.makeMessageReactionView(
+                    message: message,
+                    onTapGesture: {
+                        handleGestureForMessage(showsMessageActions: false)
+                    },
+                    onLongPressGesture: {
+                        handleGestureForMessage(showsMessageActions: false)
+                    }
+                )
+            }
+
+            if message.localState == .sendingFailed || message.isBounced {
+                SendFailureIndicator()
+            }
+        }
+    }
+
+    // Same extraction as `reactionAndFailureOverlay` above: the type-checker timed out on this
+    // `.background(GeometryReader { ... })` once it followed the preceding overlay chain inline.
+    private var frameTrackingBackground: some View {
+        GeometryReader { proxy in
+            Rectangle().fill(Color.clear)
+                .onChange(of: computeFrame, perform: { _ in
+                    DispatchQueue.main.async {
+                        frame = proxy.frame(in: .global)
+                    }
+                })
+        }
+    }
+
+    // Further extraction: even with the two properties above, the type-checker still timed out
+    // trying to resolve the *rest* of the chain (gesture modifiers, onChange) as one expression
+    // continuing straight off `MessageView(...)`. Isolating "MessageView + its overlays/background"
+    // into its own property lets the remaining gesture-modifier chain in `body` type-check as a
+    // separate, much shorter expression.
+    private var messageViewWithOverlays: some View {
+        MessageView(
+            factory: factory,
+            message: message,
+            contentWidth: contentWidth,
+            isFirst: showsAllInfo,
+            scrolledId: $scrolledId
+        )
+        .overlay(offsetDateView)
+        .overlay(reactionAndFailureOverlay)
+        .background(frameTrackingBackground)
+    }
+
+    // Extracted for the same type-checker-timeout reason as the properties above: a nested
+    // `.first(where:) { if ... { .contains { ... } } else { false } }` closure inline in `body`.
+    // Finds the thread-root message (if any) whose replies contain this message - used to show
+    // a "replied in channel" preview above a top-level copy of a threaded reply.
+    private var threadRootContainingReply: ChatMessage? {
+        viewmodel.messages.first { candidate in
+            guard candidate.isRootOfThread else { return false }
+            return candidate.latestReplies.contains { $0.id == message.id }
+        }
     }
 
     private var maximumHorizontalSwipeDisplacement: CGFloat {
