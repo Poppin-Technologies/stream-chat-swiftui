@@ -648,8 +648,10 @@ struct TypingIndicatorBottomView: View {
             }
             .standardPadding()
             .background(
+                // `as Color` pins Color.opacity over View.opacity — the bare chain went
+                // ambiguous once the module graph changed under the engine swap.
                 Color(colors.background)
-                    .opacity(0.3)
+                    .opacity(0.3) as Color
             )
             .transition(.swipeUp.animation(.slickEaseIn(duration: 0.3)))
             .accessibilityIdentifier("TypingIndicatorBottomView")
