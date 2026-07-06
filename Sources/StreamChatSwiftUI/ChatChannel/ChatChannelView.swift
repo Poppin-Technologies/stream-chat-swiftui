@@ -165,6 +165,19 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
                         isInThread: false
                     )
                 )
+            } else if viewModel.channelLoadFailed {
+                VStack(spacing: 12) {
+                    Text("Couldn't load this conversation")
+                        .foregroundColor(Color(colors.textLowEmphasis))
+                    Button {
+                        viewModel.retryChannelLoad()
+                    } label: {
+                        Text("Retry")
+                            .bold()
+                            .foregroundColor(colors.tintColor)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 factory.makeChannelLoadingView()
             }

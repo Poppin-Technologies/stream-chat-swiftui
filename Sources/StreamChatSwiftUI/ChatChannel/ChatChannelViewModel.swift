@@ -60,6 +60,9 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
     @Published public var onPinAction: (MessageActionInfo) -> () = { _ in }
 
     @Published public var showScrollToLatestButton = false
+    /// Set when the initial channel load failed with nothing to render - drives the error/Retry
+    /// state instead of an infinite loading view.
+    @Published public var channelLoadFailed = false
 
     @Published public var currentDateString: String?
     @Published public var messages = LazyCachedMapCollection<ChatMessage>() {
@@ -138,10 +141,6 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
         scrollToMessage: ChatMessage? = nil
     ) {
         self.channelController = channelController
-        if InjectedValues[\.utils].shouldSyncChannelControllerOnAppear(channelController)
-            && messageController == nil {
-            channelController.synchronize()
-        }
         if let messageController = messageController {
             self.messageController = messageController
             messageController.synchronize()
@@ -196,9 +195,33 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
         channelName = channel?.name ?? ""
         checkHeaderType()
         checkUnreadCount()
+
+        // Runs at the END of init (an escaping completion can't capture self any earlier). The
+        // engine single-flights concurrent creates, so this plus the view's onAppear synchronize
+        // still produce exactly one create POST.
+        if InjectedValues[\.utils].shouldSyncChannelControllerOnAppear(channelController)
+            && messageController == nil {
+            syncChannelController()
+        }
     }
-  
-  
+
+    /// Retries the channel load after a failure surfaced via `channelLoadFailed`.
+    public func retryChannelLoad() {
+        channelLoadFailed = false
+        syncChannelController()
+    }
+
+    /// Loads the channel, flagging failure only when there is nothing to show - a failed
+    /// refresh of an already-loaded channel must not blank the conversation. Before this,
+    /// synchronize errors were swallowed and every failed load was a permanent loading view.
+    private func syncChannelController() {
+        channelController.synchronize { [weak self] error in
+            guard let self else { return }
+            self.channelLoadFailed = error != nil && self.channelController.channel == nil
+        }
+    }
+
+
     func setupDateMessages() {
       let count = messages.count
       
@@ -320,7 +343,11 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
     }
     
     open func handleMessageAppear(index: Int, scrollDirection: ScrollDirection) {
-        if index >= channelDataSource.messages.count || loadingMessagesAround {
+        // Bounds-check the SAME array subscripted below: `messages` is this VM's @Published copy
+        // and freezes while the VM is inactive, so the live `channelDataSource.messages` can be
+        // longer - checking the live count then subscripting the frozen copy trapped
+        // out-of-range when re-entering a chat after a background sync burst.
+        if index >= messages.count || loadingMessagesAround {
             return
         }
         
