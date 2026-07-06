@@ -111,7 +111,9 @@ open class WaveformView: UIView {
         if audioVisualizationView.content != content.waveform {
             audioVisualizationView.content = content.waveform
         }
-        audioVisualizationView.currentGradientPercentage = max(0, min(1, Float(content.currentTime / content.duration)))
+        // A zero duration makes the division NaN, which CoreAnimation rejects downstream.
+        let progress = content.duration > 0 ? Float(content.currentTime / content.duration) : 0
+        audioVisualizationView.currentGradientPercentage = max(0, min(1, progress))
         audioVisualizationView.setNeedsLayout()
         audioVisualizationView.setNeedsDisplay()
     }

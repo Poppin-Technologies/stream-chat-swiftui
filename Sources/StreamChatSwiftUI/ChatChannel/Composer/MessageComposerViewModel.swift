@@ -68,7 +68,7 @@ open class MessageComposerViewModel: ObservableObject {
     @Published public var addedFileURLs = [URL]() {
         didSet {
             if totalAttachmentsCount > chatClient.config.maxAttachmentCountPerMessage
-                || !checkAttachmentSize(with: addedFileURLs.last) {
+                || !checkAttachmentSize(with: addedFileURLs.last, maxSize: chatClient.config.maxFileAttachmentSize) {
                 addedFileURLs.removeLast()
             }
             checkPickerSelectionState()
@@ -272,6 +272,10 @@ open class MessageComposerViewModel: ObservableObject {
             return
         }
         
+        // Captured before `clearInputData()` empties the composer below — the clear runs at
+        // send-initiation, not on ack, so a failed send must hand the draft back to the user.
+        let inputSnapshot = composerInputSnapshot()
+
         do {
             var attachments = try addedAssets.map { try $0.toAttachmentPayload() }
             attachments += try addedFileURLs.map { url in
@@ -319,6 +323,7 @@ open class MessageComposerViewModel: ObservableObject {
                       self?.analyticsAction("thread_chat", data)
                       completion()
                     case .failure:
+                        self?.restoreComposerInput(from: inputSnapshot)
                         self?.errorShown = true
                     }
                 }
@@ -338,6 +343,7 @@ open class MessageComposerViewModel: ObservableObject {
                       self?.analyticsAction("send_chat", data)
                         completion()
                     case .failure:
+                        self?.restoreComposerInput(from: inputSnapshot)
                         self?.errorShown = true
                     }
                 }
@@ -414,7 +420,7 @@ open class MessageComposerViewModel: ObservableObject {
             }
         }
         
-        if !imageRemoved && canAddAttachment(with: addedAsset.url) {
+        if !imageRemoved && canAddAttachment(with: addedAsset.url, type: addedAsset.type) {
             images.append(addedAsset)
         }
         
@@ -452,7 +458,7 @@ open class MessageComposerViewModel: ObservableObject {
     }
     
     public func cameraImageAdded(_ image: AddedAsset) {
-        if canAddAttachment(with: image.url) {
+        if canAddAttachment(with: image.url, type: image.type) {
             addedAssets.append(image)
         }
         pickerState = .photos
@@ -609,6 +615,44 @@ open class MessageComposerViewModel: ObservableObject {
         mentionedUsers = Set<ChatUser>()
         clearText()
     }
+
+    /// Everything `clearInputData()` destroys, captured pre-send so a failed send can hand the
+    /// draft back instead of losing it.
+    struct ComposerInputSnapshot {
+        let text: String
+        let addedAssets: [AddedAsset]
+        let addedFileURLs: [URL]
+        let addedVoiceRecordings: [AddedVoiceRecording]
+        let addedCustomAttachments: [CustomAttachment]
+        let mentionedUsers: Set<ChatUser>
+    }
+
+    private func composerInputSnapshot() -> ComposerInputSnapshot {
+        ComposerInputSnapshot(
+            text: text,
+            addedAssets: addedAssets,
+            addedFileURLs: addedFileURLs,
+            addedVoiceRecordings: addedVoiceRecordings,
+            addedCustomAttachments: addedCustomAttachments,
+            mentionedUsers: mentionedUsers
+        )
+    }
+
+    /// No-op unless the composer is still empty — a draft the user typed after the failed send wins.
+    private func restoreComposerInput(from snapshot: ComposerInputSnapshot) {
+        guard text.isEmpty,
+              addedAssets.isEmpty,
+              addedFileURLs.isEmpty,
+              addedVoiceRecordings.isEmpty,
+              addedCustomAttachments.isEmpty
+        else { return }
+        text = snapshot.text
+        addedAssets = snapshot.addedAssets
+        addedFileURLs = snapshot.addedFileURLs
+        addedVoiceRecordings = snapshot.addedVoiceRecordings
+        addedCustomAttachments = snapshot.addedCustomAttachments
+        mentionedUsers = snapshot.mentionedUsers
+    }
     
     private func checkPickerSelectionState() {
         if (!addedAssets.isEmpty || !addedFileURLs.isEmpty) {
@@ -692,22 +736,27 @@ open class MessageComposerViewModel: ObservableObject {
         }
     }
     
-    private func canAddAttachment(with url: URL) -> Bool {
+    private func canAddAttachment(with url: URL, type: AssetType) -> Bool {
         if !canAddAdditionalAttachments {
             return false
         }
-        
-        return checkAttachmentSize(with: url)
+
+        let maxSize = type == .video
+            ? chatClient.config.maxVideoAttachmentSize
+            : chatClient.config.maxImageAttachmentSize
+        return checkAttachmentSize(with: url, maxSize: maxSize)
     }
-    
-    private func checkAttachmentSize(with url: URL?) -> Bool {
+
+    // The server enforces per-type caps (image/video/file differ), so callers pass the cap
+    // matching what they're adding rather than one flat limit.
+    private func checkAttachmentSize(with url: URL?, maxSize: Int64) -> Bool {
         guard let url = url else { return true }
-        
+
         _ = url.startAccessingSecurityScopedResource()
-        
+
         do {
             let fileSize = try AttachmentFile(url: url).size
-            let canAdd = fileSize < chatClient.config.maxAttachmentSize
+            let canAdd = fileSize < maxSize
             attachmentSizeExceeded = !canAdd
             return canAdd
         } catch {

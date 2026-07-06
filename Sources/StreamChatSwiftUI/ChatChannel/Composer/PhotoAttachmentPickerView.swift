@@ -159,7 +159,7 @@ public struct PhotoAttachmentCell: View {
                 }
                 
                 // Check file size.
-                if let assetURL = assetURL, assetLoader.assetExceedsAllowedSize(url: assetURL) {
+                if let assetURL = assetURL, assetLoader.assetExceedsAllowedSize(url: assetURL, type: assetType) {
                     compressing = true
                     assetLoader.compressAsset(at: assetURL, type: assetType) { url in
                         self.assetURL = url
