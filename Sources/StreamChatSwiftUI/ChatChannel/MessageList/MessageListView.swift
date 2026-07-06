@@ -101,10 +101,13 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
         _showScrollToLatestButton = showScrollToLatestButton
         _quotedMessage = quotedMessage
         _scrollPosition = scrollPosition
+        // Parenthesized: `?:` binds looser than `||`, so the unparenthesized original parsed as
+        // `(A||B||C||D) ? unwrap : false` — force-unwrapping `messages.first` whenever ANY of the
+        // first three conditions held, including with an empty list.
         if !messageRenderingUtil.hasPreviousMessageSet
             || self.showScrollToLatestButton == false
             || self.scrolledId != nil
-            || messages.first != nil ? factory.isSentByCurrentUser(message: messages.first!) : false {
+            || (messages.first.map { factory.isSentByCurrentUser(message: $0) } ?? false) {
             messageRenderingUtil.update(previousTopMessage: messages.first)
         }
         skipRenderingMessageIds = messageRenderingUtil.messagesToSkipRendering(newMessages: messages)
