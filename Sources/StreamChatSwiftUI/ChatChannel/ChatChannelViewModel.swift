@@ -215,6 +215,9 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
     /// refresh of an already-loaded channel must not blank the conversation. Before this,
     /// synchronize errors were swallowed and every failed load was a permanent loading view.
     private func syncChannelController() {
+        // Placeholder controllers (empty channel id) can never load - the app's embed views mint
+        // them purely to satisfy the environment. Skip the guaranteed-400 round trip.
+        guard !channelController.cid.id.isEmpty else { return }
         channelController.synchronize { [weak self] error in
             guard let self else { return }
             self.channelLoadFailed = error != nil && self.channelController.channel == nil
