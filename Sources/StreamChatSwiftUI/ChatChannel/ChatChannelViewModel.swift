@@ -220,6 +220,9 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
         guard !channelController.cid.id.isEmpty else { return }
         channelController.synchronize { [weak self] error in
             guard let self else { return }
+            if let error {
+                log.error("channel load failed (cid: \(self.channelController.cid), hasCachedChannel: \(self.channelController.channel != nil)): \(error)")
+            }
             self.channelLoadFailed = error != nil && self.channelController.channel == nil
         }
     }
