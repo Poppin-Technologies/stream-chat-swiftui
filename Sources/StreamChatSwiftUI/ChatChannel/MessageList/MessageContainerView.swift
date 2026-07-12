@@ -114,16 +114,6 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                     }
                   
                   VStack(alignment: message.isRightAligned || factory.isSentByCurrentUser(message: message) ? .trailing : .leading, spacing: 0) {
-                    if !(message.isRightAligned || factory.isSentByCurrentUser(message: message)) && isLastGroup {
-                      HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        MessageAuthorView(message: message)
-                        Text(utils.dateFormatter.string(from: message.createdAt))
-                          .font(.system(size: 11))
-                          .foregroundColor(Color(colors.textLowEmphasis))
-                      }
-                      .padding(.leading, 10)
-                      .offset(y: topReactionsShown ? (message.text.count + 1) < (message.author.name?.count ?? 0) ? -16 : 0 : 0)
-                    }
                     messageViewWithOverlays
                     .onTapGesture(count: 2) {
                       if messageListConfig.doubleTapOverlayEnabled {
