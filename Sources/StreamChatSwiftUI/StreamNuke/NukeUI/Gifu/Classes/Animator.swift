@@ -31,6 +31,12 @@ class Animator {
     self.displayLinkInitialized = true
     let display = CADisplayLink(target: DisplayLinkProxy(target: self), selector: #selector(DisplayLinkProxy.onScreenUpdate))
     display.isPaused = true
+    if #available(iOS 15.0, tvOS 15.0, *) {
+      // Giphy GIFs are <=30fps — ticking at ProMotion/native cadence just re-runs
+      // frame bookkeeping with no new frame to show. FrameStore accumulates real
+      // elapsed time (see updateFrameIfNeeded), so GIF timing is unchanged.
+      display.preferredFrameRateRange = CAFrameRateRange(minimum: 10, maximum: 30, preferred: 30)
+    }
     return display
   }()
 
@@ -64,7 +70,10 @@ class Animator {
         return
     }
 
-    store.shouldChangeFrame(with: displayLink.duration) {
+    // targetTimestamp - timestamp = the interval this tick actually covers.
+    // `duration` is the display's refresh interval, NOT the callback cadence —
+    // under a capped or ProMotion link it under-reports and slows GIFs down.
+    store.shouldChangeFrame(with: displayLink.targetTimestamp - displayLink.timestamp) {
       if $0 { delegate.animatorHasNewFrame() }
     }
   }
