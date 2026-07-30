@@ -240,7 +240,9 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
           let calendar = Calendar.current
           let messageDate = calendar.startOfDay(for: message.createdAt)
           let nextMessageDate = calendar.startOfDay(for: nextmessage.createdAt)
-          if (nextmessage.createdAt.timeIntervalSince(message.createdAt) <= -23600 || messageDate != nextMessageDate) {
+          // 1 hour, matching Apple Messages' conversation-break time headers
+          // (was 23,600s ≈ 6.5h — long silences inside a day never got one).
+          if (nextmessage.createdAt.timeIntervalSince(message.createdAt) <= -3600 || messageDate != nextMessageDate) {
             self.messageWithDates[message.id] = message.createdAt
           }
         } 

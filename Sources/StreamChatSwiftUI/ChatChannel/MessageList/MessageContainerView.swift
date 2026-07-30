@@ -336,21 +336,30 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
         message.pinDetails != nil
     }
 
+    // The avatar-width subtraction must mirror the body's avatar-slot
+    // condition (showAvatars(for:) || bypassGrouping, line ~98) — when the
+    // slot isn't rendered (e.g. DMs with avatars off), subtracting it anyway
+    // would width-cap received bubbles for a slot that doesn't exist.
+    private var avatarSlotWidth: CGFloat {
+        guard messageListConfig.messageDisplayOptions.showAvatars(for: channel) || bypassGrouping else {
+            return 0
+        }
+        return CGSize.messageAvatarSize.width + messageListConfig.messagePaddings.horizontal
+    }
+
     private var contentWidth: CGFloat {
         let padding: CGFloat = messageListConfig.messagePaddings.horizontal
         let minimumWidth: CGFloat = 240
         let available = max(minimumWidth, (width ?? 0) - spacerWidth) - 2 * padding
-        let avatarSize: CGFloat = CGSize.messageAvatarSize.width + padding
-        let totalWidth = (message.isRightAligned || factory.isSentByCurrentUser(message: message)) ? available : available - avatarSize
+        let totalWidth = (message.isRightAligned || factory.isSentByCurrentUser(message: message)) ? available : available - avatarSlotWidth
         return totalWidth
     }
-  
+
     private var longPressContentWidth: CGFloat {
         let padding: CGFloat = messageListConfig.messagePaddings.horizontal
         let minimumWidth: CGFloat = 240
         let available = max(minimumWidth, (width ?? 0) - (spacerWidth * (4/6))) - 2 * padding
-        let avatarSize: CGFloat = CGSize.messageAvatarSize.width + padding
-        let totalWidth = (message.isRightAligned || factory.isSentByCurrentUser(message: message)) ? available : available - avatarSize
+        let totalWidth = (message.isRightAligned || factory.isSentByCurrentUser(message: message)) ? available : available - avatarSlotWidth
         return totalWidth
     }
 
