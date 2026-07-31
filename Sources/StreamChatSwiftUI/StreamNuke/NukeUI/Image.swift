@@ -19,6 +19,7 @@ struct NukeImage: NSViewRepresentable {
     var isAnimatedImageRenderingEnabled: Bool?
     var isVideoRenderingEnabled: Bool?
     var isVideoLooping: Bool?
+    var isGIFPlaybackEnabled: Bool?
     var resizingMode: ImageResizingMode?
 
     init(_ image: NSImage) {
@@ -49,6 +50,7 @@ struct NukeImage: UIViewRepresentable {
     var isAnimatedImageRenderingEnabled: Bool?
     var isVideoRenderingEnabled: Bool?
     var isVideoLooping: Bool?
+    var isGIFPlaybackEnabled: Bool?
     var resizingMode: ImageResizingMode?
 
     init(_ image: UIImage) {
@@ -76,6 +78,9 @@ struct NukeImage: UIViewRepresentable {
 #if os(macOS) || os(iOS) || os(tvOS)
 extension NukeImage {
     func updateImageView(_ imageView: ImageView) {
+        // Applied BEFORE the container lands so the very first display(_:) of a
+        // GIF already sees the requested playback state.
+        if let value = isGIFPlaybackEnabled { imageView.isGIFPlaybackEnabled = value }
         if imageView.imageContainer?.image !== imageContainer.image {
             imageView.imageContainer = imageContainer
         }
@@ -107,6 +112,12 @@ extension NukeImage {
     func animatedImageRenderingEnabled(_ isEnabled: Bool) -> Self {
         var copy = self
         copy.isAnimatedImageRenderingEnabled = isEnabled
+        return copy
+    }
+
+    func gifPlaybackEnabled(_ isEnabled: Bool) -> Self {
+        var copy = self
+        copy.isGIFPlaybackEnabled = isEnabled
         return copy
     }
 }

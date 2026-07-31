@@ -102,6 +102,23 @@ class ImageView: _PlatformBaseView {
     /// `true` by default. Set to `true` to enable video support.
     var isVideoRenderingEnabled = true
 
+    /// `true` by default. When `false`, a displayed GIF keeps its decoded
+    /// frames but its display link stays paused; flipping back resumes
+    /// mid-loop. Consulted by `display(_:)` so the initial state applies even
+    /// though `animate(withGIFData:)` auto-starts.
+    var isGIFPlaybackEnabled = true {
+        didSet {
+            guard oldValue != isGIFPlaybackEnabled else { return }
+#if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
+            if isGIFPlaybackEnabled {
+                _animatedImageView?.startAnimatingGIF()
+            } else {
+                _animatedImageView?.stopAnimatingGIF()
+            }
+#endif
+        }
+    }
+
     // MARK: Initializers
 
     override init(frame: CGRect) {
@@ -165,6 +182,11 @@ class ImageView: _PlatformBaseView {
 #if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
         if isAnimatedImageRenderingEnabled, let data = container.data, container.type == .gif {
             animatedImageView.animate(withGIFData: data)
+            // animate() auto-starts synchronously — re-assert a paused state in
+            // the same runloop turn (zero visible frames).
+            if !isGIFPlaybackEnabled {
+                animatedImageView.stopAnimatingGIF()
+            }
             animatedImageView.isHidden = false
             return
         }

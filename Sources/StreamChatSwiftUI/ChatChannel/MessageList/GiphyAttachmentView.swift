@@ -99,22 +99,27 @@ public struct GiphyAttachmentView<Factory: ViewFactory>: View {
 
 public struct LazyGiphyView: View {
   
-  public init(source: URL, width: CGFloat, loadingBG: Color = Color(.secondarySystemBackground), fill: Bool = false) {
+  public init(source: URL, width: CGFloat, loadingBG: Color = Color(.secondarySystemBackground), fill: Bool = false, isAnimating: Bool = true) {
     self.source = source
     self.width = width
     self.loadingBG = loadingBG
     self.resizeMode = fill ? nil : .aspectFit
+    self.isAnimating = isAnimating
   }
-  
+
   public let source: URL
   public let width: CGFloat
   public let loadingBG: Color
   private let resizeMode: ImageResizingMode?
-  
+  /// When `false`, a loaded GIF stays mounted with its display link paused
+  /// (resumes mid-loop on `true`). Default preserves prior behavior.
+  private let isAnimating: Bool
+
   public var body: some View {
     LazyImage(imageURL: source) { state in
       if let imageContainer = state.imageContainer {
         NukeImage(imageContainer, resizingMode: resizeMode)
+          .gifPlaybackEnabled(isAnimating)
       } else if state.error != nil {
         loadingBG
       } else {
