@@ -12,6 +12,7 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
     @Injected(\.utils) private var utils
     @Injected(\.chatClient) private var chatClient
     @Injected(\.colors) private var colors
+    @Environment(\.messageListTopInset) private var messageListTopInset
 
     var factory: Factory
     var channel: ChatChannel
@@ -223,8 +224,9 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
 
                         }
                         .id(listId)
+                      // Visual top of the flipped list: room for the floating header.
                       Spacer()
-                        .frame(height: 110)
+                        .frame(height: messageListTopInset)
                     }
                     .modifier(factory.makeMessageListModifier())
                     .modifier(ScrollTargetLayoutModifier(enabled: loadingNextMessages))
