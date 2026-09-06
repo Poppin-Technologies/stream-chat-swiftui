@@ -14,8 +14,15 @@ open class ChannelHeaderLoader: ObservableObject {
     /// The maximum number of images that combine to form a single avatar
     private let maxNumberOfImagesInCombinedAvatar = 4
 
-    /// Prevents image requests to be executed if they failed previously.
+    /// Prevents image requests to be executed if they failed previously. Poppin: keyed by
+    /// the image URL for channel thumbnails (a corrected URL for the same channel is tried
+    /// again — a repaired flyer copy used to stay a placeholder until relaunch); merged
+    /// avatars stay keyed by channel id.
     private var failedImageLoads = Set<String>()
+
+    /// Poppin: the URL each cached channel thumbnail was loaded from, so a channel whose
+    /// `imageURL` changes underneath reloads instead of serving the stale bitmap forever.
+    private var loadedImageURLs = [String: String]()
 
     /// Batches loaded images for update, to improve performance.
     private var scheduledUpdate = false
@@ -53,13 +60,20 @@ open class ChannelHeaderLoader: ObservableObject {
     /// - Parameter channel: the provided channel.
     /// - Returns: the available image.
     public func image(for channel: ChatChannel) -> UIImage {
-        if let image = loadedImages[channel.cid.rawValue] {
-            return image
-        }
+        let key = channel.cid.rawValue
 
         if let url = channel.imageURL {
+            // The cached bitmap is only good for the URL it was loaded from; while a new
+            // URL loads, keep showing the old image rather than flashing the placeholder.
+            if let image = loadedImages[key], loadedImageURLs[key] == url.absoluteString {
+                return image
+            }
             loadChannelThumbnail(for: channel, from: url)
-            return placeholder4
+            return loadedImages[key] ?? placeholder4
+        }
+
+        if let image = loadedImages[key] {
+            return image
         }
 
         if channel.isDirectMessageChannel && channel.lastActiveMembers.count == 2 {
@@ -122,7 +136,8 @@ open class ChannelHeaderLoader: ObservableObject {
         for channel: ChatChannel,
         from url: URL
     ) {
-        if failedImageLoads.contains(channel.cid.rawValue) {
+        let urlKey = url.absoluteString
+        if failedImageLoads.contains(urlKey) {
             return
         }
 
@@ -136,10 +151,11 @@ open class ChannelHeaderLoader: ObservableObject {
             switch result {
             case let .success(image):
                 DispatchQueue.main.async {
+                    self.loadedImageURLs[channel.cid.rawValue] = urlKey
                     self.loadedImages[channel.cid.rawValue] = image
                 }
             case let .failure(error):
-                self.failedImageLoads.insert(channel.cid.rawValue)
+                self.failedImageLoads.insert(urlKey)
                 log.error("error loading image: \(error.localizedDescription)")
             }
         }
