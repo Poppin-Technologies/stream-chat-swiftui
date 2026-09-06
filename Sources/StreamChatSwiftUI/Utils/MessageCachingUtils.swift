@@ -36,7 +36,9 @@ public class MessageCachingUtils {
         return userDisplayInfo.id
     }
 
-    func authorName(for message: ChatMessage) -> String {
+    // Public since 2026-09-05: the app's StreamViewFactory paints group sender
+    // captions from this cache; internal it only compiled inside the SDK.
+    public func authorName(for message: ChatMessage) -> String {
         if let userDisplayInfo = userDisplayInfo(for: message) {
             return userDisplayInfo.name
         }
