@@ -465,7 +465,7 @@ public struct ComposerInputView<Factory: ViewFactory>: View, KeyboardReadable {
     .clipShape(
       RoundedRectangle(cornerRadius: TextSizeConstants.cornerRadius)
     )
-    .shadow(color: Color.black.opacity(0.22), radius: 8, y: 3)
+    .shadow(color: Color.black.opacity(utils.composerConfig.inputViewShadowOpacity), radius: 8, y: 3)
     .onReceive(keyboardWillChangePublisher) { visible in
       keyboardShown = visible
     }

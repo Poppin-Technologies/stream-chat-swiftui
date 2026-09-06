@@ -12,6 +12,8 @@ public struct ComposerConfig {
     public var inputViewMinHeight: CGFloat
     public var inputViewMaxHeight: CGFloat
     public var inputViewCornerRadius: CGFloat
+    /// Opacity of the input pill's drop shadow (Poppin addition); 0 flattens it.
+    public var inputViewShadowOpacity: Double
     public var inputFont: UIFont
     public var gallerySupportedTypes: GallerySupportedTypes
     public var inputPaddingsConfig: PaddingsConfig
@@ -27,6 +29,7 @@ public struct ComposerConfig {
         inputViewMinHeight: CGFloat = 38,
         inputViewMaxHeight: CGFloat = 76,
         inputViewCornerRadius: CGFloat = 20,
+        inputViewShadowOpacity: Double = 0.22,
         inputFont: UIFont = UIFont.preferredFont(forTextStyle: .body),
         gallerySupportedTypes: GallerySupportedTypes = .imagesAndVideo,
         inputPaddingsConfig: PaddingsConfig = .composerInput,
@@ -39,6 +42,7 @@ public struct ComposerConfig {
         self.inputViewMinHeight = inputViewMinHeight
         self.inputViewMaxHeight = inputViewMaxHeight
         self.inputViewCornerRadius = inputViewCornerRadius
+        self.inputViewShadowOpacity = inputViewShadowOpacity
         self.inputFont = inputFont
         self.adjustMessageOnSend = adjustMessageOnSend
         self.adjustMessageOnRead = adjustMessageOnRead
