@@ -86,7 +86,18 @@ class InputTextView: UITextView, AccessibilityView {
         textAlignment = .natural
 
         placeholderLabel.font = font
-        placeholderLabel.textAlignment = .center
+        // The label is pinned to this view's edges, and this view's horizontal compression
+        // resistance is deliberately low so SwiftUI's proposal wins — but the label kept the
+        // default (750) resistance, so a long placeholder ("Message <long name>") forced the
+        // text view wider than the field and ran under the trailing send/GIF slot; the old
+        // `.center` alignment only looked leading-aligned because the view was exactly as
+        // wide as its placeholder. Now the label yields, truncates with an ellipsis before
+        // the trailing inset, and reads from the leading edge like typed text.
+        placeholderLabel.textAlignment = .natural
+        placeholderLabel.numberOfLines = 1
+        placeholderLabel.lineBreakMode = .byTruncatingTail
+        placeholderLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        placeholderLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
         placeholderLabel.textColor = InjectedValues[\.colors].composerPlaceholderColor
     }
 
