@@ -14,6 +14,11 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
     @Injected(\.colors) private var colors
     @Environment(\.messageListTopInset) private var messageListTopInset
 
+    /// Poppin: see `MessageListConfig.composerOverlaysList`.
+    private var composerOverlaysList: Bool {
+        utils.messageListConfig.composerOverlaysList
+    }
+
     var factory: Factory
     var channel: ChatChannel
     var messages: LazyCachedMapCollection<ChatMessage>
@@ -130,6 +135,13 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
 
     public var body: some View {
         ZStack {
+          // Poppin: when the composer overlays the list (composerOverlaysList) it arrives as a
+          // bottom safe-area inset. This list is flipped, so the scroll view must ignore that
+          // inset itself (SwiftUI would inset the LAYOUT bottom, which renders at the visual
+          // top) and reserve the same room at its layout top = visual bottom.
+          GeometryReader { geo in
+            let bottomInset: CGFloat = composerOverlaysList ? geo.safeAreaInsets.bottom : 0
+            let positionAnchor = UnitPoint(x: 0.5, y: bottomInset / max(1, geo.size.height + bottomInset))
             ScrollViewReader { scrollView in
                 ScrollView {
                     GeometryReader { proxy in
@@ -141,6 +153,12 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                     }
 
                     LazyVStack(spacing: 0) {
+                      if bottomInset > 0 {
+                        // Visual bottom of the flipped list: room for the composer bar overlaying it.
+                        Color.clear
+                          .frame(height: bottomInset)
+                          .id(messageListBottomInsetId)
+                      }
                       ForEach(viewModel.messages, id: \.messageId) { message in
                             var index: Int? = messageListDateUtils.indexForMessageDate(message: message, in: messages)
                             let messageDate: Date? = messageListDateUtils.showMessageDate(for: index, in: messages)
@@ -241,7 +259,7 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                     }
                   }
                 }
-                .modifier(ScrollPositionModifier(scrollPosition: loadingNextMessages ? $scrollPosition : .constant(nil)))
+                .modifier(ScrollPositionModifier(scrollPosition: loadingNextMessages ? $scrollPosition : .constant(nil), anchor: positionAnchor))
                 .coordinateSpace(name: scrollAreaId)
                 .onPreferenceChange(WidthPreferenceKey.self) { value in
                     if let value = value, value != width {
@@ -315,12 +333,21 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                             return
                         }
                         withAnimation {
-                            scrollView.scrollTo(scrolledId, anchor: messageListConfig.scrollingAnchor)
+                            if bottomInset > 0, scrolledId == messages.first?.messageId {
+                                // Newest message = the rest position, keeping the room under the bar.
+                                scrollView.scrollTo(messageListBottomInsetId, anchor: .top)
+                            } else {
+                                scrollView.scrollTo(scrolledId, anchor: messageListConfig.scrollingAnchor)
+                            }
                         }
                     }
                 }
                 .accessibilityIdentifier("MessageListScrollView")
+                .if(composerOverlaysList) { view in
+                    view.ignoresSafeArea(.container, edges: .bottom)
+                }
             }
+          }
 
             if showScrollToLatestButton {
                 factory.makeScrollToBottomButton(
@@ -482,13 +509,19 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
     }
 }
 
+/// Poppin: id of the room MessageListView reserves under an overlaying composer.
+let messageListBottomInsetId = "poppin.messageList.bottomInset"
+
 struct ScrollPositionModifier: ViewModifier {
     @Binding var scrollPosition: String?
+    /// Poppin: where the anchored row lands — `.top` unless the composer overlays the list,
+    /// in which case the row must sit just above the bar, not at the hidden frame edge.
+    var anchor: UnitPoint = .top
     
     func body(content: Content) -> some View {
         if #available(iOS 17, *) {
             content
-                .scrollPosition(id: $scrollPosition, anchor: .top)
+                .scrollPosition(id: $scrollPosition, anchor: anchor)
         } else {
             content
         }

@@ -50,46 +50,22 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
                   .zIndex(99)
                 VStack(spacing: 0) {
                     factory.makeChannelTopBar(channel: channel)
-                    if !viewModel.messages.isEmpty {
-                        MessageListView(
-                            factory: factory,
-                            channel: channel,
-                            messages: viewModel.messages,
-                            messagesGroupingInfo: viewModel.messagesGroupingInfo,
-                            scrolledId: $viewModel.scrolledId,
-                            showScrollToLatestButton: $viewModel.showScrollToLatestButton,
-                            quotedMessage: $viewModel.quotedMessage,
-                            currentDateString: viewModel.currentDateString,
-                            listId: viewModel.listId,
-                            isMessageThread: viewModel.isMessageThread,
-                            shouldShowTypingIndicator: viewModel.shouldShowTypingIndicator,
-                            scrollPosition: $viewModel.scrollPosition,
-                            loadingNextMessages: viewModel.loadingNextMessages,
-                            onMessageAppear: viewModel.handleMessageAppear(index:scrollDirection:),
-                            onScrollToBottom: viewModel.scrollToLastMessage,
-                            onLongPress: { displayInfo in
-                                messageDisplayInfo = displayInfo
-                                withAnimation {
-                                    viewModel.showReactionOverlay(for: AnyView(self))
+                    // Poppin: with composerOverlaysList the composer is a bottom safe-area inset
+                    // of the conversation, not a sibling below it — the list extends under the
+                    // bar (which frosts the bubbles sliding beneath it, like Messages) and
+                    // MessageListView reserves the bar's live height (keyboard, quoted header,
+                    // attachment tray) at its visual bottom.
+                    if overlaysComposer {
+                        if #available(iOS 15.0, *) {
+                            conversationArea(for: channel)
+                                .safeAreaInset(edge: .bottom, spacing: 0) {
+                                    composerView
                                 }
-                            },
-                            onJumpToMessage: viewModel.jumpToMessage(messageId:)
-                        )
-                        .overlay(
-                            viewModel.currentDateString != nil ?
-                                factory.makeDateIndicatorView(dateString: viewModel.currentDateString!)
-                                : nil
-                        )
-                    } else {
-                        ZStack {
-                            factory.makeEmptyMessagesView(for: channel, colors: colors)
-                            if viewModel.shouldShowTypingIndicator {
-                                factory.makeTypingIndicatorBottomView(
-                                    channel: channel,
-                                    currentUserId: chatClient.currentUserId
-                                )
-                            }
+                        } else {
+                            conversationArea(for: channel)
                         }
+                    } else {
+                        conversationArea(for: channel)
                     }
 
                     Text("")
@@ -111,18 +87,10 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
                         }
                         .animation(nil)
 
-                    factory.makeMessageComposerViewType(
-                        with: viewModel.channelController,
-                        messageController: viewModel.messageController,
-                        quotedMessage: $viewModel.quotedMessage,
-                        editedMessage: $viewModel.editedMessage,
-                        onMessageSent: viewModel.scrollToLastMessage
-                    )
-                    .opacity((
-                        utils.messageListConfig.messagePopoverEnabled && messageDisplayInfo != nil && !viewModel
-                            .reactionsShown && viewModel.channel?.isFrozen == false
-                    ) ? 0 : 1)
-                    .padding(.top, -4)
+                    if !overlaysComposer {
+                        composerView
+                            .padding(.top, -4)
+                    }
 
                     NavigationLink(
                         isActive: $viewModel.threadMessageShown
@@ -219,6 +187,75 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("ChatChannelView")
         .environmentObject(viewModel)
+    }
+
+    // MARK: - Poppin: conversation + composer pieces
+
+    /// True when the composer overlays the list (`safeAreaInset` is iOS 15+).
+    private var overlaysComposer: Bool {
+        if #available(iOS 15.0, *) {
+            return utils.messageListConfig.composerOverlaysList
+        }
+        return false
+    }
+
+    @ViewBuilder
+    private func conversationArea(for channel: ChatChannel) -> some View {
+        if !viewModel.messages.isEmpty {
+            MessageListView(
+                factory: factory,
+                channel: channel,
+                messages: viewModel.messages,
+                messagesGroupingInfo: viewModel.messagesGroupingInfo,
+                scrolledId: $viewModel.scrolledId,
+                showScrollToLatestButton: $viewModel.showScrollToLatestButton,
+                quotedMessage: $viewModel.quotedMessage,
+                currentDateString: viewModel.currentDateString,
+                listId: viewModel.listId,
+                isMessageThread: viewModel.isMessageThread,
+                shouldShowTypingIndicator: viewModel.shouldShowTypingIndicator,
+                scrollPosition: $viewModel.scrollPosition,
+                loadingNextMessages: viewModel.loadingNextMessages,
+                onMessageAppear: viewModel.handleMessageAppear(index:scrollDirection:),
+                onScrollToBottom: viewModel.scrollToLastMessage,
+                onLongPress: { displayInfo in
+                    messageDisplayInfo = displayInfo
+                    withAnimation {
+                        viewModel.showReactionOverlay(for: AnyView(self))
+                    }
+                },
+                onJumpToMessage: viewModel.jumpToMessage(messageId:)
+            )
+            .overlay(
+                viewModel.currentDateString != nil ?
+                    factory.makeDateIndicatorView(dateString: viewModel.currentDateString!)
+                    : nil
+            )
+        } else {
+            ZStack {
+                factory.makeEmptyMessagesView(for: channel, colors: colors)
+                if viewModel.shouldShowTypingIndicator {
+                    factory.makeTypingIndicatorBottomView(
+                        channel: channel,
+                        currentUserId: chatClient.currentUserId
+                    )
+                }
+            }
+        }
+    }
+
+    private var composerView: some View {
+        factory.makeMessageComposerViewType(
+            with: viewModel.channelController,
+            messageController: viewModel.messageController,
+            quotedMessage: $viewModel.quotedMessage,
+            editedMessage: $viewModel.editedMessage,
+            onMessageSent: viewModel.scrollToLastMessage
+        )
+        .opacity((
+            utils.messageListConfig.messagePopoverEnabled && messageDisplayInfo != nil && !viewModel
+                .reactionsShown && viewModel.channel?.isFrozen == false
+        ) ? 0 : 1)
     }
 
     private var generatingSnapshot: Bool {

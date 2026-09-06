@@ -30,7 +30,8 @@ public struct MessageListConfig {
         uniqueReactionsEnabled: Bool = false,
         localLinkDetectionEnabled: Bool = true,
         isMessageEditedLabelEnabled: Bool = true,
-        markdownSupportEnabled: Bool = true
+        markdownSupportEnabled: Bool = true,
+        composerOverlaysList: Bool = false
     ) {
         self.messageListType = messageListType
         self.typingIndicatorPlacement = typingIndicatorPlacement
@@ -54,6 +55,7 @@ public struct MessageListConfig {
         self.localLinkDetectionEnabled = localLinkDetectionEnabled
         self.isMessageEditedLabelEnabled = isMessageEditedLabelEnabled
         self.markdownSupportEnabled = markdownSupportEnabled
+        self.composerOverlaysList = composerOverlaysList
     }
 
     public let messageListType: MessageListType
@@ -73,6 +75,11 @@ public struct MessageListConfig {
     public let scrollingAnchor: UnitPoint
     public let showNewMessagesSeparator: Bool
     public let handleTabBarVisibility: Bool
+    /// Poppin: mount the composer as a bottom safe-area inset of the conversation instead of
+    /// a sibling below it, so the message list extends under the composer bar and bubbles
+    /// slide beneath its material while scrolling (Messages' construction). Off keeps the
+    /// stock layout.
+    public let composerOverlaysList: Bool
     public let messageListAlignment: MessageListAlignment
     public let uniqueReactionsEnabled: Bool
     public let localLinkDetectionEnabled: Bool
