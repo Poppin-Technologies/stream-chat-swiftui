@@ -228,25 +228,36 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
     }
 
 
+    /// Conversation-break gap, matching Apple Messages: a time header sits above a message
+    /// whenever its older neighbour is at least this far back (or on another calendar day).
+    public static let conversationBreakInterval: TimeInterval = 3600
+
+    /// Stamps the messages that carry a time header (`messageWithDates`). The list is
+    /// newest-first, so `messages[i + 1]` is the OLDER neighbour. Rebuilt from scratch on every
+    /// run (called from `messages.didSet`, so older pages and live frames recompute): the old
+    /// add-only loop let a header linger once its real older neighbour paged in, and its
+    /// `i >= count - 2` guard skipped the two OLDEST messages, so the first message of every
+    /// conversation — and a whole 1–2 message chat — never got a date at all (Jackie 09-05).
     func setupDateMessages() {
-      let count = messages.count
-      
-      for i in 0..<count {
-        let message = messages[i]
-        
-        var reachedEnd = i >= count - 2
-        if !reachedEnd {
-          let nextmessage = messages[i + 1]
-          let calendar = Calendar.current
-          let messageDate = calendar.startOfDay(for: message.createdAt)
-          let nextMessageDate = calendar.startOfDay(for: nextmessage.createdAt)
-          // 1 hour, matching Apple Messages' conversation-break time headers
-          // (was 23,600s ≈ 6.5h — long silences inside a day never got one).
-          if (nextmessage.createdAt.timeIntervalSince(message.createdAt) <= -3600 || messageDate != nextMessageDate) {
-            self.messageWithDates[message.id] = message.createdAt
-          }
-        } 
-      }
+        var stamped = [String: Date]()
+        let calendar = Calendar.current
+        let count = messages.count
+        for i in 0..<count {
+            let message = messages[i]
+            let olderIndex = i + 1
+            guard olderIndex < count else {
+                // Oldest loaded message: always headed, like the first message in Messages.
+                stamped[message.id] = message.createdAt
+                break
+            }
+            let older = messages[olderIndex]
+            let gap = message.createdAt.timeIntervalSince(older.createdAt)
+            if gap >= Self.conversationBreakInterval
+                || !calendar.isDate(message.createdAt, inSameDayAs: older.createdAt) {
+                stamped[message.id] = message.createdAt
+            }
+        }
+        messageWithDates = stamped
     }
     
   @objc private func selectedMessageThread(notification: Notification) {
