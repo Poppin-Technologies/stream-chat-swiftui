@@ -61,8 +61,14 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
 
     @Published public var showScrollToLatestButton = false
     /// Set when the initial channel load failed with nothing to render - drives the error/Retry
-    /// state instead of an infinite loading view.
-    @Published public var channelLoadFailed = false
+    /// state (copy per case) instead of an infinite loading view. Stays nil when the app's
+    /// `Utils.channelLoadFailureHandler` took the failure over (toast + pop).
+    @Published public var channelLoadFailure: ChannelLoadFailure?
+    /// Source-compat spelling of `channelLoadFailure != nil`.
+    public var channelLoadFailed: Bool { channelLoadFailure != nil }
+    /// Set once the app's handler owned a failure, so a second completion for the same failed
+    /// load (a refresh racing the pop) cannot re-toast or re-pop. Reset by Retry.
+    private var loadFailureHandled = false
 
     @Published public var currentDateString: String?
     @Published public var messages = LazyCachedMapCollection<ChatMessage>() {
@@ -205,25 +211,38 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
         }
     }
 
-    /// Retries the channel load after a failure surfaced via `channelLoadFailed`.
+    /// Retries the channel load after a failure surfaced via `channelLoadFailure`.
     public func retryChannelLoad() {
-        channelLoadFailed = false
+        channelLoadFailure = nil
+        loadFailureHandled = false
         syncChannelController()
     }
 
     /// Loads the channel, flagging failure only when there is nothing to show - a failed
     /// refresh of an already-loaded channel must not blank the conversation. Before this,
-    /// synchronize errors were swallowed and every failed load was a permanent loading view.
+    /// synchronize errors were swallowed and every failed load was a permanent loading view;
+    /// since 2026-09-06 the failure is classified (`ChannelLoadFailure`) and offered to the app
+    /// first, so a cooldown on a fresh DM can toast + pop instead of painting a generic error.
     private func syncChannelController() {
         // Placeholder controllers (empty channel id) can never load - the app's embed views mint
         // them purely to satisfy the environment. Skip the guaranteed-400 round trip.
         guard !channelController.cid.id.isEmpty else { return }
         channelController.synchronize { [weak self] error in
             guard let self else { return }
-            if let error {
-                log.error("channel load failed (cid: \(self.channelController.cid), hasCachedChannel: \(self.channelController.channel != nil)): \(error)")
+            guard let error, self.channelController.channel == nil else {
+                self.channelLoadFailure = nil
+                return
             }
-            self.channelLoadFailed = error != nil && self.channelController.channel == nil
+            let failure = ChannelLoadFailure.classify(error)
+            log.error("channel load failed (cid: \(self.channelController.cid), failure: \(failure)): \(error)")
+            if !self.loadFailureHandled,
+               self.utils.channelLoadFailureHandler(self.channelController, failure) {
+                // The app owns it (toast + pop): keep the loading view up while the pop lands.
+                self.loadFailureHandled = true
+                self.channelLoadFailure = nil
+                return
+            }
+            self.channelLoadFailure = failure
         }
     }
 

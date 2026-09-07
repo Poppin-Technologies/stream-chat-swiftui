@@ -23,6 +23,12 @@ public class Utils {
     public var messageListConfig: MessageListConfig
     public var composerConfig: ComposerConfig
     public var shouldSyncChannelControllerOnAppear: (ChatChannelController) -> Bool
+    /// App-installed handler for a channel that failed to load with NOTHING cached to show.
+    /// Return `true` when the app took the failure over (e.g. toasted the reason and popped the
+    /// screen): the view model then keeps its loading view up and renders no error/Retry copy.
+    /// `false` keeps the built-in state (`ChannelLoadFailure.title` / `.subtitle` + Retry).
+    /// Main thread, once per failed load; Retry re-arms it.
+    public var channelLoadFailureHandler: (ChatChannelController, ChannelLoadFailure) -> Bool
     public var snapshotCreator: SnapshotCreator
     public var messageIdBuilder: MessageIdBuilder
     public var sortReactions: (MessageReactionType, MessageReactionType) -> Bool
@@ -84,7 +90,8 @@ public class Utils {
         videoDurationFormatter: VideoDurationFormatter = DefaultVideoDurationFormatter(),
         audioRecordingNameFormatter: AudioRecordingNameFormatter = DefaultAudioRecordingNameFormatter(),
         sortReactions: @escaping (MessageReactionType, MessageReactionType) -> Bool = Utils.defaultSortReactions,
-        shouldSyncChannelControllerOnAppear: @escaping (ChatChannelController) -> Bool = { _ in true }
+        shouldSyncChannelControllerOnAppear: @escaping (ChatChannelController) -> Bool = { _ in true },
+        channelLoadFailureHandler: @escaping (ChatChannelController, ChannelLoadFailure) -> Bool = { _, _ in false }
     ) {
         self.dateFormatter = dateFormatter
         self.videoPreviewLoader = videoPreviewLoader
@@ -103,6 +110,7 @@ public class Utils {
         self.snapshotCreator = snapshotCreator
         self.messageIdBuilder = messageIdBuilder
         self.shouldSyncChannelControllerOnAppear = shouldSyncChannelControllerOnAppear
+        self.channelLoadFailureHandler = channelLoadFailureHandler
         self.sortReactions = sortReactions
         self.channelHeaderLoader = channelHeaderLoader
         self.videoDurationFormatter = videoDurationFormatter

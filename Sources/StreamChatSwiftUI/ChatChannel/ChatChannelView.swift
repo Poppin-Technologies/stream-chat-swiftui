@@ -133,10 +133,17 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
                         isInThread: false
                     )
                 )
-            } else if viewModel.channelLoadFailed {
+            } else if let failure = viewModel.channelLoadFailure {
+                // Copy per failure (offline / busy / cooldown / generic); Retry for every case.
                 VStack(spacing: 12) {
-                    Text("Couldn't load this conversation")
+                    Text(failure.title)
                         .foregroundColor(Color(colors.textLowEmphasis))
+                    if let subtitle = failure.subtitle {
+                        Text(subtitle)
+                            .font(.footnote)
+                            .foregroundColor(Color(colors.textLowEmphasis))
+                            .multilineTextAlignment(.center)
+                    }
                     Button {
                         viewModel.retryChannelLoad()
                     } label: {
@@ -145,6 +152,7 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
                             .foregroundColor(colors.tintColor)
                     }
                 }
+                .padding(.horizontal, 32)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 factory.makeChannelLoadingView()
