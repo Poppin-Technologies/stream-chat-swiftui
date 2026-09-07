@@ -136,9 +136,10 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
     public var body: some View {
         ZStack {
           // Poppin: when the composer overlays the list (composerOverlaysList) it arrives as a
-          // bottom safe-area inset. This list is flipped, so the scroll view must ignore that
-          // inset itself (SwiftUI would inset the LAYOUT bottom, which renders at the visual
-          // top) and reserve the same room at its layout top = visual bottom.
+          // bottom safe-area inset (the bar, plus the keyboard strip while the keyboard is up).
+          // This list is flipped, so the scroll view must ignore that inset itself (SwiftUI
+          // would inset the LAYOUT bottom, which renders at the visual top) and reserve the
+          // same room at its layout top = visual bottom.
           GeometryReader { geo in
             let bottomInset: CGFloat = composerOverlaysList ? geo.safeAreaInsets.bottom : 0
             let positionAnchor = UnitPoint(x: 0.5, y: bottomInset / max(1, geo.size.height + bottomInset))
@@ -344,7 +345,14 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                 }
                 .accessibilityIdentifier("MessageListScrollView")
                 .if(composerOverlaysList) { view in
-                    view.ignoresSafeArea(.container, edges: .bottom)
+                    // Both regions, not just .container: `bottomInset` above is
+                    // `geo.safeAreaInsets.bottom`, the union of the composer strip (.container)
+                    // and the keyboard strip (.keyboard) while it is up. The reserved row already
+                    // holds room for both, so the scroll view must run under both. Ignoring only
+                    // .container left SwiftUI keyboard-avoiding this frame as well, so the
+                    // keyboard was reserved twice: the newest bubble sat one keyboard height
+                    // above the bar (Jackie 09-06, image 3).
+                    view.ignoresSafeArea([.container, .keyboard], edges: .bottom)
                 }
             }
           }
