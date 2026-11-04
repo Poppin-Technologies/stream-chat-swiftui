@@ -21,20 +21,32 @@ public enum ChannelLoadFailure: Equatable {
     case offline
     /// The server shed the request (503 / code 9503) - worth a retry in a moment.
     case busy
-    /// The server says the channel is gone (HTTP 404): a row cached before the sync delta that
-    /// removes it landed, most often a deleted account's DM (Jackie 11-03: a deleted account
-    /// leaves no tell anywhere in the app). The engine has already dropped the row
-    /// (`forgetChannelIfGone`); the app's handler pops with no toast, so nothing says why.
-    case gone
+    /// The server says the channel is gone (HTTP 404, never an auth rejection riding a 404): a
+    /// row cached before the sync delta that removes it landed, most often a deleted account's
+    /// DM (Jackie 11-03: a deleted account leaves no tell anywhere in the app), or a DM create
+    /// refused for a gone or banned peer. The engine retires a cached row on the channel's own
+    /// 403/404 (`forgetChannel`, `ChatChannelController+Store`), then `ChatChannelViewModel`
+    /// offers `.retired` on the `.remove` change. Carries the rejection: a DM create's 404 has
+    /// the backend's neutral copy ("This chat isn't available") for the app to toast; a GET 404
+    /// and a retired row carry none, so the app pops in silence and nothing says why.
+    case gone(ChatRejection)
     /// Anything else: membership, decode, transport, unknown.
     case generic
+
+    /// The engine retired the channel under an open screen (`EntityChange.remove`): no wire
+    /// rejection to carry, so a bare 404 with no copy, which keeps the app's handler silent.
+    public static var retired: ChannelLoadFailure {
+        .gone(ChatRejection(kind: .server, status: 404))
+    }
 
     public static func classify(_ error: Error) -> ChannelLoadFailure {
         guard let rejection = error.chatRejection else { return .generic }
         if rejection.isOffline { return .offline }
         if rejection.isRateLimited { return .cooldown(rejection) }
         if rejection.isServerBusy { return .busy }
-        if rejection.kind == .server, rejection.status == 404 { return .gone }
+        if rejection.kind == .server, rejection.status == 404, !rejection.isAuthRejected {
+            return .gone(rejection)
+        }
         return .generic
     }
 
@@ -47,9 +59,10 @@ public enum ChannelLoadFailure: Equatable {
             return "You're offline"
         case .busy:
             return "Poppin is busy right now"
-        case .gone:
-            // Only when the app's handler did not pop: the backend's own 404 copy, no reason given.
-            return "This chat isn't available"
+        case let .gone(rejection):
+            // Only when the app's handler did not pop: the backend's copy when it sent one, else
+            // its DM-create 404 wording, no reason given.
+            return rejection.display.isEmpty ? "This chat isn't available" : rejection.display
         case .generic:
             return "Couldn't load this conversation"
         }
@@ -64,7 +77,9 @@ public enum ChannelLoadFailure: Equatable {
             return "Check your connection and try again."
         case .busy:
             return "Try again in a moment."
-        case .gone, .generic:
+        case let .gone(rejection):
+            return rejection.subDisplay.isEmpty ? nil : rejection.subDisplay
+        case .generic:
             return nil
         }
     }

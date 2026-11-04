@@ -501,6 +501,17 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
         didUpdateChannel channel: EntityChange<ChatChannel>,
         channelController: ChatChannelController
     ) {
+        if case .remove = channel, !isMessageThread, !loadFailureHandled {
+            // The engine retired the channel under this screen: its own 404 on open (a row tap
+            // starts from the cached channel, the synchronize completion runs before the store
+            // clears it, so syncChannelController saw a channel and stayed quiet) or a
+            // channel.deleted frame while the chat was open. Offer it to the app once as the
+            // gone case (pop, no copy); unhandled, the built-in gone state shows.
+            loadFailureHandled = true
+            let failure = ChannelLoadFailure.retired
+            channelLoadFailure = utils.channelLoadFailureHandler(channelController, failure) ? nil : failure
+            return
+        }
         checkReadIndicators(for: channel)
         checkTypingIndicator()
         checkHeaderType()
