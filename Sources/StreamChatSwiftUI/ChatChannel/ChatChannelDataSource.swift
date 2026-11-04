@@ -86,7 +86,7 @@ class ChatChannelDataSource: ChannelDataSource, ChatChannelControllerDelegate {
     weak var delegate: MessagesDataSource?
     
     var messages: LazyCachedMapCollection<ChatMessage> {
-        controller.messages
+        controller.messages.hidingDeletedAccounts
     }
     
     var hasLoadedAllNextMessages: Bool {
@@ -108,7 +108,7 @@ class ChatChannelDataSource: ChannelDataSource, ChatChannelControllerDelegate {
     ) {
         delegate?.dataSource(
             channelDataSource: self,
-            didUpdateMessages: channelController.messages,
+            didUpdateMessages: channelController.messages.hidingDeletedAccounts,
             changes: changes
         )
     }
@@ -161,7 +161,7 @@ class MessageThreadDataSource: ChannelDataSource, ChatMessageControllerDelegate 
     weak var delegate: MessagesDataSource?
     
     var messages: LazyCachedMapCollection<ChatMessage> {
-        messageController.replies
+        messageController.replies.hidingDeletedAccounts
     }
     
     var hasLoadedAllNextMessages: Bool {
@@ -195,7 +195,7 @@ class MessageThreadDataSource: ChannelDataSource, ChatMessageControllerDelegate 
     ) {
         delegate?.dataSource(
             channelDataSource: self,
-            didUpdateMessages: controller.replies,
+            didUpdateMessages: controller.replies.hidingDeletedAccounts,
             changes: changes
         )
     }
@@ -206,7 +206,7 @@ class MessageThreadDataSource: ChannelDataSource, ChatMessageControllerDelegate 
     ) {
         delegate?.dataSource(
             channelDataSource: self,
-            didUpdateMessages: controller.replies,
+            didUpdateMessages: controller.replies.hidingDeletedAccounts,
             changes: []
         )
     }
@@ -236,5 +236,13 @@ class MessageThreadDataSource: ChannelDataSource, ChatMessageControllerDelegate 
     
     func loadFirstPage(_ completion: ((_ error: Error?) -> Void)?) {
         messageController.loadFirstPage(completion)
+    }
+}
+
+extension LazyCachedMapCollection where Element == ChatMessage {
+    /// The list without a deleted account's tombstones (`ChatMessage.isFromDeletedAccount`):
+    /// the one gate for the channel list and reply threads alike.
+    var hidingDeletedAccounts: LazyCachedMapCollection<ChatMessage> {
+        LazyCachedMapCollection(elements: filter { !$0.isFromDeletedAccount })
     }
 }

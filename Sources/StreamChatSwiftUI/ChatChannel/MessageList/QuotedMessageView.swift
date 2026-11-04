@@ -20,7 +20,15 @@ struct QuotedMessageViewContainer<Factory: ViewFactory>: View {
 
     var body: some View {
         HStack(alignment: .bottom) {
-            if !quotedMessage.isSentByCurrentUser || forceLeftToRight {
+            if quotedMessage.isFromDeletedAccount {
+                // No avatar, no name: the block reads "Message unavailable" and nothing else.
+                QuotedMessageView(
+                    factory: factory,
+                    quotedMessage: quotedMessage,
+                    fillAvailableSpace: fillAvailableSpace,
+                    forceLeftToRight: forceLeftToRight
+                )
+            } else if !quotedMessage.isSentByCurrentUser || forceLeftToRight {
                 factory.makeQuotedMessageAvatarView(
                     for: utils.messageCachingUtils.authorInfo(from: quotedMessage),
                     size: CGSize(width: avatarSize, height: avatarSize)
@@ -48,6 +56,8 @@ struct QuotedMessageViewContainer<Factory: ViewFactory>: View {
         }
         .padding(.all, 8)
         .onTapGesture(perform: {
+            // A deleted account's line is not in the list, so there is nothing to jump to.
+            guard !quotedMessage.isFromDeletedAccount else { return }
             scrolledId = quotedMessage.messageId
         })
         .accessibilityIdentifier("QuotedMessageViewContainer")
@@ -87,7 +97,7 @@ public struct QuotedMessageView<Factory: ViewFactory>: View {
 
     public var body: some View {
         HStack(alignment: .top) {
-            if !quotedMessage.attachmentCounts.isEmpty {
+            if !quotedMessage.attachmentCounts.isEmpty, !quotedMessage.isFromDeletedAccount {
                 ZStack {
                     if messageTypeResolver.hasCustomAttachment(message: quotedMessage) {
                         factory.makeCustomAttachmentQuotedView(for: quotedMessage)
@@ -175,6 +185,10 @@ public struct QuotedMessageView<Factory: ViewFactory>: View {
     }
 
     private var textForMessage: String {
+        if quotedMessage.isFromDeletedAccount {
+            return "Message unavailable"
+        }
+
         if !quotedMessage.text.isEmpty {
             return quotedMessage.adjustedText
         }

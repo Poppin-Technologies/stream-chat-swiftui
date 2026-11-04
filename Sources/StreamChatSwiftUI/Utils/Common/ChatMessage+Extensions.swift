@@ -72,6 +72,15 @@ public extension ChatMessage {
         deletedAt != nil
     }
 
+    /// Sent by an account that no longer exists: the backend rewrites a deleted account's id to
+    /// `deleted_<uuid>` and names it "Deleted Account", which is itself the tell (a banned
+    /// user's tombstones keep their real name). Jackie 11-03: nobody learns from the app that a
+    /// friend deleted their account, so these lines leave the message list and the previews,
+    /// and a quote of one reads "Message unavailable" with no name.
+    var isFromDeletedAccount: Bool {
+        author.id.hasPrefix("deleted_")
+    }
+
     /// A boolean value that determines whether the text message should be rendered as large emojis
     ///
     /// By default, any string which comprises of ONLY emojis of length 3 or less is displayed as large emoji

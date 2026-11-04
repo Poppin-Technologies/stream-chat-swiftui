@@ -231,15 +231,21 @@ public struct InjectedChannelInfo {
 
 extension ChatChannel {
   
+  /// The newest line not from a deleted account: its tombstones leave every preview too
+  /// (`ChatMessage.isFromDeletedAccount`).
+  private var latestVisibleMessage: ChatMessage? {
+    latestMessages.first(where: { !$0.isFromDeletedAccount })
+  }
+
   public var lastMessageText: String? {
-    if let latestMessage = latestMessages.first {
+    if let latestMessage = latestVisibleMessage {
       return "\(latestMessage.author.name ?? latestMessage.author.id): \(textContent(for: latestMessage))"
     } else {
       return nil
     }
   }
   public var lastMessageAdjustedText: String? {
-    if let latestMessage = latestMessages.first {
+    if let latestMessage = latestVisibleMessage {
       return textContent(for: latestMessage)
     } else {
       return nil
