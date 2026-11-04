@@ -239,9 +239,10 @@ class MessageThreadDataSource: ChannelDataSource, ChatMessageControllerDelegate 
     }
 }
 
-extension LazyCachedMapCollection where Element == ChatMessage {
-    /// The list without a deleted account's tombstones (`ChatMessage.isFromDeletedAccount`):
-    /// the one gate for the channel list and reply threads alike.
+public extension LazyCachedMapCollection where Element == ChatMessage {
+    /// The list without a deleted account's lines (`ChatMessage.isFromDeletedAccount`): the one
+    /// gate for the channel list, reply threads and the app's own readers of
+    /// `ChatChannelController.messages` (the event thread) alike.
     var hidingDeletedAccounts: LazyCachedMapCollection<ChatMessage> {
         LazyCachedMapCollection(elements: filter { !$0.isFromDeletedAccount })
     }

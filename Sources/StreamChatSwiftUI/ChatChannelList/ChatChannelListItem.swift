@@ -231,10 +231,11 @@ public struct InjectedChannelInfo {
 
 extension ChatChannel {
   
-  /// The newest line not from a deleted account: its tombstones leave every preview too
-  /// (`ChatMessage.isFromDeletedAccount`).
-  private var latestVisibleMessage: ChatMessage? {
-    latestMessages.first(where: { !$0.isFromDeletedAccount })
+  /// The newest line not from a deleted account: its lines leave every preview too
+  /// (`ChatMessage.isFromDeletedAccount`). `latestMessages` is newest LAST (the store's
+  /// window order); `.first` paired the oldest line's name with the newest line's text.
+  public var latestVisibleMessage: ChatMessage? {
+    latestMessages.last(where: { !$0.isFromDeletedAccount })
   }
 
   public var lastMessageText: String? {
@@ -251,11 +252,12 @@ extension ChatChannel {
       return nil
     }
   }
-  /// Attachment-aware preview text for `previewMessage` — the most recent message
-  /// that is NOT deleted. `lastMessageAdjustedText` reads `latestMessages.first`,
-  /// which surfaces the "Message deleted" placeholder when the latest was deleted.
+  /// Attachment-aware preview text for `previewMessage` — the server's most recent message
+  /// that is NOT deleted; nil when that line is a deleted account's (the row shows no
+  /// preview rather than its synthesized name). `lastMessageAdjustedText` reads the local
+  /// window's newest visible line instead.
   public var previewMessageAdjustedText: String? {
-    if let previewMessage = previewMessage {
+    if let previewMessage = previewMessage, !previewMessage.isFromDeletedAccount {
       return textContent(for: previewMessage)
     } else {
       return nil
