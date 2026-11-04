@@ -21,6 +21,11 @@ public enum ChannelLoadFailure: Equatable {
     case offline
     /// The server shed the request (503 / code 9503) - worth a retry in a moment.
     case busy
+    /// The server says the channel is gone (HTTP 404): a row cached before the sync delta that
+    /// removes it landed, most often a deleted account's DM (Jackie 11-03: a deleted account
+    /// leaves no tell anywhere in the app). The engine has already dropped the row
+    /// (`forgetChannelIfGone`); the app's handler pops with no toast, so nothing says why.
+    case gone
     /// Anything else: membership, decode, transport, unknown.
     case generic
 
@@ -29,6 +34,7 @@ public enum ChannelLoadFailure: Equatable {
         if rejection.isOffline { return .offline }
         if rejection.isRateLimited { return .cooldown(rejection) }
         if rejection.isServerBusy { return .busy }
+        if rejection.kind == .server, rejection.status == 404 { return .gone }
         return .generic
     }
 
@@ -41,6 +47,9 @@ public enum ChannelLoadFailure: Equatable {
             return "You're offline"
         case .busy:
             return "Poppin is busy right now"
+        case .gone:
+            // Only when the app's handler did not pop: the backend's own 404 copy, no reason given.
+            return "This chat isn't available"
         case .generic:
             return "Couldn't load this conversation"
         }
@@ -55,7 +64,7 @@ public enum ChannelLoadFailure: Equatable {
             return "Check your connection and try again."
         case .busy:
             return "Try again in a moment."
-        case .generic:
+        case .gone, .generic:
             return nil
         }
     }
