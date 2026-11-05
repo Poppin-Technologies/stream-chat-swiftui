@@ -69,6 +69,9 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
     /// Set once the app's handler owned a failure, so a second completion for the same failed
     /// load (a refresh racing the pop) cannot re-toast or re-pop. Reset by Retry.
     private var loadFailureHandled = false
+    /// The engine retired the channel while another screen covered this one; offered to the
+    /// app on the next appearance, so the pop lands on THIS chat and never on whatever is on top.
+    private var retiredWhileInactive = false
 
     @Published public var currentDateString: String?
     @Published public var messages = LazyCachedMapCollection<ChatMessage>() {
@@ -501,15 +504,8 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
         didUpdateChannel channel: EntityChange<ChatChannel>,
         channelController: ChatChannelController
     ) {
-        if case .remove = channel, !isMessageThread, !loadFailureHandled {
-            // The engine retired the channel under this screen: its own 404 on open (a row tap
-            // starts from the cached channel, the synchronize completion runs before the store
-            // clears it, so syncChannelController saw a channel and stayed quiet) or a
-            // channel.deleted frame while the chat was open. Offer it to the app once as the
-            // gone case (pop, no copy); unhandled, the built-in gone state shows.
-            loadFailureHandled = true
-            let failure = ChannelLoadFailure.retired
-            channelLoadFailure = utils.channelLoadFailureHandler(channelController, failure) ? nil : failure
+        if case .remove = channel, !isMessageThread {
+            offerRetirement()
             return
         }
         checkReadIndicators(for: channel)
@@ -537,6 +533,28 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
         messages = channelDataSource.messages
         firstUnreadMessageId = channelDataSource.firstUnreadMessageId
         checkNameChange()
+        if retiredWhileInactive {
+            retiredWhileInactive = false
+            offerRetirement()
+        }
+    }
+
+    /// The engine retired the channel under this screen: its own 404 on open (a row tap starts
+    /// from the cached channel and the synchronize completion runs before the store clears it,
+    /// so syncChannelController saw a channel and stayed quiet) or a channel.deleted frame
+    /// while the chat was open. Offer it to the app once as the gone case (pop, no copy);
+    /// unhandled, the built-in gone state shows. Only while this screen is the active one: a
+    /// chat buried under an event chat waits for its own appearance (review 11-04: the app's
+    /// handler pops the top chat, which would have been the wrong screen).
+    private func offerRetirement() {
+        guard isActive else {
+            retiredWhileInactive = true
+            return
+        }
+        guard !loadFailureHandled else { return }
+        loadFailureHandled = true
+        let failure = ChannelLoadFailure.retired
+        channelLoadFailure = utils.channelLoadFailureHandler(channelController, failure) ? nil : failure
     }
     
     public func onViewDissappear() {
