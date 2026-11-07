@@ -89,17 +89,27 @@ public struct VideoAttachmentsList: View {
                     url: attachment.videoURL
                 )
             }
+            if message.extraData["expiresAt"] != nil && message.isSentByCurrentUser {
+                VanishingMediaCaption()
+            }
         }
     }
 }
 
 public struct VideoAttachmentView: View {
+    @Injected(\.chatClient) private var chatClient
+
 
     let attachment: ChatMessageVideoAttachment
     let message: ChatMessage
     let width: CGFloat
     var ratio: CGFloat = 0.75
     var cornerRadius: CGFloat = 24
+
+    /// Poppin (2026-11-06): a live dm/group video on the vanishing lifecycle is sealed for the
+    /// other person until they open it; closing the player reports `viewed` (see
+    /// ImageAttachmentContainer for the photo twin).
+    private var isSealed: Bool { message.extraData["expiresAt"] != nil && !message.isSentByCurrentUser }
 
     public init(
         attachment: ChatMessageVideoAttachment,
@@ -125,7 +135,13 @@ public struct VideoAttachmentView: View {
             author: message.author,
             width: width,
             ratio: ratio,
-            cornerRadius: cornerRadius
+            cornerRadius: cornerRadius,
+            sealed: isSealed,
+            onViewerClosed: {
+                if isSealed, let cid = message.cid {
+                    chatClient.reportMediaViewed(channelId: cid.id, messageId: message.id)
+                }
+            }
         )
         .accessibilityIdentifier("VideoAttachmentView")
     }
@@ -145,14 +161,28 @@ public struct VideoAttachmentContentView: View {
     public let width: CGFloat
     public var ratio: CGFloat = 0.75
     public var cornerRadius: CGFloat = 24
+    /// Poppin (2026-11-06): a sealed vanishing video draws the "Tap to view" card instead of
+    /// its poster; `onViewerClosed` fires when the full-screen player is dismissed.
+    public var sealed: Bool = false
+    public var onViewerClosed: (() -> Void)? = nil
   
   
-    public init(attachment: ChatMessageVideoAttachment, author: ChatUser, width: CGFloat, ratio: CGFloat, cornerRadius: CGFloat) {
+    public init(
+        attachment: ChatMessageVideoAttachment,
+        author: ChatUser,
+        width: CGFloat,
+        ratio: CGFloat,
+        cornerRadius: CGFloat,
+        sealed: Bool = false,
+        onViewerClosed: (() -> Void)? = nil
+    ) {
       self.attachment = attachment
       self.author = author
       self.width = width
       self.ratio = ratio
       self.cornerRadius = cornerRadius
+      self.sealed = sealed
+      self.onViewerClosed = onViewerClosed
     }
 
     @State var previewImage: UIImage?
@@ -160,6 +190,38 @@ public struct VideoAttachmentContentView: View {
     @State var fullScreenShown = false
 
     public var body: some View {
+        Group {
+            if sealed {
+                VanishingMediaCard(kind: .video, width: width, ratio: ratio, cornerRadius: cornerRadius) {
+                    fullScreenShown = true
+                }
+            } else {
+                videoPreview
+            }
+        }
+        .fullScreenCover(isPresented: $fullScreenShown, onDismiss: {
+            onViewerClosed?()
+        }) {
+            VideoPlayerView(
+                attachment: attachment,
+                author: author,
+                isShown: $fullScreenShown
+            )
+        }
+        .onAppear {
+            guard !sealed else { return } // nothing to preview behind the seal
+            videoPreviewLoader.loadPreviewForVideo(at: attachment.videoURL) { result in
+                switch result {
+                case let .success(image):
+                    self.previewImage = image
+                case let .failure(error):
+                    self.error = error
+                }
+            }
+        }
+    }
+
+    private var videoPreview: some View {
         ZStack {
             if let previewImage = previewImage {
                 Image(uiImage: previewImage)
@@ -194,22 +256,5 @@ public struct VideoAttachmentContentView: View {
         }
         .frame(width: width, height: width * ratio)
         .cornerRadius(cornerRadius)
-        .fullScreenCover(isPresented: $fullScreenShown) {
-            VideoPlayerView(
-                attachment: attachment,
-                author: author,
-                isShown: $fullScreenShown
-            )
-        }
-        .onAppear {
-            videoPreviewLoader.loadPreviewForVideo(at: attachment.videoURL) { result in
-                switch result {
-                case let .success(image):
-                    self.previewImage = image
-                case let .failure(error):
-                    self.error = error
-                }
-            }
-        }
     }
 }

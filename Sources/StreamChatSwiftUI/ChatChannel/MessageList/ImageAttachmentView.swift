@@ -8,6 +8,7 @@ import SwiftUI
 public struct ImageAttachmentContainer<Factory: ViewFactory>: View {
     @Injected(\.colors) private var colors
     @Injected(\.utils) private var utils
+    @Injected(\.chatClient) private var chatClient
 
     var factory: Factory
     let message: ChatMessage
@@ -17,6 +18,13 @@ public struct ImageAttachmentContainer<Factory: ViewFactory>: View {
 
     @State private var galleryShown = false
     @State private var selectedIndex = 0
+
+    /// Poppin (2026-11-06): a live dm/group photo on the vanishing lifecycle carries
+    /// `extraData["expiresAt"]`. The other person sees it sealed behind "Tap to view", and the
+    /// view itself is what makes it disappear: closing the gallery reports `viewed`, the server
+    /// tombstones the line and the `message.deleted` frame removes the row on both phones.
+    private var isVanishing: Bool { message.extraData["expiresAt"] != nil }
+    private var isSealed: Bool { isVanishing && !message.isSentByCurrentUser }
 
     public var body: some View {
         VStack(
@@ -36,23 +44,35 @@ public struct ImageAttachmentContainer<Factory: ViewFactory>: View {
                 alignment: message.alignmentInBubble,
                 spacing: 0
             ) {
-                ImageAttachmentView(
-                    message: message,
-                    width: width
-                ) { index in
-                    if message.localState == nil {
-                        selectedIndex = index
-                        galleryShown = true
+                if isSealed {
+                    VanishingMediaCard(kind: .photo, width: width) {
+                        if message.localState == nil {
+                            selectedIndex = 0
+                            galleryShown = true
+                        }
                     }
-                }
-                .transaction { transaction in
-                  transaction.disablesAnimations = true
-                  transaction.animation = nil
+                } else {
+                    ImageAttachmentView(
+                        message: message,
+                        width: width
+                    ) { index in
+                        if message.localState == nil {
+                            selectedIndex = index
+                            galleryShown = true
+                        }
+                    }
+                    .transaction { transaction in
+                      transaction.disablesAnimations = true
+                      transaction.animation = nil
+                    }
                 }
 
                 if !message.text.isEmpty {
                     AttachmentTextView(message: message, factory: factory)
                         .frame(width: width)
+                }
+                if isVanishing && message.isSentByCurrentUser {
+                    VanishingMediaCaption()
                 }
             }
         }
@@ -65,6 +85,9 @@ public struct ImageAttachmentContainer<Factory: ViewFactory>: View {
         )
         .fullScreenCover(isPresented: $galleryShown, onDismiss: {
             self.selectedIndex = 0
+            if isSealed, let cid = message.cid {
+                chatClient.reportMediaViewed(channelId: cid.id, messageId: message.id)
+            }
         }) {
             GalleryView(
                 imageAttachments: message.imageAttachments,
