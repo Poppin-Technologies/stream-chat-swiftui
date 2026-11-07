@@ -2,9 +2,11 @@
 // Copyright © 2024 Stream.io Inc. All rights reserved.
 //
 
+import ImageIO
 import Photos
 import StreamChat
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Helper class that loads assets from the photo library.
 public class PhotoAssetLoader: NSObject, ObservableObject {
@@ -34,7 +36,50 @@ public class PhotoAssetLoader: NSObject, ObservableObject {
         }
     }
 
+    /// Poppin (2026-11-06): the long edge every photo is re-encoded to before it is measured or
+    /// uploaded. The server stores 1600 px (`svchat.ProcessImage`), so nothing above this ever
+    /// reaches the wire.
+    static let uploadMaxPixelSize: CGFloat = 2048
+    static let uploadJPEGQuality: CGFloat = 0.85
+
+    /// Re-encodes the image at `sourceURL` as a bounded JPEG in the app's temp folder and returns
+    /// that file. Photos hands the picker its full-quality JPEG rendition, which runs 8 to 14 MB
+    /// on a 24 MP iPhone (far more at 48 MP or ProRAW) — above the 10 MB cap, so every photo from
+    /// such a phone used to be refused before any upload (the "Attachment size exceed the limit"
+    /// alert on each pick). ImageIO downsamples while decoding, so the full bitmap of a 48 MP
+    /// original is never held; EXIF rotation is baked in; HEIC, PNG and JPEG all come out JPEG.
+    /// `nil` when ImageIO cannot read the file — callers keep the original URL then.
+    static func prepareImageForUpload(at sourceURL: URL) -> URL? {
+        let didStartAccessing = sourceURL.startAccessingSecurityScopedResource()
+        defer {
+            if didStartAccessing { sourceURL.stopAccessingSecurityScopedResource() }
+        }
+        guard let source = CGImageSourceCreateWithURL(sourceURL as CFURL, nil) else { return nil }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: uploadMaxPixelSize
+        ]
+        guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
+        let destinationURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("jpg")
+        guard let destination = CGImageDestinationCreateWithURL(destinationURL as CFURL, UTType.jpeg.identifier as CFString, 1, nil) else {
+            return nil
+        }
+        CGImageDestinationAddImage(destination, image, [kCGImageDestinationLossyCompressionQuality: uploadJPEGQuality] as CFDictionary)
+        guard CGImageDestinationFinalize(destination) else { return nil }
+        return destinationURL
+    }
+
     func compressAsset(at url: URL, type: AssetType, completion: @escaping (URL?) -> Void) {
+        if type == .image {
+            // An oversized photo is re-encoded, never refused; the original stays if ImageIO
+            // cannot read it (the completion used to be skipped for images — stuck spinner).
+            completion(PhotoAssetLoader.prepareImageForUpload(at: url) ?? url)
+            return
+        }
         if type == .video {
             let compressedURL = NSURL.fileURL(withPath: NSTemporaryDirectory() + UUID().uuidString + ".mp4")
             compressVideo(inputURL: url, outputURL: compressedURL) { exportSession in

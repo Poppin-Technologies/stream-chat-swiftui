@@ -420,11 +420,24 @@ open class MessageComposerViewModel: ObservableObject {
             }
         }
         
-        if !imageRemoved && canAddAttachment(with: addedAsset.url, type: addedAsset.type) {
-            images.append(addedAsset)
+        if !imageRemoved {
+            let asset = preparedForUpload(addedAsset)
+            if canAddAttachment(with: asset.url, type: asset.type) {
+                images.append(asset)
+            }
         }
         
         addedAssets = images
+    }
+
+    /// Poppin (2026-11-06): a photo is re-encoded as a bounded JPEG on the phone BEFORE the size
+    /// gate (`PhotoAssetLoader.prepareImageForUpload`), so a 24/48 MP shot is sent, not refused.
+    /// Videos pass through untouched. The asset keeps its id, so selection toggling still works.
+    private func preparedForUpload(_ asset: AddedAsset) -> AddedAsset {
+        guard asset.type == .image, let prepared = PhotoAssetLoader.prepareImageForUpload(at: asset.url) else {
+            return asset
+        }
+        return AddedAsset(image: asset.image, id: asset.id, url: prepared, type: asset.type, extraData: asset.extraData)
     }
     
     public func removeAttachment(with id: String) {
@@ -458,8 +471,9 @@ open class MessageComposerViewModel: ObservableObject {
     }
     
     public func cameraImageAdded(_ image: AddedAsset) {
-        if canAddAttachment(with: image.url, type: image.type) {
-            addedAssets.append(image)
+        let asset = preparedForUpload(image)
+        if canAddAttachment(with: asset.url, type: asset.type) {
+            addedAssets.append(asset)
         }
         pickerState = .photos
     }
