@@ -10,6 +10,7 @@ import ShinySwiftUI
 public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable {
   @Injected(\.colors) private var colors
   @Injected(\.fonts) private var fonts
+  @Injected(\.utils) private var utils
   @Namespace var name
   
   // Initial popup size, before the keyboard is shown.
@@ -23,7 +24,8 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
   @Binding var quotedMessage: ChatMessage?
   @Binding var editedMessage: ChatMessage?
   
-  private let recordingViewHeight: CGFloat = 80
+  /// Poppin: the recording / review bar height comes from `ComposerConfig.recordingViewHeight`.
+  private var recordingViewHeight: CGFloat { utils.composerConfig.recordingViewHeight }
   
   public init(
     viewFactory: Factory,
@@ -54,6 +56,15 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
   
   var canSendMessage: Bool {
     viewModel.channelController.channel?.canSendMessage != false
+  }
+
+  /// One send path for the arrow and for the voice review bar (`viewModel.voiceSendRequestCount`).
+  private func sendFromComposer() {
+    viewModel.sendMessage(quotedMessage: quotedMessage, editedMessage: editedMessage) {
+      quotedMessage = nil
+      editedMessage = nil
+      onMessageSent()
+    }
   }
   public var body: some View {
     VStack(spacing: 0) {
@@ -115,14 +126,7 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
                 enabled: viewModel.sendButtonEnabled,
                 cooldownDuration: viewModel.cooldownDuration
               ) {
-                viewModel.sendMessage(
-                  quotedMessage: quotedMessage,
-                  editedMessage: editedMessage
-                ) {
-                  quotedMessage = nil
-                  editedMessage = nil
-                  onMessageSent()
-                }
+                sendFromComposer()
               }
               .environmentObject(viewModel)
               .alert(isPresented: $viewModel.errorShown) {
@@ -235,6 +239,12 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
         alignment: .bottom
       )
       .modifier(factory.makeComposerViewModifier())
+      .onChange(of: viewModel.voiceSendRequestCount) { _ in
+        // Poppin: the review bar asked to send the pending voice note. An edit in progress would
+        // route the send through the text-only edit path, so it is dropped first.
+        editedMessage = nil
+        sendFromComposer()
+      }
       .onChange(of: editedMessage) { _ in
         viewModel.text = editedMessage?.text ?? ""
         if editedMessage != nil {

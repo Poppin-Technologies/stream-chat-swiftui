@@ -36,7 +36,12 @@ extension MessageComposerViewModel: AudioRecordingDelegate {
         _ audioRecorder: AudioRecording,
         didFinishRecordingAtURL location: URL
     ) {
-        if audioRecordingInfo == .initial { return }
+        if audioRecordingInfo == .initial {
+            // Discarded before anything was kept (the trash button mid-record, a tap shorter than
+            // the engine's first metering beat): the file goes too, nothing lingers in tmp.
+            try? FileManager.default.removeItem(at: location)
+            return
+        }
         audioAnalysisFactory?.waveformVisualisation(
             fromAudioURL: location,
             for: waveformTargetSamples,
@@ -50,9 +55,12 @@ extension MessageComposerViewModel: AudioRecordingDelegate {
                             duration: self.audioRecordingInfo.duration,
                             waveform: waveform
                         )
-                        if self.recordingState == .stopped {
+                        if self.recordingState == .stopped || self.utils.composerConfig.voiceRecordingReviewsBeforeSend {
+                            // Poppin: a finished take always lands in the review bar, even when the
+                            // engine stopped it (a call, the 5 min cap) before the user did.
                             self.pendingAudioRecording = recording
                             self.audioRecordingInfo.waveform = waveform
+                            self.recordingState = .stopped
                         } else {
                             self.addedVoiceRecordings.append(recording)
                             self.recordingState = .initial
@@ -61,7 +69,10 @@ extension MessageComposerViewModel: AudioRecordingDelegate {
                     }
                 case let .failure(error):
                     log.error(error)
+                    // Unreadable take: nothing to review, nothing to keep.
+                    try? FileManager.default.removeItem(at: location)
                     self.recordingState = .initial
+                    self.audioRecordingInfo = .initial
                 }
             }
         )
@@ -103,9 +114,30 @@ extension MessageComposerViewModel {
 
 extension MessageComposerViewModel {
     public func discardRecording() {
+        // Poppin: a reviewed note that is thrown away leaves no file behind (the stock path kept
+        // the pending recording and its tmp file; a fast stop → send could ship a discarded take).
+        if let pending = pendingAudioRecording {
+            try? FileManager.default.removeItem(at: pending.url)
+        }
+        pendingAudioRecording = nil
+        pendingVoiceTranscript = nil
         recordingState = .initial
         audioRecordingInfo = .initial
         stopRecording()
+    }
+
+    /// Poppin's review bar sends the stopped note as its own message: the pending recording moves
+    /// into `voiceRecordingToSend` (never into `addedVoiceRecordings`, so the stock chip never
+    /// renders), the recording UI resets, and `voiceSendRequestCount` bumps - `MessageComposerView`
+    /// observes it and runs its send closure. A no-op without a pending recording.
+    public func requestVoiceSend() {
+        guard let pending = pendingAudioRecording else { return }
+        voiceRecordingToSend = (pending, pendingVoiceTranscript)
+        pendingAudioRecording = nil
+        pendingVoiceTranscript = nil
+        audioRecordingInfo = .initial
+        recordingState = .initial
+        voiceSendRequestCount += 1
     }
     
     public func confirmRecording() {

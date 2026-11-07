@@ -9,6 +9,12 @@ import SwiftUI
 public struct ComposerConfig {
 
     public var isVoiceRecordingEnabled: Bool
+    /// Height of the recording / review bar the composer swaps in while a voice note is
+    /// recorded or reviewed (Poppin addition; 80 = the stock constant).
+    public var recordingViewHeight: CGFloat
+    /// A finished take always lands in the review bar as the pending note and waits for an
+    /// explicit `requestVoiceSend()` instead of becoming a composer chip (Poppin addition).
+    public var voiceRecordingReviewsBeforeSend: Bool
     public var inputViewMinHeight: CGFloat
     public var inputViewMaxHeight: CGFloat
     public var inputViewCornerRadius: CGFloat
@@ -26,6 +32,8 @@ public struct ComposerConfig {
 
     public init(
         isVoiceRecordingEnabled: Bool = false,
+        recordingViewHeight: CGFloat = 80,
+        voiceRecordingReviewsBeforeSend: Bool = false,
         inputViewMinHeight: CGFloat = 38,
         inputViewMaxHeight: CGFloat = 76,
         inputViewCornerRadius: CGFloat = 20,
@@ -50,6 +58,8 @@ public struct ComposerConfig {
         self.gallerySupportedTypes = gallerySupportedTypes
         self.inputPaddingsConfig = inputPaddingsConfig
         self.isVoiceRecordingEnabled = isVoiceRecordingEnabled
+        self.recordingViewHeight = recordingViewHeight
+        self.voiceRecordingReviewsBeforeSend = voiceRecordingReviewsBeforeSend
         self.composerPlaceholder = composerPlaceholder
     }
     

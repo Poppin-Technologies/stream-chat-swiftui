@@ -158,7 +158,15 @@ open class MessageComposerViewModel: ObservableObject {
     public let channelController: ChatChannelController
     public var messageController: ChatMessageController?
     public var waveformTargetSamples: Int = 100
-    public internal(set) var pendingAudioRecording: AddedVoiceRecording?
+    @Published public internal(set) var pendingAudioRecording: AddedVoiceRecording?
+    /// The on-device transcript for `pendingAudioRecording`, set by the review bar right before
+    /// `requestVoiceSend()`; rides `AnyAttachmentLocalMetadata.transcript` (Poppin addition).
+    public var pendingVoiceTranscript: String?
+    /// Bumped by `requestVoiceSend()`; `MessageComposerView` sends on change (Poppin addition).
+    @Published public internal(set) var voiceSendRequestCount = 0
+    /// The reviewed note on its way out: `requestVoiceSend()` parks it here so the stock chip
+    /// (`addedVoiceRecordings`) never renders; `sendMessage` sends it alone, with empty text.
+    var voiceRecordingToSend: (recording: AddedVoiceRecording, transcript: String?)?
   
   public var analyticsAction: (String, [String: Any]) -> Void = { _, _ in }
     
@@ -237,6 +245,14 @@ open class MessageComposerViewModel: ObservableObject {
     ) {
         defer {
             checkChannelCooldown()
+        }
+
+        // Poppin: a reviewed voice note goes out alone (one voice attachment, empty text; the
+        // server refuses voice + text) and never consumes the typed draft or the composer chips.
+        if let pending = voiceRecordingToSend {
+            voiceRecordingToSend = nil
+            sendVoiceNote(pending, quotedMessage: quotedMessage, isSilent: isSilent, skipPush: skipPush, extraData: extraData, completion: completion)
+            return
         }
         
         if let composerCommand = composerCommand, composerCommand.id != "instantCommands" {
@@ -355,6 +371,90 @@ open class MessageComposerViewModel: ObservableObject {
         }
     }
     
+    /// The voice note's own send: no text, no chips, no draft touched; a failure puts the note
+    /// back into the review bar.
+    private func sendVoiceNote(
+        _ pending: (recording: AddedVoiceRecording, transcript: String?),
+        quotedMessage: ChatMessage?,
+        isSilent: Bool,
+        skipPush: Bool,
+        extraData: [String: RawJSON],
+        completion: @escaping () -> Void
+    ) {
+        _ = pending.recording.url.startAccessingSecurityScopedResource()
+        var localMetadata = AnyAttachmentLocalMetadata()
+        localMetadata.duration = pending.recording.duration
+        localMetadata.waveformData = pending.recording.waveform
+        localMetadata.transcript = pending.transcript
+        let attachment: AnyAttachmentPayload
+        do {
+            attachment = try AnyAttachmentPayload(
+                localFileURL: pending.recording.url,
+                attachmentType: .voiceRecording,
+                localMetadata: localMetadata
+            )
+        } catch {
+            restorePendingVoiceNote(pending)
+            errorShown = true
+            return
+        }
+        let data: [String: Any] = [
+            "durationMs": Int(pending.recording.duration * 1000),
+            "hasTranscript": pending.transcript != nil,
+            "cid": channelController.channel?.cid.id ?? ""
+        ]
+        if let messageController {
+            messageController.createNewReply(
+                text: "",
+                attachments: [attachment],
+                mentionedUserIds: [],
+                showReplyInChannel: showReplyInChannel,
+                isSilent: isSilent,
+                quotedMessageId: quotedMessage?.id,
+                skipPush: skipPush,
+                skipEnrichUrl: false,
+                extraData: extraData
+            ) { [weak self] in
+                switch $0 {
+                case .success:
+                    self?.analyticsAction("send_voice_note", data)
+                    completion()
+                case .failure:
+                    self?.restorePendingVoiceNote(pending)
+                    self?.errorShown = true
+                }
+            }
+        } else {
+            channelController.createNewMessage(
+                text: "",
+                isSilent: isSilent,
+                attachments: [attachment],
+                mentionedUserIds: [],
+                quotedMessageId: quotedMessage?.id,
+                skipPush: skipPush,
+                skipEnrichUrl: false,
+                extraData: extraData
+            ) { [weak self] in
+                switch $0 {
+                case .success:
+                    self?.analyticsAction("send_voice_note", data)
+                    completion()
+                case .failure:
+                    self?.restorePendingVoiceNote(pending)
+                    self?.errorShown = true
+                }
+            }
+        }
+    }
+
+    /// A failed voice send hands the note back to the review bar; the typed draft was never touched.
+    func restorePendingVoiceNote(_ pending: (recording: AddedVoiceRecording, transcript: String?)) {
+        pendingAudioRecording = pending.recording
+        pendingVoiceTranscript = pending.transcript
+        audioRecordingInfo = AudioRecordingInfo(waveform: pending.recording.waveform, duration: pending.recording.duration)
+        recordingState = .stopped
+    }
+
     public var sendButtonEnabled: Bool {
         if let composerCommand = composerCommand,
            let handler = commandsHandler.commandHandler(for: composerCommand) {
@@ -624,6 +724,7 @@ open class MessageComposerViewModel: ObservableObject {
         addedAssets = []
         addedFileURLs = []
         addedVoiceRecordings = []
+        voiceRecordingToSend = nil
         addedCustomAttachments = []
         composerCommand = nil
         mentionedUsers = Set<ChatUser>()
