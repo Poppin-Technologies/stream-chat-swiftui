@@ -138,7 +138,11 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
           }
           .padding(.top, composerHeight > 60 ? 6 : 3)
           .padding(.horizontal, 8)
-          .padding(.bottom, keyboardShown ? 12 : 0)
+          // Poppin: the app can move the field row's right edge in (composerRowTrailingInset).
+          .modifier(ComposerRowTrailingInsetModifier())
+          // Poppin: 6, was 12. The app's bar modifier now brings 12 under the field (Messages'
+          // 8pt above the home-bar area), so 6 keeps the keyboard-up gap where it was.
+          .padding(.bottom, keyboardShown ? 6 : 0)
           .opacity(viewModel.recordingState.showsComposer ? 1 : 0)
           .overlay(
             ZStack {

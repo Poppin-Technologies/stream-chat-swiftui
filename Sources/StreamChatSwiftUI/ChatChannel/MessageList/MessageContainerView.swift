@@ -16,6 +16,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
     @Injected(\.images) private var images
     @Injected(\.chatClient) private var chatClient
     @Injected(\.utils) private var utils
+    @Environment(\.isNewestMessageRow) private var isNewestMessageRow
 
     var factory: Factory
     let channel: ChatChannel
@@ -200,7 +201,9 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                         }
                     }
 
-                    if showsAllInfo && !message.isDeleted {
+                    // Poppin: only under the conversation's newest message, the way Messages shows
+                    // "Delivered" (a tick row under every run pushed the next date line ~30pt down).
+                    if showsAllInfo && !message.isDeleted && isNewestMessageRow {
                         if factory.isSentByCurrentUser(message: message) && channel.config.readEventsEnabled {
                             HStack(spacing: 4) {
                                 factory.makeMessageReadIndicatorView(

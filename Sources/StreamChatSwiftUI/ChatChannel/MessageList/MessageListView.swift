@@ -160,6 +160,11 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                           .frame(height: bottomInset)
                           .id(messageListBottomInsetId)
                       }
+                      // Poppin: the newest row that draws as a bubble (a system or error line
+                      // carries no read indicator, so it must not take it from the bubble above).
+                      let newestBubbleId = viewModel.messages.first {
+                        !($0.type == .system || ($0.type == .error && $0.isBounced == false))
+                      }?.id
                       ForEach(viewModel.messages, id: \.messageId) { message in
                             var index: Int? = messageListDateUtils.indexForMessageDate(message: message, in: messages)
                             let messageDate: Date? = messageListDateUtils.showMessageDate(for: index, in: messages)
@@ -181,10 +186,15 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                               scrolledId: $scrolledId,
                               quotedMessage: $quotedMessage,
                               onLongPress: handleLongPress(messageDisplayInfo:),
-                              isLast: !showsLastInGroupInfo && message == messages.last,
+                              // Poppin: the top-most row's extra top padding only when no date line
+                              // sits above it (it pushed that bubble 8pt further off its date
+                              // line than every other bubble in the conversation).
+                              isLast: !showsLastInGroupInfo && message == messages.last && viewModel.messageWithDates[message.id] == nil,
                               isLastGroup: showsFirstData(for: message),
                               optionalOffset: $offsetX
                             )
+                            // Poppin: the read indicator draws only under the newest bubble.
+                            .environment(\.isNewestMessageRow, message.id == newestBubbleId)
                             .onAppear {
                               if index == nil {
                                 index = messageListDateUtils.index(for: message, in: viewModel.messages)
