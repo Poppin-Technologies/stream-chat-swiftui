@@ -41,6 +41,11 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
 
     private let replyThreshold: CGFloat = 60
     private let paddingValue: CGFloat = 8
+    // Poppin: the room under a bubble is Messages' (read off Jackie's screenshots, IMG_2035
+    // and IMG_2037): 9pt under the last bubble of a run, 1pt between one sender's back to
+    // back bubbles. The app's date line and reply numbers are tuned on top of these two.
+    private let runBottomGap: CGFloat = 9
+    private let bubbleBottomGap: CGFloat = 1
 
     public init(
         factory: Factory,
@@ -406,7 +411,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
     // lets a date line that follows close up to "1 Reply": the row gives the room back (the
     // label itself cannot shrink below nothing).
     private var rowBottomPadding: CGFloat {
-        let padding = showsAllInfo || isMessagePinned ? paddingValue : 2
+        let padding = showsAllInfo || isMessagePinned ? runBottomGap : bubbleBottomGap
         let style = messageListConfig.replyStyle
         if let line = replyRowInfo.line, !replyRowInfo.dateLineFollows {
             if replyRowInfo.opensRun {
