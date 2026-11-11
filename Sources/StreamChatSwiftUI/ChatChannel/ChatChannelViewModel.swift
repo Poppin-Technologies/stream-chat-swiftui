@@ -443,12 +443,15 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
             let currentAuthorId = messageCachingUtils.authorId(for: message)
             let previousAuthorId = messageCachingUtils.authorId(for: previousMessage)
 
-            // Poppin: a reply opens a run of its own (its original is drawn between it and the
-            // bubble before it), so that bubble closes its run like before a change of sender;
-            // so does a message with "1 Reply" under it.
+            // Poppin: a reply opens a run of its own (its original, or the thread line from
+            // it, stands between it and the bubble before it), so that bubble closes its run
+            // like before a change of sender; so does a message with "1 Reply" under it, and
+            // the bubble before such a message (Messages keeps a thread apart from the
+            // messages around it). Replies of one thread that follow each other stay one run.
             if currentAuthorId != previousAuthorId
-                || opensReplyRun(previousMessage)
-                || replyThreads.replyCount(of: message.id) > 0 {
+                || breaksReplyRun(newer: previousMessage, older: message)
+                || replyThreads.replyCount(of: message.id) > 0
+                || replyThreads.replyCount(of: previousMessage.id) > 0 {
                 temp[message.id]?.append(firstMessageKey)
                 var prevInfo = temp[previousMessage.id] ?? []
                 prevInfo.append(lastMessageKey)
@@ -482,8 +485,15 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
         messagesGroupingInfo = temp
     }
     
-    private func opensReplyRun(_ message: ChatMessage) -> Bool {
-        utils.messageListConfig.replyThreadEnabled && ReplyThreads.isReply(message)
+    /// A reply shares a run only with the reply of its own thread it follows: its original,
+    /// the thread line and Messages' distance to a message outside the thread all stand
+    /// between two bubbles that would otherwise be one run.
+    private func breaksReplyRun(newer: ChatMessage, older: ChatMessage) -> Bool {
+        guard utils.messageListConfig.replyThreadEnabled else { return false }
+        let newerIsReply = ReplyThreads.isReply(newer)
+        let olderIsReply = ReplyThreads.isReply(older)
+        guard newerIsReply || olderIsReply else { return false }
+        return !(newerIsReply && olderIsReply && replyThreads.joinedAbove(newer.id) == older.id)
     }
 
     func dataSource(

@@ -105,7 +105,8 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                         .opacity(showsAllInfo || factory.isFirst(message: message) ? 1 : 0)
                         .offset(y: bottomReactionsShown ? offsetYAvatar : 0)
                         .animation(nil)
-                        .replyAnchor(.replyFace)
+                        // Poppin: a face that is laid out but not shown does not stop the thread line.
+                        .replyAnchor(showsAllInfo || factory.isFirst(message: message) ? .replyFace : nil)
                     }
                 }
 
@@ -167,6 +168,11 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                     .accessibilityElement(children: .contain)
                     .accessibilityIdentifier("MessageView")
                   }
+                  // Poppin: with its replies right under it, "N Replies" sits beside the line and
+                  // takes no room (the first reply is placed by `rowBottomPadding`). On the
+                  // bubble's column, not on the bubble: a tap or a swipe on the label is not
+                  // the bubble's.
+                  .modifier(seatedReplyCount)
 
                     replyCountLine
 
@@ -324,7 +330,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
         .overlay(reactionAndFailureOverlay)
         .background(frameTrackingBackground)
         .background(replySwipeRegion)
-        // Poppin: a reply row's line ends at this bubble (ReplyContextStack).
+        // Poppin: the thread line starts, stops or turns at this bubble (ReplyThreadLine).
         .replyAnchor(.bubble)
     }
 
@@ -343,25 +349,80 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
 
     // Poppin: "1 Reply" under a message that loaded messages answer (Messages); a tap opens
     // the thread in the reply view. The count comes from the list (`ReplyRowInfo`). Its own
-    // property for the type checker, like the ones above.
+    // properties for the type checker, like the ones above.
+    private var replyCountLabel: some View {
+        factory.makeReplyCountView(for: message, count: replyRowInfo.replyCount)
+            .onTapGesture {
+                withAnimation {
+                    quotedMessage = message
+                }
+            }
+    }
+
+    private var seatedReplyCount: some ViewModifier {
+        ReplyCountSeat(
+            isShown: showsReplyCount && seatsReplyCount,
+            isTrailing: replyRowInfo.line?.bubble == .trailing,
+            spacing: messageListConfig.replyStyle.countSpacing,
+            shift: replyCountShift,
+            label: replyCountLabel
+        )
+    }
+
+    // In the row's column, under the bubble: every case but the seated one.
     @ViewBuilder
     private var replyCountLine: some View {
-        if replyRowInfo.replyCount > 0 {
-            factory.makeReplyCountView(for: message, count: replyRowInfo.replyCount)
-                .onTapGesture {
-                    withAnimation {
-                        quotedMessage = message
-                    }
-                }
+        if showsReplyCount, !seatsReplyCount {
+            replyCountLabel
+                .padding(.leading, replyCountShift)
         }
     }
 
-    // Poppin: Messages lets a date line that follows close up to "1 Reply". The row gives the
-    // room back (the label itself cannot shrink below nothing).
+    // With its replies right under it an original says how many only when there are more
+    // than the one the eye already sees.
+    private var showsReplyCount: Bool {
+        replyRowInfo.opensRun ? replyRowInfo.replyCount > 1 : replyRowInfo.replyCount > 0
+    }
+
+    // Seated (out of the layout) when the first reply stands right under the bubble; a date
+    // line between the two keeps the label in the column and its own distances.
+    private var seatsReplyCount: Bool {
+        replyRowInfo.opensRun && !replyRowInfo.dateLineFollows
+    }
+
+    // Without faces the thread line runs down from the bubble's leading edge, right where
+    // the label stands: the label moves in beside it.
+    private var replyCountShift: CGFloat {
+        guard replyRowInfo.opensRun,
+              replyRowInfo.line?.bubble == .leading,
+              !(messageListConfig.messageDisplayOptions.showAvatars(for: channel) || bypassGrouping) else {
+            return 0
+        }
+        return messageListConfig.replyStyle.countShiftBesideLine
+    }
+
+    // Poppin: under the bubble. Its replies right under it: Messages' distance to the first.
+    // The last reply of a run keeps Messages' distance to the message after it. And Messages
+    // lets a date line that follows close up to "1 Reply": the row gives the room back (the
+    // label itself cannot shrink below nothing).
     private var rowBottomPadding: CGFloat {
         let padding = showsAllInfo || isMessagePinned ? paddingValue : 2
-        guard replyRowInfo.replyCount > 0, replyRowInfo.dateLineFollows else { return padding }
-        return padding - messageListConfig.replyStyle.countTuckBeforeDate
+        let style = messageListConfig.replyStyle
+        if let line = replyRowInfo.line, !replyRowInfo.dateLineFollows {
+            if replyRowInfo.opensRun {
+                return style.gap(
+                    quoteIsTrailing: line.bubble == .trailing,
+                    replyIsTrailing: line.nextIsTrailing,
+                    rowOpensWithName: replyRowInfo.nextOpensWithName,
+                    counted: showsReplyCount
+                )
+            }
+            if replyRowInfo.endsRun, replyRowInfo.messageFollows {
+                return max(padding, style.runEndGap)
+            }
+        }
+        guard showsReplyCount, replyRowInfo.dateLineFollows else { return padding }
+        return padding - style.countTuckBeforeDate
     }
 
     // Extracted for the same type-checker-timeout reason as the properties above: a nested

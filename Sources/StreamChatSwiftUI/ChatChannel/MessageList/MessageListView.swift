@@ -170,6 +170,8 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                             let messageDate: Date? = messageListDateUtils.showMessageDate(for: index, in: messages)
                             let showUnreadSeparator = message.id == newMessagesStartId
                             let showsLastInGroupInfo = showsLastInGroupInfo(for: message, channel: channel)
+                            // Poppin: what this row shows of the reply threads (worked out once).
+                            let rowInfo = replyRowInfo(for: message)
                           VStack(spacing: 4) {
                             if !isMessageThread && message == messages.last {
                               factory.makeChannelIntroView(channel: channel)
@@ -195,7 +197,7 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                             )
                             // Poppin: the read indicator draws only under the newest bubble.
                             .environment(\.isNewestMessageRow, message.id == newestBubbleId)
-                            .environment(\.replyRowInfo, replyRowInfo(for: message))
+                            .environment(\.replyRowInfo, rowInfo)
                             .onAppear {
                               if index == nil {
                                 index = messageListDateUtils.index(for: message, in: viewModel.messages)
@@ -247,16 +249,28 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                               }
                               : nil
                             )
-                            // Poppin: a reply draws its original above this row (Messages' reply).
+                            // Poppin: an original with replies stands apart from the message
+                            // before it (Messages): over the sender's name, which the overlay
+                            // above pins to this row's top.
+                            .padding(
+                              .top,
+                              rowInfo.replyCount > 0 && rowInfo.followsMessage ? messageListConfig.replyStyle.quoteTopInset : 0
+                            )
+                            // Poppin: the first reply of a run draws its original above this row
+                            // (Messages' reply).
                             .modifier(ReplyContextModifier(
                               factory: factory,
                               channel: channel,
                               message: message,
-                              rowOpensWithName: showsLastInGroupInfo
+                              rowOpensWithName: showsLastInGroupInfo,
+                              info: rowInfo
                             ))
                             .offset(x: max(offsetX, -55))
                             .animation(nil, value: messageDate != nil)
                           }
+                          // Poppin: the thread line runs over the whole row, its date line included,
+                          // and slides with the bubbles.
+                          .modifier(ReplyRowLineModifier(channel: channel, info: rowInfo.line, slide: max(offsetX, -55)))
                           .flippedUpsideDown()
 
                         }
@@ -473,17 +487,70 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
         return groupInfo.contains(lastMessageKey) == true
     }
 
-    /// Poppin: "1 Reply" for a row, and whether a date line follows it (the row closes up to
-    /// one). The search for the row's place runs only for the few rows that have replies.
+    /// Poppin: what a row shows of the reply threads: "N Replies" under it, the thread line
+    /// through it, the original above the first reply of a run. A row outside any thread
+    /// costs two dictionary reads.
     private func replyRowInfo(for message: ChatMessage) -> ReplyRowInfo {
         guard messageListConfig.replyThreadEnabled, !isMessageThread else { return ReplyRowInfo() }
-        let count = viewModel.replyThreads.replyCount(of: message.id)
-        guard count > 0 else { return ReplyRowInfo() }
-        var dateLineFollows = false
-        if let index = viewModel.messages.firstIndex(where: { $0.id == message.id }), index > 0 {
-            dateLineFollows = viewModel.messageWithDates[viewModel.messages[index - 1].id] != nil
+        let threads = viewModel.replyThreads
+        let count = threads.replyCount(of: message.id)
+        let isReply = ReplyThreads.isReply(message)
+        guard count > 0 || isReply else { return ReplyRowInfo() }
+
+        var info = ReplyRowInfo(replyCount: count)
+        let newer = threads.newer(than: message.id).flatMap { threads.loaded[$0] }
+        info.dateLineFollows = newer.map { viewModel.messageWithDates[$0.id] != nil } ?? false
+        // The first block of a thread (an original with replies, or the outlined original a
+        // run away from it brings) keeps its own distance from this row.
+        let newerOpensThread = newer.map {
+            ReplyThreads.isReply($0) ? threads.joinedAbove($0.id) == nil : threads.replyCount(of: $0.id) > 0
+        } ?? false
+        info.messageFollows = newer != nil && !info.dateLineFollows && !newerOpensThread
+        let followsMessage = viewModel.messageWithDates[message.id] == nil && message != messages.last
+        // The reply right under this row that the line goes on to.
+        let next = threads.joinedBelow(message.id).flatMap { threads.loaded[$0] }
+        let nextIsTrailing = next.map { replySide(of: $0) == .trailing } ?? false
+        if isReply {
+            let isJoined = threads.joinedAbove(message.id) != nil
+            let rootId = threads.rootId(of: message.id)
+            // A run away from its original shows it above its first reply.
+            let original = isJoined ? nil : threads.message(rootId)
+            info.line = ReplyLineInfo(
+                entersFromAbove: isJoined,
+                leavesBelow: next != nil,
+                bubble: replySide(of: message),
+                quote: original.map { replySide(of: $0) },
+                isReply: true,
+                nextIsTrailing: nextIsTrailing
+            )
+            if original != nil {
+                info.quoteId = rootId
+                info.quoteReplyCount = threads.replyCount(of: rootId)
+                info.followsMessage = followsMessage
+            }
+        } else {
+            info.followsMessage = followsMessage
         }
-        return ReplyRowInfo(replyCount: count, dateLineFollows: dateLineFollows)
+        if !isReply, let next {
+            info.line = ReplyLineInfo(
+                entersFromAbove: false,
+                leavesBelow: true,
+                bubble: replySide(of: message),
+                isReply: false,
+                nextIsTrailing: nextIsTrailing
+            )
+            info.nextOpensWithName = showsLastInGroupInfo(for: next, channel: channel)
+        }
+        return info
+    }
+
+    /// Poppin: the side a message stands on. A reply's short preview of its original does not
+    /// say whose it is, so the sender's id decides as well.
+    private func replySide(of message: ChatMessage) -> ReplyLineInfo.Side {
+        let isOwn = message.isRightAligned
+            || factory.isSentByCurrentUser(message: message)
+            || message.author.id == chatClient.currentUserId
+        return isOwn ? .trailing : .leading
     }
 
     private func handleLongPress(messageDisplayInfo: MessageDisplayInfo) {
