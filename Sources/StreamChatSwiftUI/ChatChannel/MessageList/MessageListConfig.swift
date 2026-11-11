@@ -31,7 +31,10 @@ public struct MessageListConfig {
         localLinkDetectionEnabled: Bool = true,
         isMessageEditedLabelEnabled: Bool = true,
         markdownSupportEnabled: Bool = true,
-        composerOverlaysList: Bool = false
+        composerOverlaysList: Bool = false,
+        replyThreadEnabled: Bool = false,
+        replyStyle: ReplyStyle = ReplyStyle(),
+        replySwipeRegion: (@MainActor () -> AnyView)? = nil
     ) {
         self.messageListType = messageListType
         self.typingIndicatorPlacement = typingIndicatorPlacement
@@ -56,6 +59,9 @@ public struct MessageListConfig {
         self.isMessageEditedLabelEnabled = isMessageEditedLabelEnabled
         self.markdownSupportEnabled = markdownSupportEnabled
         self.composerOverlaysList = composerOverlaysList
+        self.replyThreadEnabled = replyThreadEnabled
+        self.replyStyle = replyStyle
+        self.replySwipeRegion = replySwipeRegion
     }
 
     public let messageListType: MessageListType
@@ -80,6 +86,18 @@ public struct MessageListConfig {
     /// slide beneath its material while scrolling (Messages' construction). Off keeps the
     /// stock layout.
     public let composerOverlaysList: Bool
+    /// Poppin: Apple Messages' reply. A reply row draws its original above it as its own block
+    /// with a line between the two (`ReplyContextStack`), an original shows how many replies
+    /// it has, and while a reply is being written the conversation gives way to that thread
+    /// (`ViewFactory.makeReplyThreadView`), which stays open after a send. Off keeps the stock
+    /// reply: the quote inside the bubble and the bar over the field.
+    public let replyThreadEnabled: Bool
+    /// Poppin: the numbers of a reply row (used while `replyThreadEnabled` is on).
+    public let replyStyle: ReplyStyle
+    /// Poppin: drawn behind every bubble that takes the swipe-right-to-reply. An app whose
+    /// screens also go back on a right swipe marks the bubble here as a region that swipe
+    /// leaves alone, so the two never run on one drag. nil = nothing behind the bubble.
+    public let replySwipeRegion: (@MainActor () -> AnyView)?
     public let messageListAlignment: MessageListAlignment
     public let uniqueReactionsEnabled: Bool
     public let localLinkDetectionEnabled: Bool

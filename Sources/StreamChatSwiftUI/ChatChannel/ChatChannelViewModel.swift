@@ -76,6 +76,10 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
     @Published public var currentDateString: String?
     @Published public var messages = LazyCachedMapCollection<ChatMessage>() {
         didSet {
+            // Poppin: rebuilt before the grouping, which reads which rows are replies.
+            replyThreads = utils.messageListConfig.replyThreadEnabled
+                ? ReplyThreads(messages: Array(messages))
+                : ReplyThreads()
             if utils.messageListConfig.groupMessages {
                 groupMessages()
             }
@@ -83,6 +87,10 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
           self.objectWillChange.send()
         }
     }
+
+    /// Poppin: the reply threads among the loaded messages (`MessageListConfig.replyThreadEnabled`).
+    /// Not published on its own: it changes only with `messages`, whose observer announces both.
+    public private(set) var replyThreads = ReplyThreads()
 
     @Published public var redirectingUserId: String?
     @Published public var messagesGroupingInfo = [String: [String]]()
@@ -108,6 +116,12 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
         didSet {
             if oldValue != nil && quotedMessage == nil {
                 disableDateIndicator = true
+            }
+            // Poppin: a reply and an edit never run together. Every way into a reply (the
+            // menu, a swipe, a tap on an original or on "1 Reply") ends an edit in progress,
+            // so the send cannot be taken for the edit.
+            if utils.messageListConfig.replyThreadEnabled, quotedMessage != nil, editedMessage != nil {
+                editedMessage = nil
             }
         }
     }
@@ -429,7 +443,12 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
             let currentAuthorId = messageCachingUtils.authorId(for: message)
             let previousAuthorId = messageCachingUtils.authorId(for: previousMessage)
 
-            if currentAuthorId != previousAuthorId {
+            // Poppin: a reply opens a run of its own (its original is drawn between it and the
+            // bubble before it), so that bubble closes its run like before a change of sender;
+            // so does a message with "1 Reply" under it.
+            if currentAuthorId != previousAuthorId
+                || opensReplyRun(previousMessage)
+                || replyThreads.replyCount(of: message.id) > 0 {
                 temp[message.id]?.append(firstMessageKey)
                 var prevInfo = temp[previousMessage.id] ?? []
                 prevInfo.append(lastMessageKey)
@@ -463,6 +482,10 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
         messagesGroupingInfo = temp
     }
     
+    private func opensReplyRun(_ message: ChatMessage) -> Bool {
+        utils.messageListConfig.replyThreadEnabled && ReplyThreads.isReply(message)
+    }
+
     func dataSource(
         channelDataSource: ChannelDataSource,
         didUpdateMessages messages: LazyCachedMapCollection<ChatMessage>,

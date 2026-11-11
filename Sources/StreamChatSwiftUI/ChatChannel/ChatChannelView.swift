@@ -234,11 +234,17 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
                 },
                 onJumpToMessage: viewModel.jumpToMessage(messageId:)
             )
+            .modifier(ReplyBackdropModifier(
+                enabled: utils.messageListConfig.replyThreadEnabled,
+                covered: replyThreadShown,
+                radius: utils.messageListConfig.replyStyle.backdropBlurRadius
+            ))
             .overlay(
                 viewModel.currentDateString != nil ?
                     factory.makeDateIndicatorView(dateString: viewModel.currentDateString!)
                     : nil
             )
+            .overlay(replyThreadOverlay(for: channel))
         } else {
             ZStack {
                 factory.makeEmptyMessagesView(for: channel, colors: colors)
@@ -249,6 +255,36 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
                     )
                 }
             }
+        }
+    }
+
+    /// Poppin: while a reply is being written the conversation gives way to that thread
+    /// (Messages). It covers the list only: the composer stays above it, the header over it.
+    private var replyThreadShown: Bool {
+        utils.messageListConfig.replyThreadEnabled && viewModel.quotedMessage != nil
+    }
+
+    @ViewBuilder
+    private func replyThreadOverlay(for channel: ChatChannel) -> some View {
+        if replyThreadShown {
+            factory.makeReplyThreadView(
+                channel: channel,
+                viewModel: viewModel,
+                onLongPress: { displayInfo in
+                    // As the list does for its own rows: the keyboard steps down for the menu
+                    // and comes back when the menu closes.
+                    var displayInfo = displayInfo
+                    if keyboardShown {
+                        resignFirstResponder()
+                        displayInfo.keyboardWasShown = true
+                    }
+                    messageDisplayInfo = displayInfo
+                    withAnimation {
+                        viewModel.showReactionOverlay(for: AnyView(self))
+                    }
+                }
+            )
+            .transition(.opacity)
         }
     }
 
@@ -273,6 +309,27 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
     private var bottomPadding: CGFloat {
         let bottomPadding = topVC()?.view.safeAreaInsets.bottom ?? 0
         return bottomPadding
+    }
+}
+
+/// Poppin: behind the reply view the conversation is a blur of its own bubbles (Messages): a
+/// real blur, so a black chat stays black, and its rows are told they are covered. With the
+/// reply view off the list is left exactly as it was. `enabled` is a setting that never
+/// changes while the app runs, so the branch cannot flip under a live list (a flip would
+/// rebuild it); what animates is the radius.
+private struct ReplyBackdropModifier: ViewModifier {
+    var enabled: Bool
+    var covered: Bool
+    var radius: CGFloat
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content
+                .blur(radius: covered ? radius : 0)
+                .environment(\.replyViewCoversList, covered)
+        } else {
+            content
+        }
     }
 }
 

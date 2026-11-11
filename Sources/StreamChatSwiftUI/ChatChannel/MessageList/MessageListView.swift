@@ -195,6 +195,7 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                             )
                             // Poppin: the read indicator draws only under the newest bubble.
                             .environment(\.isNewestMessageRow, message.id == newestBubbleId)
+                            .environment(\.replyRowInfo, replyRowInfo(for: message))
                             .onAppear {
                               if index == nil {
                                 index = messageListDateUtils.index(for: message, in: viewModel.messages)
@@ -246,6 +247,13 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                               }
                               : nil
                             )
+                            // Poppin: a reply draws its original above this row (Messages' reply).
+                            .modifier(ReplyContextModifier(
+                              factory: factory,
+                              channel: channel,
+                              message: message,
+                              rowOpensWithName: showsLastInGroupInfo
+                            ))
                             .offset(x: max(offsetX, -55))
                             .animation(nil, value: messageDate != nil)
                           }
@@ -463,6 +471,19 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
         }
         let groupInfo = messagesGroupingInfo[message.id] ?? []
         return groupInfo.contains(lastMessageKey) == true
+    }
+
+    /// Poppin: "1 Reply" for a row, and whether a date line follows it (the row closes up to
+    /// one). The search for the row's place runs only for the few rows that have replies.
+    private func replyRowInfo(for message: ChatMessage) -> ReplyRowInfo {
+        guard messageListConfig.replyThreadEnabled, !isMessageThread else { return ReplyRowInfo() }
+        let count = viewModel.replyThreads.replyCount(of: message.id)
+        guard count > 0 else { return ReplyRowInfo() }
+        var dateLineFollows = false
+        if let index = viewModel.messages.firstIndex(where: { $0.id == message.id }), index > 0 {
+            dateLineFollows = viewModel.messageWithDates[viewModel.messages[index - 1].id] != nil
+        }
+        return ReplyRowInfo(replyCount: count, dateLineFollows: dateLineFollows)
     }
 
     private func handleLongPress(messageDisplayInfo: MessageDisplayInfo) {

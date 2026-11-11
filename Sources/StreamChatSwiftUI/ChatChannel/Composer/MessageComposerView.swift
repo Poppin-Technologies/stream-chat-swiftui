@@ -61,7 +61,11 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
   /// One send path for the arrow and for the voice review bar (`viewModel.voiceSendRequestCount`).
   private func sendFromComposer() {
     viewModel.sendMessage(quotedMessage: quotedMessage, editedMessage: editedMessage) {
-      quotedMessage = nil
+      // Poppin: with the reply view on, a sent reply stays in its thread (Messages); the view's
+      // own close ends it.
+      if !utils.messageListConfig.replyThreadEnabled {
+        quotedMessage = nil
+      }
       editedMessage = nil
       onMessageSent()
     }
@@ -77,7 +81,8 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
             .padding(.top, 14)
             .padding(.bottom, 6)
         } else {
-          if quotedMessage != nil {
+          // Poppin: with the reply view on, the thread on screen is the context (no bar).
+          if quotedMessage != nil, !utils.messageListConfig.replyThreadEnabled {
             factory.makeQuotedMessageHeaderView(
               quotedMessage: $quotedMessage
             )
@@ -373,9 +378,17 @@ public struct ComposerInputView<Factory: ViewFactory>: View, KeyboardReadable {
     return messages[randomIndex]
   }
   
+  /// Poppin: while a reply is being written in the reply view the field says "Reply" (Messages).
+  private var idlePlaceholder: String {
+    if quotedMessage.wrappedValue != nil, utils.messageListConfig.replyThreadEnabled {
+      return L10n.Message.Actions.inlineReply
+    }
+    return utils.composerConfig.composerPlaceholder?(viewModel.channelController.channel) ?? randomMessage
+  }
+
   public var body: some View {
     VStack {
-      if let quotedMessage = quotedMessage.wrappedValue {
+      if let quotedMessage = quotedMessage.wrappedValue, !utils.messageListConfig.replyThreadEnabled {
         factory.makeQuotedMessageView(
           quotedMessage: quotedMessage,
           fillAvailableSpace: true,
@@ -442,7 +455,7 @@ public struct ComposerInputView<Factory: ViewFactory>: View, KeyboardReadable {
           text: $text,
           height: $textHeight,
           selectedRangeLocation: $selectedRangeLocation,
-          placeholder: isInCooldown ? L10n.Composer.Placeholder.slowMode : viewModel.composerCommand?.id == "/giphy" ? "Search a term" : (utils.composerConfig.composerPlaceholder?(viewModel.channelController.channel) ?? randomMessage),
+          placeholder: isInCooldown ? L10n.Composer.Placeholder.slowMode : viewModel.composerCommand?.id == "/giphy" ? "Search a term" : idlePlaceholder,
           editable: !isInCooldown,
           maxMessageLength: maxMessageLength,
           currentHeight: textFieldHeight

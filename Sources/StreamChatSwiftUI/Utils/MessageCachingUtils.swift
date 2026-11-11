@@ -65,7 +65,15 @@ public class MessageCachingUtils {
         return userDisplayInfo
     }
 
+    /// The original a bubble draws INSIDE itself (the stock reply). None while
+    /// `MessageListConfig.replyThreadEnabled` is on: there the row draws the original above the
+    /// bubble (`ReplyContextModifier`), so no kind of bubble (words, emoji, photo, video, file,
+    /// link, voice) carries it as well.
     public func quotedMessage(for message: ChatMessage) -> ChatMessage? {
+        if InjectedValues[\.utils].messageListConfig.replyThreadEnabled {
+            return nil
+        }
+
         if checkedMessageIds.contains(message.id) {
             return nil
         }

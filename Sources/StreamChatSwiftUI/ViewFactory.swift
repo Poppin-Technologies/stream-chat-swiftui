@@ -924,6 +924,39 @@ public protocol ViewFactory: AnyObject {
         scrolledId: Binding<String?>
     ) -> QuotedMessageViewType
     
+    associatedtype ReplyContextViewType: View
+    /// Poppin: the original a reply answers, drawn above the reply's own bubble while
+    /// `MessageListConfig.replyThreadEnabled` is on. Empty by default.
+    /// - Parameters:
+    ///  - message: the reply.
+    ///  - quotedMessage: the original: the loaded message when the list holds it, the short
+    ///    preview the reply carries otherwise.
+    ///  - channel: the channel both belong to.
+    func makeReplyContextView(
+        for message: ChatMessage,
+        quotedMessage: ChatMessage,
+        channel: ChatChannel
+    ) -> ReplyContextViewType
+
+    associatedtype ReplyCountViewType: View
+    /// Poppin: the line under a message that has replies ("1 Reply"); a tap on it opens the
+    /// thread. Empty by default.
+    func makeReplyCountView(for message: ChatMessage, count: Int) -> ReplyCountViewType
+
+    associatedtype ReplyThreadViewType: View
+    /// Poppin: what covers the conversation while a reply is being written
+    /// (`viewModel.quotedMessage` is set): Apple Messages' thread view. Empty by default.
+    /// - Parameters:
+    ///  - channel: the open channel.
+    ///  - viewModel: the channel's view model; `replyThreads` holds the thread, and setting
+    ///    `quotedMessage` to nil closes the view.
+    ///  - onLongPress: the conversation's own hold handler, for the rows of the thread.
+    func makeReplyThreadView(
+        channel: ChatChannel,
+        viewModel: ChatChannelViewModel,
+        onLongPress: @escaping (MessageDisplayInfo) -> Void
+    ) -> ReplyThreadViewType
+
     associatedtype CustomAttachmentQuotedViewType: View
     /// Creates a quoted view for custom attachments. Returns `EmptyView` by default.
     /// - Parameter message: the quoted message.

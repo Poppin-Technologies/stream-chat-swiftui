@@ -17,6 +17,8 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
     @Injected(\.chatClient) private var chatClient
     @Injected(\.utils) private var utils
     @Environment(\.isNewestMessageRow) private var isNewestMessageRow
+    @Environment(\.replyRowInfo) private var replyRowInfo
+    @Environment(\.replyViewCoversList) private var replyViewCoversList
 
     var factory: Factory
     let channel: ChatChannel
@@ -103,6 +105,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                         .opacity(showsAllInfo || factory.isFirst(message: message) ? 1 : 0)
                         .offset(y: bottomReactionsShown ? offsetYAvatar : 0)
                         .animation(nil)
+                        .replyAnchor(.replyFace)
                     }
                 }
 
@@ -164,6 +167,8 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                     .accessibilityElement(children: .contain)
                     .accessibilityIdentifier("MessageView")
                   }
+
+                    replyCountLine
 
                     if message.replyCount > 0 && !isInThread {
                         factory.makeMessageRepliesView(
@@ -245,7 +250,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
             topReactionsShown && !isMessagePinned ? messageListConfig.messageDisplayOptions.reactionsTopPadding(message) : 0
         )
         .padding(.horizontal, messageListConfig.messagePaddings.horizontal)
-        .padding(.bottom, showsAllInfo || isMessagePinned ? paddingValue : 2)
+        .padding(.bottom, rowBottomPadding)
         .padding(.top, isLast ? paddingValue : 0)
         .background(
           Group {
@@ -318,6 +323,45 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
         .overlay(offsetDateView)
         .overlay(reactionAndFailureOverlay)
         .background(frameTrackingBackground)
+        .background(replySwipeRegion)
+        // Poppin: a reply row's line ends at this bubble (ReplyContextStack).
+        .replyAnchor(.bubble)
+    }
+
+    // Poppin: the bubble owns a right swipe that starts on it (swipe to reply, below); see
+    // `MessageListConfig.replySwipeRegion`.
+    @ViewBuilder
+    private var replySwipeRegion: some View {
+        // Not under the reply view: a bubble nobody can see must not decide what a swipe does.
+        if let region = messageListConfig.replySwipeRegion,
+           !replyViewCoversList,
+           channel.config.quotesEnabled,
+           !message.isDeleted {
+            region()
+        }
+    }
+
+    // Poppin: "1 Reply" under a message that loaded messages answer (Messages); a tap opens
+    // the thread in the reply view. The count comes from the list (`ReplyRowInfo`). Its own
+    // property for the type checker, like the ones above.
+    @ViewBuilder
+    private var replyCountLine: some View {
+        if replyRowInfo.replyCount > 0 {
+            factory.makeReplyCountView(for: message, count: replyRowInfo.replyCount)
+                .onTapGesture {
+                    withAnimation {
+                        quotedMessage = message
+                    }
+                }
+        }
+    }
+
+    // Poppin: Messages lets a date line that follows close up to "1 Reply". The row gives the
+    // room back (the label itself cannot shrink below nothing).
+    private var rowBottomPadding: CGFloat {
+        let padding = showsAllInfo || isMessagePinned ? paddingValue : 2
+        guard replyRowInfo.replyCount > 0, replyRowInfo.dateLineFollows else { return padding }
+        return padding - messageListConfig.replyStyle.countTuckBeforeDate
     }
 
     // Extracted for the same type-checker-timeout reason as the properties above: a nested

@@ -901,6 +901,26 @@ extension ViewFactory {
         )
     }
     
+    public func makeReplyContextView(
+        for message: ChatMessage,
+        quotedMessage: ChatMessage,
+        channel: ChatChannel
+    ) -> some View {
+        EmptyView()
+    }
+
+    public func makeReplyCountView(for message: ChatMessage, count: Int) -> some View {
+        EmptyView()
+    }
+
+    public func makeReplyThreadView(
+        channel: ChatChannel,
+        viewModel: ChatChannelViewModel,
+        onLongPress: @escaping (MessageDisplayInfo) -> Void
+    ) -> some View {
+        EmptyView()
+    }
+
     public func makeCustomAttachmentQuotedView(for message: ChatMessage) -> some View {
         EmptyView()
     }
