@@ -31,7 +31,13 @@ public class DefaultSnapshotCreator: SnapshotCreator {
         let currentSnapshot: UIImage?
         UIGraphicsBeginImageContext(view.frame.size)
         if let currentGraphicsContext = UIGraphicsGetCurrentContext() {
-            view.layer.render(in: currentGraphicsContext)
+            // Poppin: the screen as it is drawn, blurs and glass included. `layer.render`
+            // draws the layers without their filters: behind the reply view (which blurs
+            // the conversation) the hold menu's backdrop showed the conversation sharp, on
+            // top of the thread. It stays as the fallback for a view that cannot be drawn.
+            if !view.drawHierarchy(in: view.bounds, afterScreenUpdates: false) {
+                view.layer.render(in: currentGraphicsContext)
+            }
             currentSnapshot = UIGraphicsGetImageFromCurrentImageContext()
         } else {
             currentSnapshot = images.snapshot
