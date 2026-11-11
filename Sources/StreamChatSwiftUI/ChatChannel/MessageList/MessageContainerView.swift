@@ -506,6 +506,12 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
     }
 
     private func dragChanged(to value: CGFloat) {
+        // Poppin: inside the reply view a right swipe does nothing, as in Messages: the row
+        // is the thread's already, there is nothing to reply into.
+        if isInThread, messageListConfig.replyThreadEnabled {
+            return
+        }
+
         let horizontalTranslation = value
 
         if horizontalTranslation < 0 {
