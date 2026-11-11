@@ -124,6 +124,10 @@ public struct AttachmentPickerView<Factory: ViewFactory>: View {
     }
     .frame(height: height - 0.1 * barOffset)
     .background(Color(colors.background1))
+    // Poppin: closed, the picker has no height, but its handle and its spinner still drew,
+    // spilling out of the empty frame (under the keyboard whenever it was up). A closed
+    // picker draws nothing.
+    .opacity(isDisplayed ? 1 : 0)
     .onChange(of: isDisplayed) { newValue in
       if newValue {
         askForAssetsAccessPermissions()
