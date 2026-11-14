@@ -74,12 +74,47 @@ public func DefaultChatChannelNamer(
                 }
             }
             return channelName
+        } else if channel.cid.type == .messaging {
+            // Poppin (2026-11-14): a group people made and never named had no title at all.
+            // It takes the names of its other members, the way Messages names one.
+            return unnamedGroupName(channel, currentUserId: currentUserId, maxMemberNames: maxMemberNames, separator: separator)
         } else {
             // We don't have a valid name assigned, and this is not a DM channel
             // makes sense to return `nil` because `channelId` could be confusing for our users.
             return nil
         }
     }
+}
+
+/// The title of a group with no name: "Leia", "Leia and Luke", "Leia, Luke and 3 more".
+/// `nil` when the channel carries no other member's name (nobody else is left in it, or the
+/// row is a stub that has no members yet).
+///
+/// The channel carries a preview of its members, not all of them, so the number behind
+/// "more" comes from `memberCount`.
+private func unnamedGroupName(
+    _ channel: ChatChannel,
+    currentUserId: UserId?,
+    maxMemberNames: Int,
+    separator: String
+) -> String? {
+    let names = channel.lastActiveMembers
+        .filter { $0.id != currentUserId }
+        .compactMap { $0.extraData["displayName"]?.stringValue ?? $0.name }
+        .filter { !$0.isEmpty }
+        .sorted()
+    guard !names.isEmpty else { return nil }
+    let others = max(names.count, channel.memberCount - 1)
+    if others == 1 {
+        return names[0]
+    }
+    if others == 2, names.count == 2 {
+        return "\(names[0]) \(L10n.Channel.Name.and) \(names[1])"
+    }
+    let shown = names.prefix(max(1, maxMemberNames))
+    let hidden = others - shown.count
+    let list = shown.joined(separator: "\(separator) ")
+    return hidden > 0 ? "\(list) \(L10n.Channel.Name.andXMore(hidden))" : list
 }
 
 /// Entities such as `User`, `Member` and `Channel` have both `name` and `id`, and `name` is preferred for display.
