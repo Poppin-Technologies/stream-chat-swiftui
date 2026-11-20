@@ -37,7 +37,6 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
     @State private var computeFrame = false
     @State private var offsetX: CGFloat = 0
     @State private var offsetYAvatar: CGFloat = 0
-    @GestureState private var offset: CGSize = .zero
 
     private let replyThreshold: CGFloat = 60
     private let paddingValue: CGFloat = 8
@@ -136,38 +135,21 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                       }
                     }
                     .offset(x: min(self.offsetX, maximumHorizontalSwipeDisplacement))
-                    .simultaneousGesture(
-                      DragGesture(
-                        minimumDistance: minimumSwipeDistance,
-                        coordinateSpace: .local
-                      )
-                      .updating($offset) { (value, gestureState, _) in
-                        if message.isDeleted || !channel.config.repliesEnabled {
-                          return
-                        }
-                        // Using updating since onEnded is not called if the gesture is canceled.
-                        let diff = CGSize(
-                          width: value.location.x - value.startLocation.x,
-                          height: value.location.y - value.startLocation.y
-                        )
-                        
-                        if diff == .zero {
-                          gestureState = .zero
-                        } else {
-                          gestureState = value.translation
-                        }
-                      }
-                    )
-                    .onChange(of: offset, perform: { _ in
+                    // Poppin: the swipe-to-reply drag lives in its own modifier, so a touch-move on this
+                    // bubble no longer re-runs the whole row's body (see `ReplySwipeDrag`).
+                    .modifier(ReplySwipeDrag(
+                      minimumDistance: minimumSwipeDistance,
+                      isEnabled: !message.isDeleted && channel.config.repliesEnabled
+                    ) { translation in
                       if !channel.config.quotesEnabled {
                         return
                       }
-                      
-                      if offset == .zero {
+
+                      if translation == .zero {
                         // gesture ended or cancelled
                         setOffsetX(value: 0)
                       } else {
-                        dragChanged(to: offset.width)
+                        dragChanged(to: translation.width)
                       }
                     })
                     .accessibilityElement(children: .contain)
@@ -662,5 +644,44 @@ fileprivate struct DelaysTouchesButtonStyle: ButtonStyle {
             touchDownDate = nil
             disabled = false
         }
+    }
+}
+
+/// Poppin (2026-11-20): a bubble's swipe-to-reply drag, kept apart from the row. Its live value was a
+/// `@GestureState` of `MessageContainerView`, read in that view's body, so every touch-move that began on a
+/// bubble re-ran the whole row's body, on a plain vertical scroll too (same disease as the list's
+/// `TimeSlideDrag` in MessageListView.swift). Here the live value belongs to this modifier, whose body is
+/// the gesture alone; the row hears each change through `onChange` and decides what to do, as before.
+private struct ReplySwipeDrag: ViewModifier {
+    let minimumDistance: CGFloat
+    let isEnabled: Bool
+    let onChange: (CGSize) -> Void
+    @GestureState private var offset: CGSize = .zero
+
+    init(minimumDistance: CGFloat, isEnabled: Bool, onChange: @escaping (CGSize) -> Void) {
+        self.minimumDistance = minimumDistance
+        self.isEnabled = isEnabled
+        self.onChange = onChange
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .simultaneousGesture(
+                DragGesture(minimumDistance: minimumDistance, coordinateSpace: .local)
+                    .updating($offset) { value, gestureState, _ in
+                        if !isEnabled {
+                            return
+                        }
+                        // Using updating since onEnded is not called if the gesture is canceled.
+                        let diff = CGSize(
+                            width: value.location.x - value.startLocation.x,
+                            height: value.location.y - value.startLocation.y
+                        )
+                        gestureState = diff == .zero ? .zero : value.translation
+                    }
+            )
+            .onChange(of: offset, perform: { _ in
+                onChange(offset)
+            })
     }
 }

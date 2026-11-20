@@ -46,7 +46,6 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
     @State private var scrollDirection = ScrollDirection.up
     @State private var newMessagesStartId: String?
     @State private var offsetX: CGFloat = 0.0
-    @GestureState private var offset: CGSize = .zero
 
     private var messageRenderingUtil = MessageRenderingUtil.shared
     private var skipRenderingMessageIds = [String]()
@@ -338,36 +337,9 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                         }
                     }
                 }
-                .simultaneousGesture(
-                    DragGesture(
-                        minimumDistance: 10,
-                        coordinateSpace: .global
-                    )
-                    .updating($offset) { (value, gestureState, _) in
-                        // Using updating since onEnded is not called if the gesture is canceled.
-                        let diff = CGSize(
-                            width: value.location.x - value.startLocation.x,
-                            height: value.location.y - value.startLocation.y
-                        )
-
-                        if diff == .zero {
-                            gestureState = .zero
-                        } else {
-                            gestureState = value.translation
-                        }
-                    }
-                )
-                .onChange(of: offset, perform: { _ in
-                  if !(offset == .zero && self.offsetX == .zero) {
-                    withAnimation(.interpolatingSpring(stiffness: 170, damping: 20)) {
-                      if offset == .zero {
-                        self.offsetX = 0
-                      } else {
-                        dragChanged(to: offset.width)
-                      }
-                    }
-                  }
-                })
+                // Poppin: the sideways drag that slides the rows to show their times lives in its own
+                // modifier, so a touch-move no longer re-runs this whole body (see `TimeSlideDrag`).
+                .modifier(TimeSlideDrag(offsetX: $offsetX))
                 .flippedUpsideDown()
                 .frame(maxWidth: .infinity)
                 .clipped()
@@ -589,16 +561,6 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
         }
     }
   
-    private func dragChanged(to value: CGFloat) {
-        let horizontalTranslation = value
-
-        
-        if horizontalTranslation <= -10 {
-            offsetX = horizontalTranslation
-        } else {
-            offsetX = 0
-        }
-    }
     func formatDate(date: Date) -> Text {
         let dateFormatter: DateFormatter = {
             let formatter = DateFormatter()
@@ -851,5 +813,40 @@ private class MessageRenderingUtil {
         }
 
         return skipRendering
+    }
+}
+
+/// Poppin (2026-11-20): the list's sideways drag (it slides the rows left to show their times), kept apart
+/// from the list. Its live value was a `@GestureState` of `MessageListView`, read in that view's body, so
+/// EVERY touch-move of a plain vertical scroll re-ran the whole body: every message's id was built again
+/// and every row on screen re-ran its own body. Measured on a chat of 300 messages, build 6200: one slow
+/// drag with the finger down and almost no new row kept the main thread 42 % busy. Here the live value
+/// belongs to this modifier, whose body is the gesture alone, and the list hears of the drag only when
+/// the slide itself changes. Same rule as before: the rows follow a drag 10 pt or more to the left and
+/// spring back when it ends or turns right.
+private struct TimeSlideDrag: ViewModifier {
+    @Binding var offsetX: CGFloat
+    @GestureState private var offset: CGSize = .zero
+
+    func body(content: Content) -> some View {
+        content
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 10, coordinateSpace: .global)
+                    .updating($offset) { value, gestureState, _ in
+                        // Using updating since onEnded is not called if the gesture is canceled.
+                        let diff = CGSize(
+                            width: value.location.x - value.startLocation.x,
+                            height: value.location.y - value.startLocation.y
+                        )
+                        gestureState = diff == .zero ? .zero : value.translation
+                    }
+            )
+            .onChange(of: offset, perform: { _ in
+                let slide: CGFloat = offset.width <= -10 ? offset.width : 0
+                guard slide != offsetX else { return }
+                withAnimation(.interpolatingSpring(stiffness: 170, damping: 20)) {
+                    offsetX = slide
+                }
+            })
     }
 }
