@@ -33,9 +33,13 @@ public struct GiphyAttachmentView<Factory: ViewFactory>: View {
                 )
             }
 
+            // Poppin: the row takes its final height before the GIF lands (the wire carries the
+            // GIF's width and height). Without it a loading GIF was a strip that grew when its
+            // file arrived, and pushed the rows under the finger.
             LazyGiphyView(
                 source: message.giphyAttachments[0].previewURL,
-                width: width
+                width: width,
+                aspectRatio: giphyAspectRatio
             )
             .overlay(
                 factory.makeGiphyBadgeViewType(
@@ -78,6 +82,14 @@ public struct GiphyAttachmentView<Factory: ViewFactory>: View {
         .accessibilityIdentifier("GiphyAttachmentView")
     }
 
+    /// Poppin: width over height from the message itself, nil when the wire did not carry them.
+    private var giphyAspectRatio: CGFloat? {
+        let extraData = message.giphyAttachments[0].extraData
+        guard let width = extraData["width"]?.numberValue, let height = extraData["height"]?.numberValue,
+              width > 0, height > 0 else { return nil }
+        return CGFloat(width / height)
+    }
+
     private var giphyActions: [AttachmentAction] {
         message.giphyAttachments[0].actions
     }
@@ -99,12 +111,13 @@ public struct GiphyAttachmentView<Factory: ViewFactory>: View {
 
 public struct LazyGiphyView: View {
   
-  public init(source: URL, width: CGFloat, loadingBG: Color = Color(.secondarySystemBackground), fill: Bool = false, isAnimating: Bool = true) {
+  public init(source: URL, width: CGFloat, loadingBG: Color = Color(.secondarySystemBackground), fill: Bool = false, isAnimating: Bool = true, aspectRatio: CGFloat? = nil) {
     self.source = source
     self.width = width
     self.loadingBG = loadingBG
     self.resizeMode = fill ? nil : .aspectFit
     self.isAnimating = isAnimating
+    self.aspectRatio = aspectRatio
   }
 
   public let source: URL
@@ -114,6 +127,9 @@ public struct LazyGiphyView: View {
   /// When `false`, a loaded GIF stays mounted with its display link paused
   /// (resumes mid-loop on `true`). Default preserves prior behavior.
   private let isAnimating: Bool
+  /// Width over height when the caller knows it: the view then has its final size while the GIF
+  /// loads. `nil` keeps the size the loaded GIF brings (every caller before 2026-11-20).
+  private let aspectRatio: CGFloat?
 
   public var body: some View {
     LazyImage(imageURL: source) { state in
@@ -129,6 +145,6 @@ public struct LazyGiphyView: View {
     .onDisappear(.cancel)
     .processors([ImageProcessors.Resize(width: width), ImageProcessors.RoundedCorners(radius: 8.0)])
     .priority(.high)
-    .aspectRatio(contentMode: .fit)
+    .aspectRatio(aspectRatio, contentMode: .fit)
   }
 }

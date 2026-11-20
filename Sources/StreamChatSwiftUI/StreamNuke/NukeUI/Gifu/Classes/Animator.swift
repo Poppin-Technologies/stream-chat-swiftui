@@ -10,7 +10,10 @@ class Animator {
   }
 
   /// Number of frame to buffer.
-  var frameBufferCount = 50
+  // Poppin (2026-11-20): 12, was 50. Every buffered frame is a decoded bitmap now (`FrameStore.loadFrame`),
+  // so the buffer is memory (a 480 x 378 frame is 0.7 MB) and decode work for a GIF that is flung past.
+  // The preload queue refills one frame per frame shown; 12 is half a second or more of every GIF.
+  var frameBufferCount = 12
 
   /// Specifies whether GIF frames should be resized.
   var shouldResizeFrames = false

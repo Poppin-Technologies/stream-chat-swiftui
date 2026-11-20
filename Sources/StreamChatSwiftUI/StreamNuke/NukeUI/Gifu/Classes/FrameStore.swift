@@ -95,6 +95,10 @@ class FrameStore {
     self.loopCount = loopCount
   }
 
+  /// Poppin: no decoded GIF frame is larger than this on its longest edge, in pixels (a chat bubble
+  /// on a 3x screen is about 780 pixels wide; Giphy's originals are 480 wide at the median).
+  static let framePixelCap = 640
+
   // MARK: - Frames
   /// Loads the frames from an image source, resizes them, then caches them in `animatedFrames`.
   func prepareFrames(_ completionHandler: (() -> Void)? = nil) {
@@ -156,6 +160,23 @@ private extension FrameStore {
   /// - parameter index: The index of the frame to load.
   /// - returns: An optional `UIImage` instance.
   func loadFrame(at index: Int) -> UIImage? {
+    // Poppin (2026-11-20): a frame leaves this queue DECODED. Gifu decodes a frame only when it
+    // resizes it, and its resize is off unless a caller turns it on (`Animator.shouldResizeFrames`
+    // is false and nothing in this package sets it), so every frame was handed over as an image
+    // that decodes when it is first drawn, from a source that keeps no decoded copy: the screen
+    // commit decoded the frames of every playing GIF on the MAIN thread (measured in a chat with
+    // GIFs on screen: 25 to 28 % of the main thread's work). ImageIO's thumbnail call decodes in
+    // one pass, here on the preload queue, and caps the size (it never scales a frame up).
+    if !shouldResizeFrames || size.width <= 0 || size.height <= 0 {
+      let decodeOptions: [CFString: Any] = [
+        kCGImageSourceCreateThumbnailFromImageAlways: true,
+        kCGImageSourceShouldCacheImmediately: true,
+        kCGImageSourceThumbnailMaxPixelSize: FrameStore.framePixelCap
+      ]
+      if let decoded = CGImageSourceCreateThumbnailAtIndex(imageSource, index, decodeOptions as CFDictionary) {
+        return UIImage(cgImage: decoded)
+      }
+    }
     guard let imageRef = CGImageSourceCreateImageAtIndex(imageSource, index, nil) else { return nil }
     let image = UIImage(cgImage: imageRef)
     let scaledImage: UIImage?
