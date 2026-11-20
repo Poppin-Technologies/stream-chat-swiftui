@@ -545,6 +545,17 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
         checkTypingIndicator()
         checkHeaderType()
         checkOnlineIndicator()
+        // Poppin (2026-11-19): `channel` is read straight off the controller and announces
+        // nothing itself, so the screen only redrew for the few things checked above. A mute,
+        // an archive, a new name or picture, a lock on the composer or a timer set from
+        // elsewhere stayed as first drawn until something else redrew the screen (the menu
+        // went on reading "Mute" on a muted chat, and its next tap sent the same mute again).
+        // The engine only reports a channel whose content changed (`ChannelContentEquality`),
+        // so every report is something a reader of `channel` draws. A screen that is not the
+        // active one catches up when it appears (`onViewAppear` publishes `messages`).
+        if isActive {
+            objectWillChange.send()
+        }
     }
 
     public func showReactionOverlay(for view: AnyView) {
