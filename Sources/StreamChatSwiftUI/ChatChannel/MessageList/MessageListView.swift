@@ -18,6 +18,8 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
     private var composerOverlaysList: Bool {
         utils.messageListConfig.composerOverlaysList
     }
+    /// Poppin: how far the reserved room under the newest row stops short of the bar (see `body`).
+    private let composerEdgeTuck: CGFloat = 6
 
     var factory: Factory
     var channel: ChatChannel
@@ -141,18 +143,14 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
           // would inset the LAYOUT bottom, which renders at the visual top) and reserve the
           // same room at its layout top = visual bottom.
           GeometryReader { geo in
-            let bottomInset: CGFloat = composerOverlaysList ? geo.safeAreaInsets.bottom : 0
+            // Poppin: Messages keeps 8pt between the newest bubble (or its read mark) and the
+            // field. A row brings 9 under itself (`MessageContainerView.runBottomGap`) and the
+            // bar's edge stands 5 over the field (2 in the app's bar modifier, 3 in the composer
+            // row), so the last 6 of the row's own empty room rest under the bar's edge.
+            let bottomInset: CGFloat = composerOverlaysList ? max(0, geo.safeAreaInsets.bottom - composerEdgeTuck) : 0
             let positionAnchor = UnitPoint(x: 0.5, y: bottomInset / max(1, geo.size.height + bottomInset))
             ScrollViewReader { scrollView in
                 ScrollView {
-                    GeometryReader { proxy in
-                        let frame = proxy.frame(in: .named(scrollAreaId))
-                        let offset = frame.minY
-                        let width = frame.width
-                        Color.clear.preference(key: ScrollViewOffsetPreferenceKey.self, value: offset)
-                        Color.clear.preference(key: WidthPreferenceKey.self, value: width)
-                    }
-
                     LazyVStack(spacing: 0) {
                       if bottomInset > 0 {
                         // Visual bottom of the flipped list: room for the composer bar overlaying it.
@@ -281,6 +279,20 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                     }
                     .modifier(factory.makeMessageListModifier())
                     .modifier(ScrollTargetLayoutModifier(enabled: loadingNextMessages))
+                    // Poppin: the scroll offset and width probe rides BEHIND the rows. As a child of the
+                    // scroll view it was a row of its own: 10pt (a GeometryReader's size when nothing
+                    // proposes one) plus the stack's 8pt spacing, so every chat kept 18pt of empty room
+                    // between its newest message and the bar (Jackie 2026-11-20, "a big gap between the
+                    // keyboard and the messages at the bottom"). Same frame, same two values.
+                    .background(
+                        GeometryReader { proxy in
+                            let frame = proxy.frame(in: .named(scrollAreaId))
+                            let offset = frame.minY
+                            let width = frame.width
+                            Color.clear.preference(key: ScrollViewOffsetPreferenceKey.self, value: offset)
+                            Color.clear.preference(key: WidthPreferenceKey.self, value: width)
+                        }
+                    )
                 }
                 .if(true) { view in
                   Group {
