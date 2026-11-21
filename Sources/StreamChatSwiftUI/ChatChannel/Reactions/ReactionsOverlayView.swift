@@ -68,11 +68,23 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
         ZStack(alignment: .topLeading) {
             ZStack {
                 if !orientationChanged {
-                    factory.makeReactionsBackgroundView(
-                        currentSnapshot: currentSnapshot,
-                        popInAnimationInProgress: !popIn
-                    )
-                    .offset(y: spacing > 0 ? screenHeight - currentSnapshot.size.height : 0)
+                    // Poppin: the snapshot is of the whole window. A chat that is one part of
+                    // the window (beside the app's Chat list on the open iPhone Duo) lays it
+                    // over the window's own place, so what is blurred is what stood there.
+                    // The reader puts the picture at its top leading corner, where it was
+                    // before; a chat that spans the window is as wide as the picture and
+                    // shifts nothing.
+                    GeometryReader { backdrop in
+                        factory.makeReactionsBackgroundView(
+                            currentSnapshot: currentSnapshot,
+                            popInAnimationInProgress: !popIn
+                        )
+                        .offset(
+                            x: backdrop.size.width < currentSnapshot.size.width - 1
+                                ? -backdrop.frame(in: .global).minX : 0,
+                            y: spacing > 0 ? screenHeight - currentSnapshot.size.height : 0
+                        )
+                    }
                 } else {
                     Color.gray.opacity(0.4)
                 }
@@ -315,12 +327,11 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
         userReactionsHeight + 3 * paddingValue
     }
 
+    /// Poppin: the overlay's own left edge in the window, on every device (it was the iPad's
+    /// alone). 0 where the chat spans the window; the part's edge where the chat stands
+    /// beside the app's Chat list on the open iPhone Duo, so the held message keeps its place.
     private func diffWidth(proxy: GeometryProxy) -> CGFloat {
-        if UIDevice.current.userInterfaceIdiom == .pad {
-            return proxy.frame(in: .global).minX
-        } else {
-            return 0
-        }
+        proxy.frame(in: .global).minX
     }
 
     private func maxUserReactionsWidth(availableWidth: CGFloat) -> CGFloat {

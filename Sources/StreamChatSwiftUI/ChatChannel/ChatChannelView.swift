@@ -15,6 +15,9 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
     @StateObject private var viewModel: ChatChannelViewModel
 
     @Environment(\.presentationMode) var presentationMode
+    /// Poppin: the app says a page covers this screen where no disappear says it
+    /// (`ChatScreenCovered.swift`).
+    @Environment(\.chatScreenIsCovered) private var screenIsCovered
 
     @State private var messageDisplayInfo: MessageDisplayInfo?
     @State private var keyboardShown = false
@@ -165,6 +168,10 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
         })
         .onAppear {
             viewModel.onViewAppear()
+            // Poppin: built under a page (`chatScreenIsCovered`), it rests until uncovered.
+            if screenIsCovered {
+                viewModel.onViewDissappear()
+            }
             if utils.messageListConfig.becomesFirstResponderOnOpen {
                 keyboardShown = true
             }
@@ -172,6 +179,15 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
         .onDisappear {
             viewModel.onViewDissappear()
         }
+        // Poppin: a chat drawn in the app's root gets no disappear when a page is pushed over
+        // it. Covered, it rests as a covered pushed chat does; uncovered, it catches up.
+        .onChange(of: screenIsCovered, perform: { covered in
+            if covered {
+                viewModel.onViewDissappear()
+            } else {
+                viewModel.onViewAppear()
+            }
+        })
         .navigationBarHidden(true)
         .onChange(of: presentationMode.wrappedValue, perform: { newValue in
             if newValue.isPresented == false {
