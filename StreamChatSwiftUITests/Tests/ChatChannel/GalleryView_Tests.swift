@@ -49,9 +49,19 @@ class GalleryView_Tests: StreamChatTestCase {
 
     func test_gridView_snapshotLoading() {
         // Given
+        let imageMessage = ChatMessage.mock(
+            id: .unique,
+            cid: .unique,
+            text: "test message",
+            author: .mock(id: .unique),
+            attachments: ChatChannelTestHelpers.imageAttachments
+        )
+
+        // When
         let view = GridPhotosView(
-            imageURLs: [ChatChannelTestHelpers.testURL],
-            isShown: .constant(true)
+            imageAttachments: imageMessage.imageAttachments,
+            onBack: {},
+            onSelect: { _ in }
         )
         .applyDefaultSize()
 

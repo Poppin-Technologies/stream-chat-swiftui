@@ -58,14 +58,17 @@ struct VanishingMediaCaption: View {
     @Injected(\.fonts) private var fonts
 
     var body: some View {
-        HStack(spacing: 4) {
+        // Poppin (2026-11-21): it stands under the bubble on the sender's side, small and gray,
+        // the way Messages writes "Delivered". Its callers place it outside the bubble's colour.
+        HStack(spacing: 3) {
             Image(systemName: "timer")
-                .font(.system(size: 10, weight: .semibold))
+                .font(.system(size: 9, weight: .bold))
             Text("Disappears after it's viewed")
         }
-        .font(fonts.caption1)
+        .font(.system(size: 11, weight: .semibold))
         .foregroundColor(Color(colors.textLowEmphasis))
         .padding(.top, 4)
+        .padding(.horizontal, 4)
         .accessibilityIdentifier("VanishingMediaCaption")
     }
 }

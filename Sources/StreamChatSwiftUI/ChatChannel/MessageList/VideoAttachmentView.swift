@@ -16,6 +16,18 @@ public struct VideoAttachmentsContainer<Factory: ViewFactory>: View {
     @Binding var scrolledId: String?
 
     public var body: some View {
+        // Poppin (2026-11-21): the sender's "Disappears" line stands under the bubble, not inside
+        // its colour (it was drawn inside when the video had a caption or a quote).
+        VStack(alignment: message.isSentByCurrentUser ? .trailing : .leading, spacing: 0) {
+            bubble
+            if message.extraData["expiresAt"] != nil && message.isSentByCurrentUser {
+                VanishingMediaCaption()
+            }
+        }
+        .accessibilityIdentifier("VideoAttachmentsContainer")
+    }
+
+    private var bubble: some View {
         VStack(spacing: 0) {
             if let quotedMessage = utils.messageCachingUtils.quotedMessage(for: message) {
                 VStack {
@@ -62,7 +74,6 @@ public struct VideoAttachmentsContainer<Factory: ViewFactory>: View {
                 )
             )
         })
-        .accessibilityIdentifier("VideoAttachmentsContainer")
     }
 }
 
@@ -88,9 +99,6 @@ public struct VideoAttachmentsList: View {
                     for: attachment.uploadingState,
                     url: attachment.videoURL
                 )
-            }
-            if message.extraData["expiresAt"] != nil && message.isSentByCurrentUser {
-                VanishingMediaCaption()
             }
         }
     }

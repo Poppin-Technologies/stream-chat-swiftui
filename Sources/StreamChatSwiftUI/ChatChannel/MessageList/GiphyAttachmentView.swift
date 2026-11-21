@@ -19,6 +19,10 @@ public struct GiphyAttachmentView<Factory: ViewFactory>: View {
     let isFirst: Bool
     @Binding var scrolledId: String?
 
+    /// Poppin (2026-11-21): an older GIF carries no size on the wire. Its shape then comes from the
+    /// loaded file, so the GIF fills its frame and no bubble colour stands above and under it.
+    @State private var loadedRatio: CGFloat?
+
     public var body: some View {
         VStack(
             alignment: message.alignmentInBubble,
@@ -36,16 +40,13 @@ public struct GiphyAttachmentView<Factory: ViewFactory>: View {
             // Poppin: the row takes its final height before the GIF lands (the wire carries the
             // GIF's width and height). Without it a loading GIF was a strip that grew when its
             // file arrived, and pushed the rows under the finger.
+            // Poppin (2026-11-21): no GIPHY tag on the GIF (Messages shows none; the GIF search
+            // keeps GIPHY's name).
             LazyGiphyView(
                 source: message.giphyAttachments[0].previewURL,
                 width: width,
-                aspectRatio: giphyAspectRatio
-            )
-            .overlay(
-                factory.makeGiphyBadgeViewType(
-                    for: message,
-                    availableWidth: width
-                )
+                aspectRatio: shownAspectRatio,
+                onLoaded: giphyAspectRatio == nil ? { size in learnShape(from: size) } : nil
             )
 
             if !giphyActions.isEmpty {
@@ -90,6 +91,21 @@ public struct GiphyAttachmentView<Factory: ViewFactory>: View {
         return CGFloat(width / height)
     }
 
+    /// The wire's shape, else the one learned from the file (this view, or an earlier one of the same
+    /// GIF), else 4:3 until the file lands.
+    private var shownAspectRatio: CGFloat {
+        giphyAspectRatio ?? loadedRatio ?? GiphyShapes.shared.ratio(for: message.giphyAttachments[0].previewURL) ?? 4 / 3
+    }
+
+    private func learnShape(from size: CGSize) {
+        guard size.width > 0, size.height > 0 else { return }
+        let ratio = size.width / size.height
+        GiphyShapes.shared.note(ratio, for: message.giphyAttachments[0].previewURL)
+        if loadedRatio != ratio {
+            loadedRatio = ratio
+        }
+    }
+
     private var giphyActions: [AttachmentAction] {
         message.giphyAttachments[0].actions
     }
@@ -109,15 +125,31 @@ public struct GiphyAttachmentView<Factory: ViewFactory>: View {
     }
 }
 
+/// Poppin (2026-11-21): the shapes of GIFs whose message carried no size, learned from the loaded
+/// file and kept for the session, so the row has its final height the next time it scrolls in.
+final class GiphyShapes {
+    static let shared = GiphyShapes()
+    private var ratios = [URL: CGFloat]()
+
+    func ratio(for url: URL) -> CGFloat? {
+        ratios[url]
+    }
+
+    func note(_ ratio: CGFloat, for url: URL) {
+        ratios[url] = ratio
+    }
+}
+
 public struct LazyGiphyView: View {
   
-  public init(source: URL, width: CGFloat, loadingBG: Color = Color(.secondarySystemBackground), fill: Bool = false, isAnimating: Bool = true, aspectRatio: CGFloat? = nil) {
+  public init(source: URL, width: CGFloat, loadingBG: Color = Color(.secondarySystemBackground), fill: Bool = false, isAnimating: Bool = true, aspectRatio: CGFloat? = nil, onLoaded: ((CGSize) -> Void)? = nil) {
     self.source = source
     self.width = width
     self.loadingBG = loadingBG
     self.resizeMode = fill ? nil : .aspectFit
     self.isAnimating = isAnimating
     self.aspectRatio = aspectRatio
+    self.onLoaded = onLoaded
   }
 
   public let source: URL
@@ -130,6 +162,8 @@ public struct LazyGiphyView: View {
   /// Width over height when the caller knows it: the view then has its final size while the GIF
   /// loads. `nil` keeps the size the loaded GIF brings (every caller before 2026-11-20).
   private let aspectRatio: CGFloat?
+  /// The size of the loaded file, for a caller that has to learn the GIF's shape from it.
+  private let onLoaded: ((CGSize) -> Void)?
 
   public var body: some View {
     LazyImage(imageURL: source) { state in
@@ -143,6 +177,9 @@ public struct LazyGiphyView: View {
       }
     }
     .onDisappear(.cancel)
+    .onSuccess { response in
+      onLoaded?(response.image.size)
+    }
     .processors([ImageProcessors.Resize(width: width), ImageProcessors.RoundedCorners(radius: 8.0)])
     .priority(.high)
     .aspectRatio(aspectRatio, contentMode: .fit)

@@ -11,6 +11,8 @@ struct ShareButtonView: View {
     @Injected(\.images) var images
 
     var content: [Any]
+    /// Poppin: the photo viewer draws its buttons in the app's tint.
+    var tint: Color? = nil
     @State var isSharePresented = false
 
     var body: some View {
@@ -21,7 +23,7 @@ struct ShareButtonView: View {
                 .customizable()
                 .frame(width: 18, height: 22)
         })
-            .foregroundColor(Color(colors.text))
+            .foregroundColor(tint ?? Color(colors.text))
             .sheet(isPresented: $isSharePresented) {
                 ShareActivityView(activityItems: content)
             }

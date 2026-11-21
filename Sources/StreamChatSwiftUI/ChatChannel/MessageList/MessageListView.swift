@@ -840,6 +840,10 @@ private struct TimeSlideDrag: ViewModifier {
             .simultaneousGesture(
                 DragGesture(minimumDistance: 10, coordinateSpace: .global)
                     .updating($offset) { value, gestureState, _ in
+                        // Poppin (2026-11-21): a touch that began on a photo stack turns the stack.
+                        if PhotoStackArea.contains(value.startLocation) {
+                            return
+                        }
                         // Using updating since onEnded is not called if the gesture is canceled.
                         let diff = CGSize(
                             width: value.location.x - value.startLocation.x,

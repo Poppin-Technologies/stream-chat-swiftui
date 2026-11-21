@@ -135,6 +135,7 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
                       }
                     }
                     .offset(x: min(self.offsetX, maximumHorizontalSwipeDisplacement))
+                    .environment(\.photoViewerReply, photoViewerReply)
                     // Poppin: the swipe-to-reply drag lives in its own modifier, so a touch-move on this
                     // bubble no longer re-runs the whole row's body (see `ReplySwipeDrag`).
                     .modifier(ReplySwipeDrag(
@@ -487,6 +488,22 @@ public struct MessageContainerView<Factory: ViewFactory>: View {
         utils.messageListConfig
     }
 
+    /// Poppin (2026-11-21): Reply in the photo viewer does what a swipe to reply does on this row,
+    /// and is nil wherever that swipe does nothing.
+    private var photoViewerReply: (() -> Void)? {
+        if isInThread, messageListConfig.replyThreadEnabled {
+            return nil
+        }
+        guard channel.config.repliesEnabled, channel.config.quotesEnabled, !message.isDeleted, !replyViewCoversList else {
+            return nil
+        }
+        return {
+            withAnimation {
+                quotedMessage = message
+            }
+        }
+    }
+
     private func dragChanged(to value: CGFloat) {
         // Poppin: inside the reply view a right swipe does nothing, as in Messages: the row
         // is the thread's already, there is nothing to reply into.
@@ -667,9 +684,15 @@ private struct ReplySwipeDrag: ViewModifier {
     func body(content: Content) -> some View {
         content
             .simultaneousGesture(
-                DragGesture(minimumDistance: minimumDistance, coordinateSpace: .local)
+                // Poppin (2026-11-21): in the global space, so its start point can be asked of the
+                // photo stacks on screen (`PhotoStackArea`). The row only uses differences.
+                DragGesture(minimumDistance: minimumDistance, coordinateSpace: .global)
                     .updating($offset) { value, gestureState, _ in
                         if !isEnabled {
+                            return
+                        }
+                        // A touch that began on a photo stack turns the stack.
+                        if PhotoStackArea.contains(value.startLocation) {
                             return
                         }
                         // Using updating since onEnded is not called if the gesture is canceled.
