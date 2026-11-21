@@ -692,7 +692,19 @@ open class MessageComposerViewModel: ObservableObject {
             }
         }
     }
-    
+
+    /// Poppin: the draft's words and the people it still names, as a send would take them, for
+    /// a message the app stores itself instead of sending (Send Later).
+    public func textDraft() -> (text: String, mentionedUserIds: [String]) {
+        clearRemovedMentions()
+        return (adjustedText, mentionedUsers.map(\.id))
+    }
+
+    /// Poppin: empties the field after the app took the draft itself (Send Later).
+    public func clearDraft() {
+        clearInputData()
+    }
+
     private func edit(
         message: ChatMessage,
         completion: @escaping () -> Void

@@ -1011,6 +1011,14 @@ extension ViewFactory {
     public func makeChannelIntroView(channel: ChatChannel) -> AnyView {
       .init(EmptyView())
     }
+
+    public func makeConversationEndView(channel: ChatChannel) -> AnyView {
+      .init(EmptyView())
+    }
+
+    public func makeComposerNoticeView(channelController: ChatChannelController) -> AnyView {
+      .init(EmptyView())
+    }
 }
 
 /// Default class conforming to `ViewFactory`, used throughout the SDK.

@@ -52,6 +52,15 @@ public protocol ViewFactory: AnyObject {
     /// Not shown in threads.
     func makeChannelIntroView(channel: ChatChannel) -> AnyView
 
+    /// Rendered after the newest message, inside the scrolling message list (Poppin addition):
+    /// what the app keeps at the end of a conversation (the viewer's own messages that wait
+    /// for their time, Send Later). Not shown in threads.
+    func makeConversationEndView(channel: ChatChannel) -> AnyView
+
+    /// One line of the app's own above the composer's field row (Poppin addition): Send
+    /// Later's time pill. The composer's view model rides in the environment.
+    func makeComposerNoticeView(channelController: ChatChannelController) -> AnyView
+
     associatedtype ChannelListItemType: View
     /// Creates the channel list item.
     /// - Parameters:

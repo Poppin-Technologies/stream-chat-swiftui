@@ -157,6 +157,13 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                           .frame(height: bottomInset)
                           .id(messageListBottomInsetId)
                       }
+                      // Poppin: what the app keeps after the newest message (the viewer's own
+                      // messages that wait for their time, Send Later). It comes first in this
+                      // flipped stack, so it is the conversation's end and scrolls with it.
+                      if !isMessageThread {
+                        factory.makeConversationEndView(channel: channel)
+                          .flippedUpsideDown()
+                      }
                       // Poppin: the newest row that draws as a bubble (a system or error line
                       // carries no read indicator, so it must not take it from the bubble above).
                       let newestBubbleId = viewModel.messages.first {

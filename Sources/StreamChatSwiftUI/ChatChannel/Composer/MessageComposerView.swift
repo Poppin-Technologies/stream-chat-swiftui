@@ -93,7 +93,11 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
             )
             .transition(.identity)
           }
-          
+
+          // Poppin: one line of the app's own over the field row (Send Later's time pill).
+          factory.makeComposerNoticeView(channelController: viewModel.channelController)
+            .environmentObject(viewModel)
+
           HStack(alignment: .bottom) {
             factory.makeLeadingComposerView(
               state: $viewModel.pickerTypeState,
@@ -143,6 +147,9 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
           }
           .padding(.top, composerHeight > 60 ? 6 : 3)
           .padding(.horizontal, 8)
+          // Poppin: the row's own views learn whether this draft is a reply or an edit of a sent
+          // message (composerHasContext): the app offers Send Later on a plain new message only.
+          .environment(\.composerHasContext, quotedMessage != nil || editedMessage != nil)
           // Poppin: the app can move the field row's right edge in (composerRowTrailingInset).
           .modifier(ComposerRowTrailingInsetModifier())
           // Poppin: 6, was 12. The app's bar modifier now brings 12 under the field (Messages'
