@@ -209,8 +209,15 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                               if let index = index {
                                 onMessageAppear(index, scrollDirection)
                               }
-                              utils.isSentByCurrentUser = factory.isSentByCurrentUser
-                              utils.isAnon = factory.isFirst
+                              // Same law as `isAnonModeOn` below: the shared `utils` outlives every chat screen, so
+                              // these hold the factory weakly. As method references (`factory.isFirst`) each kept
+                              // the factory, and through it the last chat's screen, until another chat opened.
+                              utils.isSentByCurrentUser = { [weak factory] message in
+                                factory?.isSentByCurrentUser(message: message) ?? message.isSentByCurrentUser
+                              }
+                              utils.isAnon = { [weak factory] message in
+                                factory?.isFirst(message: message) ?? false
+                              }
                             }
                             .onAppear() {
                               // The shared `utils` outlives every chat screen: this closure holds the factory
