@@ -30,6 +30,9 @@ struct ComposerTextInputView: UIViewRepresentable {
         inputTextView.delegate = context.coordinator
         inputTextView.isEditable = editable
         inputTextView.layoutManager.delegate = context.coordinator
+        // Poppin (2026-11-22): text styles, see ComposerTextStyles.swift.
+        context.coordinator.styles = context.environment.composerTextStyles
+        inputTextView.textStorage.delegate = context.coordinator
         inputTextView.placeholderLabel.text = placeholder
         inputTextView.contentInsetAdjustmentBehavior = .never
         inputTextView.setContentCompressionResistancePriority(.streamLow, for: .horizontal)
@@ -42,13 +45,14 @@ struct ComposerTextInputView: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: InputTextView, context: Context) {
+        context.coordinator.styles = context.environment.composerTextStyles
         DispatchQueue.main.async {
             if uiView.markedTextRange == nil {
                 var shouldAnimate = false
                 if uiView.text != text {
                     let previousLocation = selectedRangeLocation
                     shouldAnimate = uiView.shouldAnimate(text)
-                    uiView.text = text
+                    context.coordinator.setText(text, in: uiView)
                     selectedRangeLocation = previousLocation
                 }
                 uiView.selectedRange.location = selectedRangeLocation
@@ -79,6 +83,15 @@ struct ComposerTextInputView: UIViewRepresentable {
         var textInput: ComposerTextInputView
         var maxMessageLength: Int?
 
+        /// Poppin (2026-11-22): the draft's styles, and how this field keeps them. See
+        /// ComposerTextStyles.swift.
+        var styles: ComposerTextStyleBridge?
+        /// The text is being set by code: the storage keeps the marks it is given.
+        var settingTextByCode = false
+        /// This field has held styled words. Until then nothing is painted or stripped, so a
+        /// plain draft is handled exactly as before.
+        var paintsStyles = false
+
         init(
             textInput: ComposerTextInputView,
             maxMessageLength: Int?
@@ -88,6 +101,9 @@ struct ComposerTextInputView: UIViewRepresentable {
         }
 
         func textViewDidChange(_ textView: UITextView) {
+            if let field = textView as? InputTextView {
+                textStylesDidChange(in: field)
+            }
             let shouldAnimate = (textView as? InputTextView)?.shouldAnimate(textInput.text) ?? false
             textInput.text = textView.text
             textInput.selectedRangeLocation = textView.selectedRange.location

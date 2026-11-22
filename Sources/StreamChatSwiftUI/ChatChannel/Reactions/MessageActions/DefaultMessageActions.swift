@@ -192,7 +192,8 @@ extension MessageAction {
             title: L10n.Message.Actions.copy,
             iconName: "doc.on.doc",
             action: {
-                UIPasteboard.general.string = message.adjustedText
+                // The words as written: a message's `text` blocks the ones in Invisible Ink out.
+                UIPasteboard.general.string = InjectedValues[\.utils].composerConfig.adjustMessageOnRead(message.fullText)
                 onFinish(
                     MessageActionInfo(
                         message: message,

@@ -78,6 +78,31 @@ open class MessageComposerViewModel: ObservableObject {
         guard offersMediaChoices else { return MediaSendChoices() }
         return MediaSendChoices(viewOnce: viewOnceChosen, screenshotsBlocked: noScreenshotsChosen)
     }
+
+    /// Poppin (2026-11-22): the styles of the draft's words (bold, italic, underline,
+    /// strikethrough, Invisible Ink). The field holds them: ComposerTextStyles.swift.
+    public let textStyles = ComposerTextStyleBridge()
+
+    /// The styles that go out with `sent`: the field's, as long as what is sent is the
+    /// field's text as it stands. A command writes its own text, which the ranges would not
+    /// fit.
+    private func sendTextStyles(for sent: String) -> [ChatTextStyle] {
+        sent == text ? textStyles.styles(fitting: sent) : []
+    }
+
+    /// Puts a message's words into the field for an edit, with their styles. The words as
+    /// written: a message's `text` blocks the ones in Invisible Ink out.
+    public func fillText(for message: ChatMessage?) {
+        let words = message?.fullText ?? ""
+        textStyles.expect(text: words, styles: message?.textStyles ?? [])
+        text = words
+    }
+
+    /// Puts plain words into the field, in place of whatever it holds.
+    public func setPlainText(_ words: String) {
+        textStyles.expect(text: words, styles: [])
+        text = words
+    }
     
     @Published public var text = "" {
         didSet {
@@ -336,6 +361,7 @@ open class MessageComposerViewModel: ObservableObject {
         let inputSnapshot = composerInputSnapshot()
         // Poppin: read before `clearInputData()` below empties the draft and its choices.
         let mediaChoices = sendMediaChoices
+        let sentStyles = sendTextStyles(for: messageText)
 
         do {
             var attachments = try addedAssets.map { try $0.toAttachmentPayload() }
@@ -378,7 +404,8 @@ open class MessageComposerViewModel: ObservableObject {
                     skipPush: skipPush,
                     skipEnrichUrl: skipEnrichUrl,
                     extraData: extraData,
-                    mediaChoices: mediaChoices
+                    mediaChoices: mediaChoices,
+                    textStyles: sentStyles
                 ) { [weak self] in
                     switch $0 {
                     case .success:
@@ -399,7 +426,8 @@ open class MessageComposerViewModel: ObservableObject {
                     skipPush: skipPush,
                     skipEnrichUrl: skipEnrichUrl,
                     extraData: extraData,
-                    mediaChoices: mediaChoices
+                    mediaChoices: mediaChoices,
+                    textStyles: sentStyles
                 ) { [weak self] in
                     switch $0 {
                     case .success:
@@ -766,7 +794,8 @@ open class MessageComposerViewModel: ObservableObject {
         
         messageController.editMessage(
             text: adjustedText,
-            attachments: utils.composerConfig.attachmentPayloadConverter(message)
+            attachments: utils.composerConfig.attachmentPayloadConverter(message),
+            textStyles: sendTextStyles(for: adjustedText)
         ) { [weak self] error in
             if error != nil {
                 self?.errorShown = true
@@ -780,6 +809,7 @@ open class MessageComposerViewModel: ObservableObject {
     
     private func clearInputData() {
         text = ""
+        textStyles.clear()
         addedAssets = []
         addedFileURLs = []
         addedVoiceRecordings = []
@@ -801,6 +831,7 @@ open class MessageComposerViewModel: ObservableObject {
         let mentionedUsers: Set<ChatUser>
         let viewOnceChosen: Bool
         let noScreenshotsChosen: Bool
+        let textStyles: [ChatTextStyle]
     }
 
     private func composerInputSnapshot() -> ComposerInputSnapshot {
@@ -812,7 +843,8 @@ open class MessageComposerViewModel: ObservableObject {
             addedCustomAttachments: addedCustomAttachments,
             mentionedUsers: mentionedUsers,
             viewOnceChosen: viewOnceChosen,
-            noScreenshotsChosen: noScreenshotsChosen
+            noScreenshotsChosen: noScreenshotsChosen,
+            textStyles: textStyles.styles
         )
     }
 
@@ -824,6 +856,7 @@ open class MessageComposerViewModel: ObservableObject {
               addedVoiceRecordings.isEmpty,
               addedCustomAttachments.isEmpty
         else { return }
+        textStyles.expect(text: snapshot.text, styles: snapshot.textStyles)
         text = snapshot.text
         addedAssets = snapshot.addedAssets
         addedFileURLs = snapshot.addedFileURLs

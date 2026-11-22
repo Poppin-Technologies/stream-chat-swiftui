@@ -265,11 +265,11 @@ public struct MessageComposerView<Factory: ViewFactory>: View, KeyboardReadable 
         sendFromComposer()
       }
       .onChange(of: editedMessage) { _ in
-        viewModel.text = editedMessage?.text ?? ""
+        viewModel.fillText(for: editedMessage)
         if editedMessage != nil {
           becomeFirstResponder()
           editedMessageWillShow = true
-          viewModel.selectedRangeLocation = editedMessage?.text.count ?? 0
+          viewModel.selectedRangeLocation = editedMessage?.fullText.utf16.count ?? 0
         }
       }
       .onChange(of: viewModel.composerCommand == nil) { c in
@@ -470,6 +470,7 @@ public struct ComposerInputView<Factory: ViewFactory>: View, KeyboardReadable {
           maxMessageLength: maxMessageLength,
           currentHeight: textFieldHeight
         )
+        .environment(\.composerTextStyles, viewModel.textStyles)
         .foregroundColor(Color(red: 0.57, green: 0.57, blue: 0.57))
         .accessibilityIdentifier("ComposerTextInputView")
         .accessibilityElement(children: .contain)
