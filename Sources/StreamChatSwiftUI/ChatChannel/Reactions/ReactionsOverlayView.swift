@@ -15,6 +15,9 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
     @State private var popIn = false
     @State private var willPopOut = false
     @State private var screenHeight = UIScreen.main.bounds.size.height
+    /// Poppin: the ground the app covers while the chat stands in one part of the window
+    /// (`chatHoldMenuCover`): the menu keeps clear of it. Zero where the chat is the window.
+    @Environment(\.chatHoldMenuCover) private var cover
     @State private var screenWidth: CGFloat?
     @State private var initialWidth: CGFloat?
     @State private var orientationChanged = false
@@ -197,9 +200,9 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
                             message: viewModel.message,
                             maxHeight: userReactionsHeight
                         )
-                        .frame(maxWidth: maxUserReactionsWidth(availableWidth: reader.size.width))
+                        .frame(maxWidth: maxUserReactionsWidth(availableWidth: (reader.size.width - cover.trailing)))
                         .offset(
-                            x: userReactionsOriginX(availableWidth: reader.size.width)
+                            x: userReactionsOriginX(availableWidth: (reader.size.width - cover.trailing))
                         )
                         .padding(.top, messageDisplayInfo.message.isSentByCurrentUser ? paddingValue : 2 * paddingValue)
                         .padding(.trailing, paddingValue)
@@ -251,7 +254,7 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
     }
 
     private func messageActionsOffsetX(reader: GeometryProxy) -> CGFloat {
-        let originX = messageActionsOriginX(availableWidth: reader.size.width)
+        let originX = messageActionsOriginX(availableWidth: (reader.size.width - cover.trailing))
         if popIn {
             return originX
         } else if willPopOut {
@@ -299,7 +302,7 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
             messageDisplayInfo.showsMessageActions ? messageActionsSize : userReactionsPopupHeight
         var originY = messageDisplayInfo.frame.origin.y
         let minOrigin: CGFloat = 100
-        let maxOrigin: CGFloat = screenHeight - messageContainerHeight - bottomPopupOffset - minOrigin - bottomOffset
+        let maxOrigin: CGFloat = screenHeight - cover.bottom - messageContainerHeight - bottomPopupOffset - minOrigin - bottomOffset
         if originY < minOrigin {
             originY = minOrigin
         } else if originY > maxOrigin {

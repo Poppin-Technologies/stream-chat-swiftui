@@ -21,3 +21,19 @@ public extension EnvironmentValues {
         set { self[ChatScreenIsCoveredKey.self] = newValue }
     }
 }
+
+/// Poppin: the ground of the chat screen that the app covers with something of its own while
+/// the chat stands in one part of the window: its tab bar under the chat and the status column
+/// beside it, where the chat stands beside the Chat list on the open iPhone Duo. A held
+/// message's menu keeps clear of it (`ReactionsOverlayView`). Zero wherever the chat is the
+/// whole window, so nothing moves on any other screen.
+private struct ChatHoldMenuCoverKey: EnvironmentKey {
+    static let defaultValue = EdgeInsets()
+}
+
+public extension EnvironmentValues {
+    var chatHoldMenuCover: EdgeInsets {
+        get { self[ChatHoldMenuCoverKey.self] }
+        set { self[ChatHoldMenuCoverKey.self] = newValue }
+    }
+}
