@@ -33,10 +33,16 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
 
     private var messageActionsCount: Int
     private let paddingValue: CGFloat = 16
-    private let messageItemSize: CGFloat = 40
-    private var maxMessageActionsSize: CGFloat {
-        screenHeight / 3
+    /// Poppin: one row of the menu as it is drawn: `ActionItemView` is 40 pt with 1 pt above
+    /// and below it, and a hairline follows every row. The menu's place is derived from this,
+    /// so it has to be the real height (see `messageActionsSize`).
+    private var messageItemSize: CGFloat {
+        42 + 1 / UIScreen.main.scale
     }
+    /// Poppin: the held message never starts above this line: the reactions stand over it.
+    private let minOrigin: CGFloat = 100
+    /// Poppin: a message that gives way to its menu keeps at least this much height.
+    private let minMessageContainerHeight: CGFloat = 160
 
     public init(
         factory: Factory,
@@ -277,7 +283,12 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
     private var messageContainerHeight: CGFloat {
         let maxAllowed = screenHeight / 2 - topSafeArea
         let containerHeight = messageDisplayInfo.frame.height
-        return containerHeight > maxAllowed ? maxAllowed : containerHeight
+        let height = containerHeight > maxAllowed ? maxAllowed : containerHeight
+        guard messageDisplayInfo.showsMessageActions else { return height }
+        // Poppin: a tall message gives way to a long menu (it scrolls in what is left), so the
+        // menu's last row stays on the screen while the message keeps its top line.
+        let room = lowestMenuBottom - minOrigin - messageActionsGap - messageActionsSize
+        return min(height, max(room, minMessageContainerHeight))
     }
 
     private var easeInOutAnimation: Animation {
@@ -301,8 +312,13 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
         let bottomPopupOffset =
             messageDisplayInfo.showsMessageActions ? messageActionsSize : userReactionsPopupHeight
         var originY = messageDisplayInfo.frame.origin.y
-        let minOrigin: CGFloat = 100
-        let maxOrigin: CGFloat = screenHeight - cover.bottom - messageContainerHeight - bottomPopupOffset - minOrigin - bottomOffset
+        var maxOrigin: CGFloat = screenHeight - cover.bottom - messageContainerHeight - bottomPopupOffset - minOrigin - bottomOffset
+        if messageDisplayInfo.showsMessageActions {
+            // Poppin: where the usual place would lift the message over its top line, the menu
+            // goes lower instead, down to the lowest place its last row may end.
+            let lowestOrigin = lowestMenuBottom - messageContainerHeight - messageActionsGap - messageActionsSize
+            maxOrigin = max(maxOrigin, min(minOrigin, lowestOrigin))
+        }
         if originY < minOrigin {
             originY = minOrigin
         } else if originY > maxOrigin {
@@ -318,12 +334,23 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
         return spacing > 0 ? spacing : 0
     }
 
+    /// Poppin: the menu's real height. It was 40 pt a row with a cap of a third of the screen:
+    /// from the eighth row on the menu was taller than its place allowed for, and an admin's
+    /// ninth row ended under the screen's edge (2026-11-22).
     private var messageActionsSize: CGFloat {
-        var messageActionsSize = messageItemSize * CGFloat(messageActionsCount)
-        if messageActionsSize > maxMessageActionsSize {
-            messageActionsSize = maxMessageActionsSize
-        }
-        return messageActionsSize
+        messageItemSize * CGFloat(messageActionsCount)
+    }
+
+    /// Poppin: what stands between the message and its menu: the stack's spacing and the
+    /// menu's top padding.
+    private var messageActionsGap: CGFloat {
+        8 + paddingValue
+    }
+
+    /// Poppin: the lowest place the menu's last row may end: clear of covered ground and of
+    /// the home bar's strip.
+    private var lowestMenuBottom: CGFloat {
+        screenHeight - max(cover.bottom, bottomSafeArea) - bottomOffset - 8
     }
 
     private var userReactionsPopupHeight: CGFloat {
