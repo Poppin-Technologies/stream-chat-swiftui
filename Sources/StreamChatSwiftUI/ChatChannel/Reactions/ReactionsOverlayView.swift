@@ -34,8 +34,8 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
     private var messageActionsCount: Int
     private let paddingValue: CGFloat = 16
     /// Poppin: one row of the menu as it is drawn: `ActionItemView` is 40 pt with 1 pt above
-    /// and below it, and a hairline follows every row. The menu's place is derived from this,
-    /// so it has to be the real height (see `messageActionsSize`).
+    /// and below it, and a hairline follows every row. Whether the menu fits is told from
+    /// this, so it has to be the real height (see `messageActionsSize`).
     private var messageItemSize: CGFloat {
         42 + 1 / UIScreen.main.scale
     }
@@ -310,14 +310,14 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
 
     private var originY: CGFloat {
         let bottomPopupOffset =
-            messageDisplayInfo.showsMessageActions ? messageActionsSize : userReactionsPopupHeight
+            messageDisplayInfo.showsMessageActions ? usualMessageActionsAllowance : userReactionsPopupHeight
         var originY = messageDisplayInfo.frame.origin.y
         var maxOrigin: CGFloat = screenHeight - cover.bottom - messageContainerHeight - bottomPopupOffset - minOrigin - bottomOffset
         if messageDisplayInfo.showsMessageActions {
-            // Poppin: where the usual place would lift the message over its top line, the menu
-            // goes lower instead, down to the lowest place its last row may end.
+            // Poppin: a menu longer than its usual place allows for ends on the lowest line
+            // its last row may end on, never under it.
             let lowestOrigin = lowestMenuBottom - messageContainerHeight - messageActionsGap - messageActionsSize
-            maxOrigin = max(maxOrigin, min(minOrigin, lowestOrigin))
+            maxOrigin = min(maxOrigin, lowestOrigin)
         }
         if originY < minOrigin {
             originY = minOrigin
@@ -334,11 +334,18 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
         return spacing > 0 ? spacing : 0
     }
 
-    /// Poppin: the menu's real height. It was 40 pt a row with a cap of a third of the screen:
-    /// from the eighth row on the menu was taller than its place allowed for, and an admin's
-    /// ninth row ended under the screen's edge (2026-11-22).
+    /// Poppin: the menu's real height. Its place used to come from `usualMessageActionsAllowance`
+    /// alone: from the eighth row on the menu was taller than that, and an admin's ninth row
+    /// ended under the screen's edge (2026-11-22).
     private var messageActionsSize: CGFloat {
         messageItemSize * CGFloat(messageActionsCount)
+    }
+
+    /// Poppin: what the menu's usual place allows for it: 40 pt a row, a third of the screen at
+    /// most. It is kept as it always was, so a menu that fits stands where it always stood; a
+    /// longer one ends on `lowestMenuBottom`.
+    private var usualMessageActionsAllowance: CGFloat {
+        min(40 * CGFloat(messageActionsCount), screenHeight / 3)
     }
 
     /// Poppin: what stands between the message and its menu: the stack's spacing and the
@@ -347,10 +354,10 @@ public struct ReactionsOverlayView<Factory: ViewFactory>: View {
         8 + paddingValue
     }
 
-    /// Poppin: the lowest place the menu's last row may end: clear of covered ground and of
-    /// the home bar's strip.
+    /// Poppin: the lowest line the menu's last row may end on: clear of covered ground and of
+    /// the home bar's strip, and never tight against the screen's edge.
     private var lowestMenuBottom: CGFloat {
-        screenHeight - max(cover.bottom, bottomSafeArea) - bottomOffset - 8
+        screenHeight - max(cover.bottom, bottomSafeArea, 12) - bottomOffset - 8
     }
 
     private var userReactionsPopupHeight: CGFloat {
