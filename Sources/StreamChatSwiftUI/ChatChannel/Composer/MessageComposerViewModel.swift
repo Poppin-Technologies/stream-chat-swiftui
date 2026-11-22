@@ -446,7 +446,8 @@ open class MessageComposerViewModel: ObservableObject {
                     skipEnrichUrl: skipEnrichUrl,
                     extraData: extraData,
                     mediaChoices: mediaChoices,
-                    textStyles: sentStyles
+                    textStyles: sentStyles,
+                    quotedChecklistTaskId: quotedMessage?.quotedChecklistTask?.id
                 ) { [weak self] in
                     switch $0 {
                     case .success:
@@ -468,7 +469,8 @@ open class MessageComposerViewModel: ObservableObject {
                     skipEnrichUrl: skipEnrichUrl,
                     extraData: extraData,
                     mediaChoices: mediaChoices,
-                    textStyles: sentStyles
+                    textStyles: sentStyles,
+                    quotedChecklistTaskId: quotedMessage?.quotedChecklistTask?.id
                 ) { [weak self] in
                     switch $0 {
                     case .success:
@@ -529,7 +531,8 @@ open class MessageComposerViewModel: ObservableObject {
                 quotedMessageId: quotedMessage?.id,
                 skipPush: skipPush,
                 skipEnrichUrl: false,
-                extraData: extraData
+                extraData: extraData,
+                quotedChecklistTaskId: quotedMessage?.quotedChecklistTask?.id
             ) { [weak self] in
                 switch $0 {
                 case .success:
@@ -549,7 +552,8 @@ open class MessageComposerViewModel: ObservableObject {
                 quotedMessageId: quotedMessage?.id,
                 skipPush: skipPush,
                 skipEnrichUrl: false,
-                extraData: extraData
+                extraData: extraData,
+                quotedChecklistTaskId: quotedMessage?.quotedChecklistTask?.id
             ) { [weak self] in
                 switch $0 {
                 case .success:

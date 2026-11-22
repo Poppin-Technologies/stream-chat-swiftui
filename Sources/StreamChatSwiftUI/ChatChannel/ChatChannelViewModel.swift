@@ -192,6 +192,20 @@ open class ChatChannelViewModel: ObservableObject, MessagesDataSource {
             }
         }
               
+        // Poppin: a bubble starts a reply that points at a part of itself (a checklist's task,
+        // 2026-11-22). The conversation whose channel the message is in takes it, never the
+        // library's own thread screen.
+        if messageController == nil {
+            NotificationCenter.default.publisher(for: .chatReplyRequested)
+                .compactMap { $0.object as? ChatMessage }
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] quoted in
+                    guard let self, quoted.cid == self.channelController.cid else { return }
+                    self.quotedMessage = quoted
+                }
+                .store(in: &cancellables)
+        }
+
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(didReceiveMemoryWarning),
@@ -972,3 +986,10 @@ enum AnimationChange {
 
 let firstMessageKey = "firstMessage"
 let lastMessageKey = "lastMessage"
+
+public extension Notification.Name {
+    /// Poppin: a bubble asks the open conversation to start a reply. The notification's object
+    /// is the message to reply to as the quote it shall be: marked with the part of it the
+    /// reply points at (`ChatMessage.quotingChecklistTask`, 2026-11-22).
+    static let chatReplyRequested = Notification.Name("poppin.chat.replyRequested")
+}
