@@ -476,11 +476,12 @@ struct LazyLoadingImage: View {
                 if let imageTapped = imageTapped {
                     // NOTE: needed because of bug with SwiftUI.
                     // The click area expands outside the image view (although not visible).
-                    Rectangle()
-                        .opacity(0.000001)
+                    // A clear colour with a content shape, never a nearly invisible rectangle: a shape at
+                    // opacity 0.0001 or less takes no tap on iOS 26.4 and later (measured 2026-11-22,
+                    // scripts/ui-proof/tap-opacity-lab: a single photo did not open, 3 taps of 3).
+                    Color.clear
                         .frame(width: width, height: height)
-                        .clipped()
-                        .allowsHitTesting(true)
+                        .contentShape(Rectangle())
                         .highPriorityGesture(
                             TapGesture()
                                 .onEnded { _ in
