@@ -79,12 +79,12 @@ public struct PhotoAttachmentCell: View {
                             .allowsHitTesting(false)
                             .clipped()
                         
-                        // Needed because of SwiftUI bug with tap area of Image.
-                        Rectangle()
-                            .opacity(0.000001)
+                        // Needed because of SwiftUI bug with tap area of Image. A clear colour with a content
+                        // shape, never a nearly invisible rectangle: a shape at opacity 0.0001 or less takes no
+                        // tap on iOS 26.4 and later (measured 2026-11-22, scripts/ui-proof/tap-opacity-lab).
+                        Color.clear
                             .frame(width: reader.size.width, height: reader.size.height)
-                            .clipped()
-                            .allowsHitTesting(true)
+                            .contentShape(Rectangle())
                             .onTapGesture {
                                 withAnimation {
                                     if let assetURL = assetURL {
