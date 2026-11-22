@@ -213,8 +213,12 @@ public struct MessageListView<Factory: ViewFactory>: View, KeyboardReadable {
                               utils.isAnon = factory.isFirst
                             }
                             .onAppear() {
-                              utils.isAnonModeOn = { c in
-                                factory.isAnonModeOn(channel: c)
+                              // The shared `utils` outlives every chat screen: this closure holds the factory
+                              // weakly and nothing else. With a strong capture the whole list view came along,
+                              // and the last chat's screen, its view models and its channel controller lived
+                              // until another chat opened (measured 2026-11-22, a memory graph).
+                              utils.isAnonModeOn = { [weak factory] c in
+                                factory?.isAnonModeOn(channel: c) ?? false
                               }
                             }
                             .padding(
