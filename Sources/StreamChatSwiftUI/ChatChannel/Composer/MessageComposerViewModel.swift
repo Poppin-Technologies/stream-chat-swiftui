@@ -34,9 +34,10 @@ open class MessageComposerViewModel: ObservableObject {
         didSet {
             checkPickerSelectionState()
             // Poppin: the two choices belong to the photos; a draft without one has none.
-            if addedAssets.isEmpty, viewOnceChosen || noScreenshotsChosen {
+            if addedAssets.isEmpty, viewOnceChosen || noScreenshotsChosen || invisibleInkChosen {
                 viewOnceChosen = false
                 noScreenshotsChosen = false
+                invisibleInkChosen = false
             }
         }
     }
@@ -60,6 +61,7 @@ open class MessageComposerViewModel: ObservableObject {
         } else {
             viewOnceChosen = true
             noScreenshotsChosen = true
+            invisibleInkChosen = false
         }
     }
 
@@ -69,14 +71,53 @@ open class MessageComposerViewModel: ObservableObject {
         } else {
             noScreenshotsChosen = true
             viewOnceChosen = true
+            invisibleInkChosen = false
         }
     }
 
+    /// Poppin (2026-11-22): Invisible Ink for the photos and videos of this draft: they arrive
+    /// blurred under dust and show at a tap. A cover, where the two above are seals, so the
+    /// field takes one or the other: lighting it puts View Once and No Screenshots out, and
+    /// lighting one of them puts it out.
+    @Published public private(set) var invisibleInkChosen = false
+
+    /// Invisible Ink is offered for this draft: the two choices above are (so the draft holds
+    /// a photo or a video), and so are text styles (the app's switch and the server's
+    /// `textStyles`). Never without the two: a send then says nothing about View Once, the
+    /// server seals every photo of a dm or a group by its own rule, and the seal wins over
+    /// the ink, so the reader would get "Tap to view" where the sender reads "Hidden until
+    /// tapped".
+    public var offersInvisibleInk: Bool {
+        offersMediaChoices && ChatTextStyles.isOffered(by: chatClient)
+    }
+
+    public func toggleInvisibleInk() {
+        if invisibleInkChosen {
+            invisibleInkChosen = false
+        } else {
+            invisibleInkChosen = true
+            viewOnceChosen = false
+            noScreenshotsChosen = false
+        }
+    }
+
+    /// The room the app's round choice buttons take beside the send arrow: the two seals, and
+    /// Invisible Ink with them where it is offered (one button, half the room of the two).
+    var choiceButtonsRoom: CGFloat {
+        guard offersMediaChoices else { return 0 }
+        return ChatMediaProtection.choiceButtonsWidth * (offersInvisibleInk ? 1.5 : 1)
+    }
+
     /// What this send says about its photos and videos: nothing while the choices are not
-    /// offered (the server's own rule holds), else the two as they stand, off included.
+    /// offered (the server's own rule holds), else the two as they stand, off included, and
+    /// Invisible Ink where it is offered and lit.
     private var sendMediaChoices: MediaSendChoices {
         guard offersMediaChoices else { return MediaSendChoices() }
-        return MediaSendChoices(viewOnce: viewOnceChosen, screenshotsBlocked: noScreenshotsChosen)
+        return MediaSendChoices(
+            viewOnce: viewOnceChosen,
+            screenshotsBlocked: noScreenshotsChosen,
+            invisibleInk: offersInvisibleInk && invisibleInkChosen
+        )
     }
 
     /// Poppin (2026-11-22): the styles of the draft's words (bold, italic, underline,
@@ -831,6 +872,7 @@ open class MessageComposerViewModel: ObservableObject {
         let mentionedUsers: Set<ChatUser>
         let viewOnceChosen: Bool
         let noScreenshotsChosen: Bool
+        let invisibleInkChosen: Bool
         let textStyles: [ChatTextStyle]
     }
 
@@ -844,6 +886,7 @@ open class MessageComposerViewModel: ObservableObject {
             mentionedUsers: mentionedUsers,
             viewOnceChosen: viewOnceChosen,
             noScreenshotsChosen: noScreenshotsChosen,
+            invisibleInkChosen: invisibleInkChosen,
             textStyles: textStyles.styles
         )
     }
@@ -865,6 +908,7 @@ open class MessageComposerViewModel: ObservableObject {
         mentionedUsers = snapshot.mentionedUsers
         viewOnceChosen = snapshot.viewOnceChosen
         noScreenshotsChosen = snapshot.noScreenshotsChosen
+        invisibleInkChosen = snapshot.invisibleInkChosen
     }
     
     private func checkPickerSelectionState() {

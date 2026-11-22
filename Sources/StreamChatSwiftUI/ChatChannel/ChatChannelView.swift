@@ -211,6 +211,8 @@ public struct ChatChannelView<Factory: ViewFactory>: View, KeyboardReadable {
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("ChatChannelView")
         .environmentObject(viewModel)
+        // Poppin (2026-11-22): what a tap on a photo under Invisible Ink holds for (`ChatInkReveals`).
+        .environment(\.chatInkScreen, viewModel)
     }
 
     // MARK: - Poppin: conversation + composer pieces

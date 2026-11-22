@@ -119,18 +119,14 @@ public struct ImageAttachmentContainer<Factory: ViewFactory>: View {
                     VanishingMediaCard(kind: .photo, width: width, opensOnce: isSealed) {
                         open(0)
                     }
+                } else if message.mediaIsUnderInk {
+                    // Poppin (2026-11-22): under Invisible Ink until its reader taps it; the
+                    // next tap opens the photo as on any other.
+                    InkMediaGate(message: message) { covered, uncover in
+                        photoTile.inkCover(covered, uncover: uncover)
+                    }
                 } else {
-                    ImageAttachmentView(
-                        message: message,
-                        width: width,
-                        hugsShape: message.text.isEmpty && utils.messageCachingUtils.quotedMessage(for: message) == nil
-                    ) { index in
-                        open(index)
-                    }
-                    .transaction { transaction in
-                      transaction.disablesAnimations = true
-                      transaction.animation = nil
-                    }
+                    photoTile
                 }
 
                 if !message.text.isEmpty {
@@ -146,6 +142,21 @@ public struct ImageAttachmentContainer<Factory: ViewFactory>: View {
                 )
             )
         )
+    }
+
+    /// The photo, or the grid of several, as the bubble holds it.
+    private var photoTile: some View {
+        ImageAttachmentView(
+            message: message,
+            width: width,
+            hugsShape: message.text.isEmpty && utils.messageCachingUtils.quotedMessage(for: message) == nil
+        ) { index in
+            open(index)
+        }
+        .transaction { transaction in
+          transaction.disablesAnimations = true
+          transaction.animation = nil
+        }
     }
 
     /// The stack has no bubble. A quote keeps its place above it and a caption gets a bubble of its
@@ -168,12 +179,30 @@ public struct ImageAttachmentContainer<Factory: ViewFactory>: View {
                     )
                 }
 
-                PhotoStackView(
-                    message: message,
-                    width: width,
-                    photoTapped: { index in open(index) },
-                    gridTapped: { open(0, grid: true) }
-                )
+                if message.mediaIsUnderInk {
+                    // Poppin (2026-11-22): under Invisible Ink the stack stands blurred and
+                    // still; a tap on it uncovers every photo of the message.
+                    InkMediaGate(message: message) { covered, uncover in
+                        PhotoStackView(
+                            message: message,
+                            width: width,
+                            covered: covered,
+                            photoTapped: { index in
+                                if covered { uncover() } else { open(index) }
+                            },
+                            gridTapped: {
+                                if covered { uncover() } else { open(0, grid: true) }
+                            }
+                        )
+                    }
+                } else {
+                    PhotoStackView(
+                        message: message,
+                        width: width,
+                        photoTapped: { index in open(index) },
+                        gridTapped: { open(0, grid: true) }
+                    )
+                }
 
                 if !message.text.isEmpty {
                     factory.makeMessageText(message: message)

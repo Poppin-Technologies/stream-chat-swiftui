@@ -138,6 +138,21 @@ public struct VideoAttachmentView: View {
     @State var fullScreenShown = false
 
     public var body: some View {
+        Group {
+            if message.mediaIsUnderInk {
+                // Poppin (2026-11-22): under Invisible Ink until its reader taps it; the next
+                // tap plays the video as on any other.
+                InkMediaGate(message: message, part: attachment.videoURL.absoluteString) { covered, uncover in
+                    player.inkCover(covered, cornerRadius: cornerRadius, uncover: uncover)
+                }
+            } else {
+                player
+            }
+        }
+        .accessibilityIdentifier("VideoAttachmentView")
+    }
+
+    private var player: some View {
         VideoAttachmentContentView(
             attachment: attachment,
             author: message.author,
@@ -153,7 +168,6 @@ public struct VideoAttachmentView: View {
                 }
             }
         )
-        .accessibilityIdentifier("VideoAttachmentView")
     }
 }
 

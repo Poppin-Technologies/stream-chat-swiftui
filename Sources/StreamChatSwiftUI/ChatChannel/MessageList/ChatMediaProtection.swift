@@ -27,7 +27,9 @@ public enum ChatMediaProtection {
     }
 
     /// How wide the app's two choice buttons stand beside the send arrow. The app draws them,
-    /// so it says; the field's words keep clear of that much while the buttons show.
+    /// so it says; the field's words keep clear of that much while the buttons show. The
+    /// Invisible Ink button is a third of the same size and takes half of this again
+    /// (`MessageComposerViewModel.choiceButtonsRoom`).
     public static var choiceButtonsWidth: CGFloat = 0
 }
 
@@ -40,6 +42,11 @@ public extension ChatMessage {
 
     /// Either: a message list draws the "Tap to view" card in its place, never the picture.
     var mediaIsSealed: Bool { mediaOpensOnce || mediaIsCovered }
+
+    /// A photo or video its sender hid in Invisible Ink (2026-11-22): a message list draws it
+    /// blurred under dust until its reader taps it (`InkMediaGate`), its sender's own list
+    /// too. A cover only, so the sealed card wins where a message carries both.
+    var mediaIsUnderInk: Bool { hidesMediaUnderInk && !mediaIsSealed }
 }
 
 extension View {
@@ -116,6 +123,8 @@ struct MediaChoiceLine: View {
     }
 
     private var line: String? {
+        // Invisible Ink (2026-11-22) and the two seals put each other out, so one line says it.
+        if viewModel.offersInvisibleInk, viewModel.invisibleInkChosen { return "Hidden until tapped" }
         guard viewModel.offersMediaChoices else { return nil }
         switch (viewModel.viewOnceChosen, viewModel.noScreenshotsChosen) {
         case (true, true): return "Opens once. No screenshots."

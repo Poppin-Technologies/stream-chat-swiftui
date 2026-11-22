@@ -491,9 +491,10 @@ public struct ComposerInputView<Factory: ViewFactory>: View, KeyboardReadable {
         )
       }
       .frame(height: textFieldHeight)
-      // Poppin (2026-11-21): the words keep clear of the app's two choice buttons (View Once,
-      // No Screenshots), which stand beside the send arrow while the draft holds a photo.
-      .padding(.trailing, viewModel.offersMediaChoices ? ChatMediaProtection.choiceButtonsWidth : 0)
+      // Poppin (2026-11-21): the words keep clear of the app's choice buttons (View Once, No
+      // Screenshots, and Invisible Ink since 2026-11-22), which stand beside the send arrow
+      // while the draft holds a photo.
+      .padding(.trailing, viewModel.choiceButtonsRoom)
     }
     .padding(.vertical, shouldAddVerticalPadding ? inputPaddingsConfig.vertical : 0)
     .padding(.leading, inputPaddingsConfig.leading)

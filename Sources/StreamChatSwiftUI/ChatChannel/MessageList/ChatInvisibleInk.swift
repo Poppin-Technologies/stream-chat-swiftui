@@ -219,3 +219,124 @@ public final class InkDustView: UIView {
         context.cgContext.fillEllipse(in: CGRect(x: 0, y: 0, width: 4, height: 4))
     }
 }
+
+// MARK: - A photo or a video under Invisible Ink (2026-11-22)
+
+private struct ChatInkScreenKey: EnvironmentKey {
+    static var defaultValue: AnyObject? { nil }
+}
+
+public extension EnvironmentValues {
+    /// The open chat screen's own object (its view model): what a tap on Invisible Ink holds
+    /// for (`ChatInkReveals`). nil outside a chat screen: a tap then holds for its row only.
+    var chatInkScreen: AnyObject? {
+        get { self[ChatInkScreenKey.self] }
+        set { self[ChatInkScreenKey.self] = newValue }
+    }
+}
+
+/// Decides whether a message's photos and videos still stand under Invisible Ink, and takes
+/// the tap that uncovers them. The tap holds for as long as the chat screen stands
+/// (`ChatInkReveals`), so a row that is built anew (a reaction, a scroll away and back, the
+/// hold menu) does not cover again what its reader has opened.
+public struct InkMediaGate<Content: View>: View {
+    @Environment(\.chatInkScreen) private var screen
+    @State private var tapped = false
+
+    private let message: ChatMessage
+    private let part: String
+    private let content: (Bool, @escaping () -> Void) -> Content
+
+    /// `part` names one tile of a message whose tiles open one by one (its videos); empty for
+    /// a tile that stands for all of them (a photo, a grid, a stack). `content` gets whether
+    /// the tile is covered, and what a tap on the cover does.
+    public init(
+        message: ChatMessage,
+        part: String = "",
+        @ViewBuilder content: @escaping (_ covered: Bool, _ uncover: @escaping () -> Void) -> Content
+    ) {
+        self.message = message
+        self.part = part
+        self.content = content
+    }
+
+    public var body: some View {
+        content(covered, uncover)
+    }
+
+    /// Apart from the message's words, which open at their own tap.
+    private var revealId: MessageId { message.id + "#media" + part }
+
+    /// Read on every draw and not kept: a row that is built anew starts with `tapped` false,
+    /// and must not show its dust for a frame over a photo that was opened.
+    private var covered: Bool {
+        guard message.mediaIsUnderInk, !tapped else { return false }
+        guard let screen = screen else { return true }
+        return !ChatInkReveals.shared.isOpen(revealId, on: screen)
+    }
+
+    private func uncover() {
+        if let screen = screen {
+            ChatInkReveals.shared.open(revealId, on: screen)
+        }
+        withAnimation(.easeOut(duration: 0.35)) {
+            tapped = true
+        }
+    }
+}
+
+public extension View {
+    /// A photo or video tile under Invisible Ink: while `covered` it is blurred past reading
+    /// with the dust over it, its own taps stand down, and one tap on it calls `uncover`.
+    /// `cornerRadius` is the tile's own: the cover is cut to it. Only for the tiles of a
+    /// message that carries the mark (`ChatMessage.mediaIsUnderInk`), so every other tile is
+    /// drawn exactly as before.
+    func inkCover(_ covered: Bool, cornerRadius: CGFloat = 0, uncover: @escaping () -> Void) -> some View {
+        modifier(InkMediaCover(covered: covered, cornerRadius: cornerRadius, uncover: uncover))
+    }
+}
+
+struct InkMediaCover: ViewModifier {
+    let covered: Bool
+    let cornerRadius: CGFloat
+    let uncover: () -> Void
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        return content
+            .blur(radius: covered ? 30 : 0, opaque: covered)
+            .allowsHitTesting(!covered)
+            // VoiceOver reads the cover, never the photo under it.
+            .accessibilityHidden(covered)
+            .overlay(
+                ZStack {
+                    if covered {
+                        // Under the specks, so the tile reads as covered wherever no speck
+                        // happens to be, on a bright photo too.
+                        Color.black.opacity(0.22)
+                        InkDust()
+                    }
+                }
+                .allowsHitTesting(false)
+            )
+            // hit-clip: the blur spills past the tile; the cut and the touch area are the tile's own shape
+            .clipShape(shape)
+            .contentShape(shape)
+            .overlay(
+                ZStack {
+                    if covered {
+                        // The tap is taken the way a tile takes its own (`LazyLoadingImage`),
+                        // so a hold still reaches the row.
+                        Color.clear
+                            .contentShape(shape)
+                            .highPriorityGesture(TapGesture().onEnded { uncover() })
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel("Hidden with Invisible Ink")
+                            .accessibilityHint("Double tap to show")
+                            .accessibilityAddTraits(.isButton)
+                            .accessibilityIdentifier("chat-ink-media-covered")
+                    }
+                }
+            )
+    }
+}

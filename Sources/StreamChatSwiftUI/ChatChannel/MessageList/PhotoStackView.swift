@@ -122,6 +122,9 @@ struct PhotoStackView: View {
 
     let message: ChatMessage
     let width: CGFloat
+    /// Poppin (2026-11-22): the photos stand under Invisible Ink: blurred past reading, the
+    /// dust over the card in front, and the stack does not turn. The caller's taps uncover it.
+    var covered = false
     /// A tap on the stack: the index of the photo in front.
     let photoTapped: (Int) -> Void
     /// A tap on "8 Photos".
@@ -160,15 +163,39 @@ struct PhotoStackView: View {
                         .allowsHitTesting(false)
                     pages(.main, sizes: sizes, seat: seat, height: height)
                 }
+                .modifier(InkStackBlur(marked: message.mediaIsUnderInk, covered: covered))
             }
             .scrollTargetBehavior(.paging)
             .scrollIndicators(.hidden)
             .scrollClipDisabled()
+            .scrollDisabled(covered)
             .frame(width: width, height: height)
             .background(PhotoStackAreaMarker())
+            .overlay(alignment: .topLeading) {
+                if covered, let front = sizes.first {
+                    inkDust(over: front, seat: seat, height: height)
+                }
+            }
         }
         .frame(width: width, alignment: isOwn ? .trailing : .leading)
         .accessibilityIdentifier("PhotoStackView")
+    }
+
+    /// The dust over the card in front, where it rests while the stack stands under Invisible
+    /// Ink (the stack does not turn then, so the first photo stays in front).
+    private func inkDust(over front: CGSize, seat: CGFloat, height: CGFloat) -> some View {
+        let seatLeading = isOwn ? width - Self.fanRoom - seat : Self.peekRoom
+        return ZStack {
+            Color.black.opacity(0.22)
+            InkDust()
+        }
+        .frame(width: front.width, height: front.height)
+        .clipShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
+        .padding(.leading, seatLeading + (seat - front.width) / 2)
+        .padding(.top, (height - front.height) / 2)
+        // hit-clip: a still cover; the page under it takes the tap
+        .allowsHitTesting(false)
+        .transition(.opacity)
     }
 
     private var countLabel: some View {
@@ -257,5 +284,22 @@ struct PhotoStackView: View {
             .frame(width: size.width, height: size.height)
             .clipShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
             .shadow(color: Color.black.opacity(0.28), radius: 5, x: 0, y: 2)
+    }
+}
+
+/// The cards of a stack under Invisible Ink, blurred past reading. Asked by the message's mark
+/// and not by `covered`, so a stack keeps its identity through the tap that uncovers it, and a
+/// message without the mark is drawn exactly as before.
+@available(iOS 17.0, *)
+private struct InkStackBlur: ViewModifier {
+    let marked: Bool
+    let covered: Bool
+
+    func body(content: Content) -> some View {
+        if marked {
+            content.blur(radius: covered ? 26 : 0)
+        } else {
+            content
+        }
     }
 }
