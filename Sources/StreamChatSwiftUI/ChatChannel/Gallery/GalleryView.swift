@@ -25,6 +25,8 @@ public struct GalleryView: View {
     /// no Reply (the message is gone when the viewer closes) and no grid. The sender's own photos keep
     /// all three: in a dm or a group every photo is on that lifecycle.
     var isOneTimeView: Bool
+    /// Poppin (2026-11-21): a photo its sender marked No Screenshots. No Share: it could be saved.
+    var isProtected: Bool
     /// Reply under a photo. The chat row sets it; nil on the group's media page, where there is no
     /// message to answer.
     var onReply: (() -> Void)?
@@ -47,6 +49,7 @@ public struct GalleryView: View {
             selected: selected,
             startsInGrid: false,
             isOneTimeView: false,
+            isProtected: false,
             onReply: nil
         )
     }
@@ -58,12 +61,14 @@ public struct GalleryView: View {
         selected: Int,
         startsInGrid: Bool,
         isOneTimeView: Bool,
+        isProtected: Bool = false,
         onReply: (() -> Void)?
     ) {
         self.imageAttachments = imageAttachments
         self.author = author
         _isShown = isShown
         self.isOneTimeView = isOneTimeView
+        self.isProtected = isProtected
         self.onReply = onReply
         _selected = State(initialValue: selected)
         _gridShown = State(initialValue: startsInGrid && !isOneTimeView)
@@ -199,7 +204,7 @@ public struct GalleryView: View {
 
     private var bottomBar: some View {
         HStack {
-            if !isOneTimeView {
+            if !isOneTimeView, !isProtected {
                 ShareButtonView(content: sharingContent, tint: colors.tintColor)
                     .frame(width: 44, height: 44)
             }

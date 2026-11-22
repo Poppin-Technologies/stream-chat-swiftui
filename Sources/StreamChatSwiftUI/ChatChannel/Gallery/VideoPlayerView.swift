@@ -16,14 +16,18 @@ public struct VideoPlayerView: View {
     let attachment: ChatMessageVideoAttachment
     let author: ChatUser
     @Binding var isShown: Bool
+    /// Poppin (2026-11-21): false for a View Once or No Screenshots video. No Share: it could be saved.
+    let allowsShare: Bool
 
     private let avPlayer: AVPlayer
 
     public init(
         attachment: ChatMessageVideoAttachment,
         author: ChatUser,
-        isShown: Binding<Bool>
+        isShown: Binding<Bool>,
+        allowsShare: Bool = true
     ) {
+        self.allowsShare = allowsShare
         self.attachment = attachment
         self.author = author
         avPlayer = AVPlayer(url: attachment.payload.videoURL)
@@ -40,8 +44,10 @@ public struct VideoPlayerView: View {
             VideoPlayer(player: avPlayer)
             Spacer()
             HStack {
-                ShareButtonView(content: [attachment.payload.videoURL])
-                    .standardPadding()
+                if allowsShare {
+                    ShareButtonView(content: [attachment.payload.videoURL])
+                        .standardPadding()
+                }
 
                 Spacer()
             }

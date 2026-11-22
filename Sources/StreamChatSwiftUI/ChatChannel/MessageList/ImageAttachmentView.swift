@@ -29,12 +29,18 @@ public struct ImageAttachmentContainer<Factory: ViewFactory>: View {
     /// view itself is what makes it disappear: closing the gallery reports `viewed`, the server
     /// tombstones the line and the `message.deleted` frame removes the row on both phones.
     private var isVanishing: Bool { message.extraData["expiresAt"] != nil }
-    private var isSealed: Bool { isVanishing && !message.isSentByCurrentUser }
+    /// Opens once: the card, the one view, the report on closing.
+    private var isSealed: Bool { message.mediaOpensOnce }
+    /// Poppin (2026-11-21): a photo its sender marked No Screenshots shows to the other person
+    /// only inside the covered viewer, so the list draws the card for it too. Without View Once
+    /// it stays, and opens as often as they like.
+    private var isCovered: Bool { message.mediaIsCovered }
+    private var showsCard: Bool { message.mediaIsSealed }
 
     /// Poppin (2026-11-21): two or more photos draw as a stack with no bubble, like Messages.
     private var showsStack: Bool {
         guard #available(iOS 17.0, *) else { return false }
-        return !isSealed && message.imageAttachments.count > 1
+        return !showsCard && message.imageAttachments.count > 1
     }
 
     private var edge: HorizontalAlignment {
@@ -50,8 +56,8 @@ public struct ImageAttachmentContainer<Factory: ViewFactory>: View {
             } else {
                 bubbleBody
             }
-            if isVanishing && message.isSentByCurrentUser {
-                VanishingMediaCaption()
+            if message.isSentByCurrentUser, isVanishing || message.blocksScreenshots {
+                VanishingMediaCaption(opensOnce: isVanishing, noScreenshots: message.blocksScreenshots)
             }
         }
         .fullScreenCover(item: $viewer, onDismiss: {
@@ -75,11 +81,13 @@ public struct ImageAttachmentContainer<Factory: ViewFactory>: View {
                 selected: start.index,
                 startsInGrid: start.grid,
                 isOneTimeView: isSealed,
+                isProtected: isCovered,
                 onReply: photoViewerReply == nil ? nil : {
                     replyAfterClose = true
                     viewer = nil
                 }
             )
+            .mediaCover(isCovered) { viewer = nil }
         }
         .accessibilityIdentifier("ImageAttachmentContainer")
     }
@@ -107,8 +115,8 @@ public struct ImageAttachmentContainer<Factory: ViewFactory>: View {
                 alignment: message.alignmentInBubble,
                 spacing: 0
             ) {
-                if isSealed {
-                    VanishingMediaCard(kind: .photo, width: width) {
+                if showsCard {
+                    VanishingMediaCard(kind: .photo, width: width, opensOnce: isSealed) {
                         open(0)
                     }
                 } else {

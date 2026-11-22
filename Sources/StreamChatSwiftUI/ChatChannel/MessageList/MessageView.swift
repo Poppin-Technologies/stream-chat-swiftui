@@ -28,7 +28,10 @@ public struct MessageView<Factory: ViewFactory>: View {
 
     public var body: some View {
         VStack {
-            if messageTypeResolver.isDeleted(message: message) {
+            if let opened = message.openedMedia {
+                // Poppin (2026-11-21): the line an opened View Once photo or video leaves.
+                OpenedMediaLine(kind: opened)
+            } else if messageTypeResolver.isDeleted(message: message) {
                 factory.makeDeletedMessageView(
                     for: message,
                     isFirst: isFirst,

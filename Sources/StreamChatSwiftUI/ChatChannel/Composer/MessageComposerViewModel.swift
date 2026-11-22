@@ -33,7 +33,50 @@ open class MessageComposerViewModel: ObservableObject {
     @Published public var addedAssets = [AddedAsset]() {
         didSet {
             checkPickerSelectionState()
+            // Poppin: the two choices belong to the photos; a draft without one has none.
+            if addedAssets.isEmpty, viewOnceChosen || noScreenshotsChosen {
+                viewOnceChosen = false
+                noScreenshotsChosen = false
+            }
         }
+    }
+
+    /// Poppin (2026-11-21): View Once and No Screenshots, the sender's two choices for the
+    /// photos and videos of this draft. Both start off: the photo stays, as in Messages.
+    /// Turning one on turns the other on with it; a tap on one that is on turns off that one
+    /// only (Jackie: "when one turn on the other auto turn on").
+    @Published public private(set) var viewOnceChosen = false
+    @Published public private(set) var noScreenshotsChosen = false
+
+    /// The draft holds a photo or a video and the choices are offered (the app's switch and
+    /// the server's `viewOnce`).
+    public var offersMediaChoices: Bool {
+        !addedAssets.isEmpty && ChatMediaProtection.isOffered(by: chatClient)
+    }
+
+    public func toggleViewOnce() {
+        if viewOnceChosen {
+            viewOnceChosen = false
+        } else {
+            viewOnceChosen = true
+            noScreenshotsChosen = true
+        }
+    }
+
+    public func toggleNoScreenshots() {
+        if noScreenshotsChosen {
+            noScreenshotsChosen = false
+        } else {
+            noScreenshotsChosen = true
+            viewOnceChosen = true
+        }
+    }
+
+    /// What this send says about its photos and videos: nothing while the choices are not
+    /// offered (the server's own rule holds), else the two as they stand, off included.
+    private var sendMediaChoices: MediaSendChoices {
+        guard offersMediaChoices else { return MediaSendChoices() }
+        return MediaSendChoices(viewOnce: viewOnceChosen, screenshotsBlocked: noScreenshotsChosen)
     }
     
     @Published public var text = "" {
@@ -291,6 +334,8 @@ open class MessageComposerViewModel: ObservableObject {
         // Captured before `clearInputData()` empties the composer below — the clear runs at
         // send-initiation, not on ack, so a failed send must hand the draft back to the user.
         let inputSnapshot = composerInputSnapshot()
+        // Poppin: read before `clearInputData()` below empties the draft and its choices.
+        let mediaChoices = sendMediaChoices
 
         do {
             var attachments = try addedAssets.map { try $0.toAttachmentPayload() }
@@ -332,7 +377,8 @@ open class MessageComposerViewModel: ObservableObject {
                     quotedMessageId: quotedMessage?.id,
                     skipPush: skipPush,
                     skipEnrichUrl: skipEnrichUrl,
-                    extraData: extraData
+                    extraData: extraData,
+                    mediaChoices: mediaChoices
                 ) { [weak self] in
                     switch $0 {
                     case .success:
@@ -352,7 +398,8 @@ open class MessageComposerViewModel: ObservableObject {
                     quotedMessageId: quotedMessage?.id,
                     skipPush: skipPush,
                     skipEnrichUrl: skipEnrichUrl,
-                    extraData: extraData
+                    extraData: extraData,
+                    mediaChoices: mediaChoices
                 ) { [weak self] in
                     switch $0 {
                     case .success:
@@ -752,6 +799,8 @@ open class MessageComposerViewModel: ObservableObject {
         let addedVoiceRecordings: [AddedVoiceRecording]
         let addedCustomAttachments: [CustomAttachment]
         let mentionedUsers: Set<ChatUser>
+        let viewOnceChosen: Bool
+        let noScreenshotsChosen: Bool
     }
 
     private func composerInputSnapshot() -> ComposerInputSnapshot {
@@ -761,7 +810,9 @@ open class MessageComposerViewModel: ObservableObject {
             addedFileURLs: addedFileURLs,
             addedVoiceRecordings: addedVoiceRecordings,
             addedCustomAttachments: addedCustomAttachments,
-            mentionedUsers: mentionedUsers
+            mentionedUsers: mentionedUsers,
+            viewOnceChosen: viewOnceChosen,
+            noScreenshotsChosen: noScreenshotsChosen
         )
     }
 
@@ -779,6 +830,8 @@ open class MessageComposerViewModel: ObservableObject {
         addedVoiceRecordings = snapshot.addedVoiceRecordings
         addedCustomAttachments = snapshot.addedCustomAttachments
         mentionedUsers = snapshot.mentionedUsers
+        viewOnceChosen = snapshot.viewOnceChosen
+        noScreenshotsChosen = snapshot.noScreenshotsChosen
     }
     
     private func checkPickerSelectionState() {

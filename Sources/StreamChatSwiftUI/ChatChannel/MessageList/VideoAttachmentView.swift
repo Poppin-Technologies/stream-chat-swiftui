@@ -20,8 +20,8 @@ public struct VideoAttachmentsContainer<Factory: ViewFactory>: View {
         // its colour (it was drawn inside when the video had a caption or a quote).
         VStack(alignment: message.isSentByCurrentUser ? .trailing : .leading, spacing: 0) {
             bubble
-            if message.extraData["expiresAt"] != nil && message.isSentByCurrentUser {
-                VanishingMediaCaption()
+            if message.isSentByCurrentUser, message.extraData["expiresAt"] != nil || message.blocksScreenshots {
+                VanishingMediaCaption(opensOnce: message.extraData["expiresAt"] != nil, noScreenshots: message.blocksScreenshots)
             }
         }
         .accessibilityIdentifier("VideoAttachmentsContainer")
@@ -117,7 +117,7 @@ public struct VideoAttachmentView: View {
     /// Poppin (2026-11-06): a live dm/group video on the vanishing lifecycle is sealed for the
     /// other person until they open it; closing the player reports `viewed` (see
     /// ImageAttachmentContainer for the photo twin).
-    private var isSealed: Bool { message.extraData["expiresAt"] != nil && !message.isSentByCurrentUser }
+    private var isSealed: Bool { message.mediaOpensOnce }
 
     public init(
         attachment: ChatMessageVideoAttachment,
@@ -144,7 +144,9 @@ public struct VideoAttachmentView: View {
             width: width,
             ratio: ratio,
             cornerRadius: cornerRadius,
-            sealed: isSealed,
+            sealed: message.mediaIsSealed,
+            opensOnce: isSealed,
+            covered: message.mediaIsCovered,
             onViewerClosed: {
                 if isSealed, let cid = message.cid {
                     chatClient.reportMediaViewed(channelId: cid.id, messageId: message.id)
@@ -172,6 +174,10 @@ public struct VideoAttachmentContentView: View {
     /// Poppin (2026-11-06): a sealed vanishing video draws the "Tap to view" card instead of
     /// its poster; `onViewerClosed` fires when the full-screen player is dismissed.
     public var sealed: Bool = false
+    /// Poppin (2026-11-21): false for a sealed video that stays (No Screenshots without View
+    /// Once); `covered` shows its player inside the app's capture cover.
+    public var opensOnce: Bool = true
+    public var covered: Bool = false
     public var onViewerClosed: (() -> Void)? = nil
   
   
@@ -182,6 +188,8 @@ public struct VideoAttachmentContentView: View {
         ratio: CGFloat,
         cornerRadius: CGFloat,
         sealed: Bool = false,
+        opensOnce: Bool = true,
+        covered: Bool = false,
         onViewerClosed: (() -> Void)? = nil
     ) {
       self.attachment = attachment
@@ -190,6 +198,8 @@ public struct VideoAttachmentContentView: View {
       self.ratio = ratio
       self.cornerRadius = cornerRadius
       self.sealed = sealed
+      self.opensOnce = opensOnce
+      self.covered = covered
       self.onViewerClosed = onViewerClosed
     }
 
@@ -200,7 +210,7 @@ public struct VideoAttachmentContentView: View {
     public var body: some View {
         Group {
             if sealed {
-                VanishingMediaCard(kind: .video, width: width, ratio: ratio, cornerRadius: cornerRadius) {
+                VanishingMediaCard(kind: .video, width: width, ratio: ratio, cornerRadius: cornerRadius, opensOnce: opensOnce) {
                     fullScreenShown = true
                 }
             } else {
@@ -213,8 +223,10 @@ public struct VideoAttachmentContentView: View {
             VideoPlayerView(
                 attachment: attachment,
                 author: author,
-                isShown: $fullScreenShown
+                isShown: $fullScreenShown,
+                allowsShare: !sealed
             )
+            .mediaCover(covered) { fullScreenShown = false }
         }
         .onAppear {
             guard !sealed else { return } // nothing to preview behind the seal
