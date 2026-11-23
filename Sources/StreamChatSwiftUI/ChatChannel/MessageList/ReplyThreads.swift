@@ -11,7 +11,9 @@ import SwiftUI
 /// message whose chain reaches it, so a reply to a reply stays in the thread of the first one.
 /// Replies that stand right under their root, or right under another reply of their thread,
 /// form a run: the list joins a run with one line and shows the root once, above its first
-/// reply. Built once per change of the list (`ChatChannelViewModel.messages`); the rows, the
+/// reply. A run is about one thing: replies to different tasks of a checklist stand in runs
+/// of their own, each under an outline that names its task.
+/// Built once per change of the list (`ChatChannelViewModel.messages`); the rows, the
 /// "N Replies" line and the reply view all read this one index.
 public struct ReplyThreads {
 
@@ -41,6 +43,7 @@ public struct ReplyThreads {
                 quotedIdOf[message.id] = quotedId
             }
         }
+        var taskOf = [MessageId: String]()
         var older: ChatMessage?
         for message in messages.reversed() {
             if let older {
@@ -64,10 +67,24 @@ public struct ReplyThreads {
             }
             rootOf[message.id] = root
             repliesOf[root, default: []].append(message)
-            // Joined to the row above: the root itself, or an earlier reply of the thread.
-            if let older, older.id == root || (Self.isReply(older) && rootOf[older.id] == root) {
-                aboveOf[message.id] = older.id
-                belowOf[older.id] = message.id
+            // The task of a checklist this reply is about ("Reply to Item", 2026-11-22): the
+            // one its own quote names, and for a reply to a reply the task of the one it answers.
+            let task = message.quotedMessage.flatMap { $0.quotedChecklistTask?.id ?? taskOf[$0.id] }
+            if let task {
+                taskOf[message.id] = task
+            }
+            // Joined to the row above: the root itself, or an earlier reply of the thread. A
+            // reply about one task of a checklist joins only a reply about that same task, and
+            // never the list itself: the outline over a run is where its task is named, so a
+            // run ends where the task changes.
+            if let older {
+                let joins = older.id == root
+                    ? task == nil
+                    : Self.isReply(older) && rootOf[older.id] == root && taskOf[older.id] == task
+                if joins {
+                    aboveOf[message.id] = older.id
+                    belowOf[older.id] = message.id
+                }
             }
         }
     }
